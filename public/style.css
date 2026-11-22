@@ -618,7 +618,7 @@ body{padding-bottom:100px}
 .casebattle-roulette .roulette-winner>small{color:#ffe08b}
 .roulette-edge-fade{position:absolute;z-index:1;inset:0;pointer-events:none;background:linear-gradient(90deg,#09111b 0,transparent 12%,transparent 88%,#09111b 100%)}
 .upgrade-wheel{transition:transform 4.4s cubic-bezier(.08,.76,.08,1);will-change:transform;cursor:default}
-.upgrade-wheel-pointer{transform:rotate(0deg)!important;transition:none!important}
+.upgrade-wheel-pointer{transform:rotate(0deg);transition:transform 4.4s cubic-bezier(.08,.76,.08,1)}
 .upgrade-wheel-pointer:after{display:none}
 .upgrade-wheel-pointer i{top:-2px;border-left-width:13px;border-right-width:13px;border-top-width:25px;border-top-color:#f7d36d;filter:drop-shadow(0 3px 5px #000)}
 .upgrade-wheel{background:conic-gradient(from -90deg,#39d6b2 0 var(--chance),#c44c60 var(--chance) 100%);box-shadow:0 0 0 5px #252b31,0 0 0 8px #080d12,0 0 34px #f2b63222,inset 0 0 14px #000b}
@@ -637,5 +637,5 @@ body{padding-bottom:100px}
 @media(max-width:560px){.staff-role-select{flex:1;min-width:130px}}
 /* The upgrader dial stays still; only its needle spins like the original. */
 .upgrade-wheel{transition:none!important;transform:none!important;will-change:auto}
-.upgrade-wheel-pointer{transform:rotate(0deg);transform-origin:50% 50%;transition:transform 4.4s cubic-bezier(.08,.76,.08,1)!important;will-change:transform}
+.upgrade-wheel-pointer{transform:rotate(0deg);transform-origin:50% 50%;transition:transform 4.4s cubic-bezier(.08,.76,.08,1);will-change:transform}
 .upgrade-wheel-pointer:after{display:block!important}
