@@ -659,3 +659,22 @@ body{padding-bottom:100px}
 .upgrade-multipliers button{border:1px solid #425b75;border-radius:8px;padding:10px;background:#142438;color:#d9e8f5;font:900 11px Orbitron;cursor:pointer}
 .upgrade-multipliers button:hover{border-color:#e8bd66;color:#ffd875;background:#27344a}
 @media(max-width:760px){.upgrade-wheel-stage{width:min(300px,78vw)}.upgrade-wheel-center{border-width:5px}.wheel-sector-label{font-size:8px}}
+
+/* Dribbble CS2 Upgrader reference: static circular probability drum, rotating needle */
+.upgrader-center{background:radial-gradient(ellipse at 50% 42%,#211c1b 0%,#100e0e 62%,#080808 100%);border-color:#493a35}
+.upgrade-wheel-stage{width:min(340px,82vw);aspect-ratio:1;position:relative;margin:20px auto 16px;display:grid;place-items:center;isolation:isolate}
+.upgrade-wheel{position:absolute;inset:0;width:auto;aspect-ratio:auto;padding:0;border-radius:50%;background:transparent!important;box-shadow:none!important;filter:drop-shadow(0 10px 22px #000b)}
+.upgrade-wheel-dial{position:absolute;inset:0;border-radius:50%;border:0;background:conic-gradient(from -90deg,#ffe33d 0deg,#ffb323 calc(var(--chance)*3.6),#3d3935 calc(var(--chance)*3.6),#242321 360deg);box-shadow:0 0 0 2px #76634c,0 0 0 8px #1b1816,0 0 25px #ff9d1830;overflow:hidden;will-change:auto;-webkit-mask:radial-gradient(circle,transparent 0 67%,#000 68%);mask:radial-gradient(circle,transparent 0 67%,#000 68%)}
+.upgrade-wheel-dial:before{content:"";position:absolute;inset:0;border-radius:50%;background:repeating-conic-gradient(from -90deg,#fff8 0deg .7deg,transparent .7deg 15deg);-webkit-mask:radial-gradient(circle,transparent 0 66%,#000 67% 100%);mask:radial-gradient(circle,transparent 0 66%,#000 67% 100%)}
+.upgrade-wheel-dial:after{content:"";position:absolute;inset:3%;border-radius:50%;border:1px solid #ffffff38}
+.upgrade-wheel-center{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);width:62%;height:62%;border-radius:50%;background:radial-gradient(circle at 50% 38%,#302a25 0%,#171412 68%,#0b0a09 100%);border:1px solid #6b5746;box-shadow:0 0 0 5px #171310,0 0 0 7px #a06c28,0 0 30px #000c;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.upgrade-wheel-center b{font:900 clamp(27px,6vw,42px) Orbitron,sans-serif;color:#ffc52e;text-shadow:0 0 18px #ff9d1f66;line-height:1}
+.upgrade-wheel-center small{margin-top:8px;font-size:9px;font-weight:800;letter-spacing:1.1px;color:#e5d9c8}
+.upgrade-wheel-pointer{position:absolute!important;inset:0!important;left:0!important;top:0!important;width:auto!important;height:auto!important;z-index:6;transform:rotate(0deg);transform-origin:50% 50%;transition:transform 5.2s cubic-bezier(.08,.76,.12,1);will-change:transform;pointer-events:none;filter:drop-shadow(0 2px 5px #000)}
+.upgrade-wheel-pointer:before{content:"";position:absolute;left:50%;top:3.5%;width:3px;height:47%;transform:translateX(-50%);border:0;border-radius:5px;background:linear-gradient(180deg,#fff8d8 0%,#ffbd37 75%,#ff7b16 100%);box-shadow:0 0 8px #ffb32c99}
+.upgrade-wheel-pointer:after{content:"";display:block!important;position:absolute;left:50%;top:50%;width:13px;height:13px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,#fff4c6 0 25%,#ffbd37 35% 65%,#5a3214 75%);border:2px solid #f4d68a;box-shadow:0 0 0 4px #16110d,0 0 12px #ffb32c99}
+.upgrade-wheel-pointer i{display:none}
+.wheel-sector-label{display:none}
+.upgrader-odds{color:#c7b7a6}
+.upgrader-odds span:first-child b{color:#ffd044}.upgrader-odds span:last-child b{color:#ee7866}
+@media(max-width:760px){.upgrade-wheel-stage{width:min(300px,78vw)}.upgrade-wheel-center{width:62%;height:62%}}
