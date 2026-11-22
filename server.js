@@ -41,6 +41,7 @@ const userColumns = db.prepare("PRAGMA table_info(users)").all().map(c => c.name
 if (!userColumns.includes("google_sub")) db.exec("ALTER TABLE users ADD COLUMN google_sub TEXT");
 const OWNER_USERNAME = (process.env.OWNER_USERNAME || "").trim().toLowerCase();
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD || "";
+const OWNER_RESET_PASSWORD = process.env.OWNER_RESET_PASSWORD === "true";
 if (OWNER_USERNAME && OWNER_PASSWORD) {
   const existing = db.prepare("SELECT id FROM users WHERE username=?").get(OWNER_USERNAME);
   if (!existing) {
@@ -48,6 +49,10 @@ if (OWNER_USERNAME && OWNER_PASSWORD) {
     db.prepare("INSERT INTO users(username,password_hash,role,balance) VALUES(?,?,?,?)")
       .run(OWNER_USERNAME, hash, "owner", 100000);
     console.log("OWNER account created:", OWNER_USERNAME);
+  } else if (OWNER_RESET_PASSWORD) {
+    const hash = bcrypt.hashSync(OWNER_PASSWORD, 12);
+    db.prepare("UPDATE users SET role='owner', password_hash=? WHERE username=?").run(hash, OWNER_USERNAME);
+    console.log("OWNER account password reset:", OWNER_USERNAME);
   } else {
     db.prepare("UPDATE users SET role='owner' WHERE username=?").run(OWNER_USERNAME);
   }
