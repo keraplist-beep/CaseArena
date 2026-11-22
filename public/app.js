@@ -128,7 +128,7 @@ async function loadOwner(search=ownerSearchQuery){
       '<button class="btn primary" onclick="ownerBalance('+u.id+',\'add\')" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'>Выдать +</button>'+
       '<button class="btn secondary" onclick="ownerBalance('+u.id+',\'set\')" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'>Задать</button>'+
      '</div>'+
-     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+(u.role==="owner"?"disabled":"")+'><option value="user" '+(u.role==="user"?"selected":"")+'>Игрок</option><option value="admin" '+(u.role==="admin"?"selected":"")+'>Администратор</option></select></label>'+
+     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+(u.role==="owner"?"disabled":"")+'><option value="user" '+(u.role==="user"?"selected":"")+'>Игрок</option><option value="moderator" '+(u.role==="moderator"?"selected":"")+'>Модератор</option><option value="admin" '+(u.role==="admin"?"selected":"")+'>Администратор</option></select></label>'+
      '<div class="owner-actions"><button class="btn secondary" onclick="ownerRole('+u.id+')" '+(u.role==="owner"?"disabled":"")+'>Сохранить роль</button>'+
      (u.role==="owner"?'':'<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>')+'</div></div>'
    ).join(""):'<p class="muted">'+(ownerSearchQuery?"По этому нику игроки не найдены.":"Пока нет игроков.")+'</p>')+'</div>'+
