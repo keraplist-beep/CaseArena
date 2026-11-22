@@ -563,6 +563,18 @@ const skinCatalog=[
  cases.push({id:"new-drop",name:"НОВЫЙ ДРОП",subtitle:"Свежие скины CS2",price:599,theme:"gradient",cover:"AK-47 | Inheritance",items:[["AWP | Chromatic Aberration",950,38],["Glock-18 | Shinobu",720,28],["AK-47 | Head Shot",1150,20],["M4A4 | Temukau",1800,10],["AK-47 | Inheritance",4200,4]]});
  const dragonLoreFallback=skinCatalog.find(s=>s.name==="AWP | Dragon Lore");
  if(dragonLoreFallback){dragonLoreFallback.priceSource="Оценка рынка";dragonLoreFallback.priceUpdatedAt=Date.now()}
+ skinCatalog.push(...[
+  ["AK-47 | Case Hardened (Blue Gem #661)",2500000,"Тайное","AK-47 | Case Hardened"],
+  ["AK-47 | Case Hardened (Blue Gem #151)",1400000,"Тайное","AK-47 | Case Hardened"],
+  ["★ Karambit | Case Hardened (Blue Gem #387)",3200000,"Нож","★ Karambit | Case Hardened"],
+  ["★ Butterfly Knife | Case Hardened (Blue Gem)",1800000,"Нож","★ Butterfly Knife | Case Hardened"],
+  ["AWP | Dragon Lore (Souvenir Factory New)",1250000,"Тайное","AWP | Dragon Lore"],
+  ["★ M9 Bayonet | Sapphire (Factory New)",1800000,"Нож","★ M9 Bayonet | Sapphire"],
+  ["★ Butterfly Knife | Emerald (Factory New)",2000000,"Нож","★ Butterfly Knife | Emerald"],
+  ["★ Sport Gloves | Pandora's Box (Factory New)",1500000,"Перчатки","★ Sport Gloves | Pandora's Box"],
+  ["★ Karambit | Emerald (Factory New)",2200000,"Нож","★ Karambit | Emerald"],
+  ["★ Butterfly Knife | Doppler Black Pearl",1350000,"Нож","★ Butterfly Knife | Doppler"]
+ ].filter(([name])=>!skinCatalog.some(s=>s.name===name)).map(([name,value,rarity,imageBaseName])=>({name,value,steamRub:value,rarity,marketWear:"Factory New",image:"",imageBaseName,fixedPrice:true,priceSource:"Виртуальная коллекционная оценка",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)})));
  const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
  for(const crate of cases)for(const item of crate.items)if(initialSkinPrices.has(item[0]))item[1]=initialSkinPrices.get(item[0]);
  const STEAM_PRICE_REFRESH_MS=60*60*1000;
@@ -574,6 +586,7 @@ const skinCatalog=[
   let updated=0;
   try{
    for(const skin of skinCatalog){
+    if(skin.fixedPrice)continue;
     try{
      const marketHashName=skin.name+" ("+(skin.marketWear||"Field-Tested")+")";
      const url="https://steamcommunity.com/market/priceoverview/?"+new URLSearchParams({appid:"730",country:"RU",currency:"5",market_hash_name:marketHashName});
@@ -618,7 +631,7 @@ async function getSkinImageIndex(){
 }
 app.get("/api/skins",async(req,res)=>{
  const imageIndex=await getSkinImageIndex();
- res.json(skinCatalog.map(s=>({...s,image:imageIndex.get(s.name)||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Ожидает котировку Steam"})));
+ res.json(skinCatalog.map(s=>({...s,image:imageIndex.get(s.name)||imageIndex.get(s.imageBaseName||"")||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Ожидает котировку Steam"})));
 });
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
   const u=current(req), c=cases.find(x=>x.id===req.params.id);
@@ -655,7 +668,7 @@ app.post("/api/upgrade",requireAuth,(req,res)=>{
   const targetSkin=skinCatalog.find(s=>s.name===targetName);
   if(!targetSkin)return res.status(400).json({error:"Такого скина нет в каталоге"});
   const target=Number(targetSkin.value);
-  if(!Number.isFinite(target)||target<50||target>1000000||target<=item.item_value)return res.status(400).json({error:"Цель должна быть дороже предмета"});
+  if(!Number.isFinite(target)||target<50||target>5000000||target<=item.item_value)return res.status(400).json({error:"Цель должна быть дороже предмета"});
   const chance=Math.min(75,item.item_value/target*75),success=Math.random()*100<chance;
   const tx=db.transaction(()=>{
     db.prepare("DELETE FROM inventory WHERE id=? AND user_id=?").run(item.id,u.id);
