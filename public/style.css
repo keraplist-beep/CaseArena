@@ -485,3 +485,10 @@ body{padding-bottom:100px}
 .owner-toolbar-actions input{min-width:0}
 @media(max-width:700px){.user-row{grid-template-columns:1fr 1fr}.owner-balance-actions{grid-column:1/-1}.user-row>.owner-field,.user-row>.owner-actions{min-width:0}}
 @media(max-width:430px){.upgrade-wheel-legend{gap:10px;font-size:9px}.upgrade-wheel-legend b{font-size:10px}.owner-balance-actions{grid-column:1/-1}}
+
+/* Owner controls: five aligned columns on desktop */
+.user-row{grid-template-columns:minmax(140px,1.3fr) minmax(110px,.75fr) auto minmax(130px,.8fr) auto}
+.owner-toolbar>div:first-child{display:flex;flex-direction:column;gap:5px}
+.owner-balance-actions{flex-wrap:nowrap}
+.owner-balance-actions .btn{white-space:nowrap}
+@media(max-width:700px){.user-row{grid-template-columns:1fr 1fr}.owner-balance-actions{grid-column:1/-1}.user-row>.owner-field,.user-row>.owner-actions{min-width:0}}
