@@ -147,9 +147,16 @@ app.post("/api/register",authLimiter,async(req,res)=>{
   try {
     const hash=await bcrypt.hash(password,12);
     const info=db.prepare("INSERT INTO users(username,password_hash) VALUES(?,?)").run(username,hash);
-    req.session.userId=info.lastInsertRowid;
-    log(info.lastInsertRowid,"Создан аккаунт");
-    res.json({user:userView(current(req))});
+ req.session.userId = info.lastInsertRowid;
+log(info.lastInsertRowid, "Создан аккаунт");
+
+req.session.save(err => {
+  if (err) {
+    return res.status(500).json({error:"Не удалось сохранить авторизацию"});
+  }
+
+  res.json({user:userView(current(req))});
+});
   } catch(e) { res.status(409).json({error:"Такой ник уже занят"}); }
 });
 app.post("/api/login",authLimiter,async(req,res)=>{
