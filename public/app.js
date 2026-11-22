@@ -73,15 +73,36 @@ window.viewPlayer=async username=>{try{const d=await api("/api/users/"+encodeURI
 async function loadBattles(){const bs=await api("/api/battles");$("#battle-list").innerHTML=bs.map(b=>'<div class="battle"><div><strong>'+esc(b.name)+'</strong><p class="muted small">'+b.players+' игрока · '+b.rounds+' раунда · '+esc(b.status)+'</p></div><div><b class="battle-price">'+money(b.entry)+'</b> <button class="btn primary" onclick="joinBattle('+b.id+','+b.entry+')">Участвовать</button></div></div>').join("")}
 window.joinBattle=async(id,entry)=>{try{const d=await api("/api/battles/"+id+"/join",{method:"POST",body:JSON.stringify({entry})});await refresh();toast(d.message)}catch(e){toast(e.message)}};
 async function loadStaff(search=""){
- const box=$("#staff-content");if(!box||!me||!["owner","admin","moderator"].includes(me.role))return;
- const q=String(search||"");box.innerHTML='<p class="muted">Загружаю список игроков…</p>';
- try{const d=await api("/api/staff/users?search="+encodeURIComponent(q));const users=d.users||[];
- box.innerHTML='<div class="staff-toolbar"><div><b>Игроки сервера</b><small class="muted">Твоя роль: '+(me.role==="owner"?"Владелец":me.role==="admin"?"Администратор":"Модератор")+'</small></div><input id="staff-search" placeholder="Поиск по нику…" value="'+esc(q)+'" oninput="searchStaffUsers(this.value)"></div><div class="staff-list">'+(users.length?users.map(u=>'<div class="staff-row"><div><b>'+esc(u.username)+'</b><small>'+(u.role==="owner"?"🛡 OWNER":u.role==="admin"?"ADMIN":u.role==="moderator"?"MODERATOR":"Игрок")+(u.banned?" · ЗАБЛОКИРОВАН":"")+'</small></div><div class="staff-actions">'+(u.role==="owner"?"<span class=\\"owner-shield\\">🛡 Защищён</span>":(me.role==="moderator"?"":'<button class="btn danger" onclick="staffAction('+u.id+',\\'ban\\')">Бан</button>'))+(u.role==="owner"?"":'<button class="btn secondary" onclick="staffAction('+u.id+',\\'kick\\')">Кик</button>')+(me.role==="owner"&&u.banned?'<button class="btn secondary" onclick="staffAction('+u.id+',\\'unban\\')">Разбан</button>':"")+'</div></div>').join(""):'<p class="muted">Игроки не найдены</p>')+'</div>';
+ const box=$("#staff-content");
+ if(!box||!me||!["owner","admin","moderator"].includes(me.role))return;
+ const q=String(search||"");
+ box.innerHTML='<p class="muted">Загружаю список игроков…</p>';
+ try{
+  const d=await api("/api/staff/users?search="+encodeURIComponent(q));
+  const users=d.users||[];
+  const rows=users.map(u=>{
+   const protectedOwner=u.role==="owner";
+   const canAct=me.role==="owner" || (u.role==="user" && ["admin","moderator"].includes(me.role)) || (u.role==="moderator" && me.role==="owner");
+   const actions=[];
+   if(protectedOwner) actions.push('<span class="owner-shield">🛡 Защищён</span>');
+   else {
+    if(me.role!=="moderator" && canAct) actions.push('<button class="btn danger" onclick="staffAction('+u.id+',\\'ban\\')">Бан</button>');
+    if(canAct) actions.push('<button class="btn secondary" onclick="staffAction('+u.id+',\\'kick\\')">Кик</button>');
+    if(me.role==="owner" && u.banned) actions.push('<button class="btn secondary" onclick="staffAction('+u.id+',\\'unban\\')">Разбан</button>');
+   }
+   return '<div class="staff-row"><div><b>'+esc(u.username)+'</b><small>'+(protectedOwner?"🛡 OWNER":u.role==="admin"?"ADMIN":u.role==="moderator"?"MODERATOR":"Игрок")+(u.banned?" · ЗАБЛОКИРОВАН":"")+'</small></div><div class="staff-actions">'+actions.join("")+'</div></div>';
+  });
+  box.innerHTML='<div class="staff-toolbar"><div><b>Игроки сервера</b><small class="muted">Твоя роль: '+(me.role==="owner"?"Владелец":me.role==="admin"?"Администратор":"Модератор")+'</small></div><input id="staff-search" placeholder="Поиск по нику…" value="'+esc(q)+'" oninput="searchStaffUsers(this.value)"></div><div class="staff-list">'+(rows.length?rows.join(""):'<p class="muted">Игроки не найдены</p>')+'</div>';
  }catch(e){box.innerHTML='<p class="muted">'+esc(e.message)+'</p>'}
 }
 let staffSearchTimer=null;
 window.searchStaffUsers=value=>{clearTimeout(staffSearchTimer);staffSearchTimer=setTimeout(()=>loadStaff(value),250)};
-window.staffAction=async(id,action)=>{const label=action==="ban"?"заблокировать":action==="kick"?"отключить":"снять блокировку";if(!confirm("Ты действительно хочешь "+label+" этого игрока?"))return;try{const d=await api("/api/staff/users/"+id+"/action",{method:"POST",body:JSON.stringify({action})});toast(d.message);await loadStaff($("#staff-search")?.value||"")}catch(e){toast(e.message)}};
+window.staffAction=async(id,action)=>{
+ const label=action==="ban"?"заблокировать":action==="kick"?"отключить":"снять блокировку";
+ if(!confirm("Ты действительно хочешь "+label+" этого игрока?"))return;
+ try{const d=await api("/api/staff/users/"+id+"/action",{method:"POST",body:JSON.stringify({action})});toast(d.message);await loadStaff($("#staff-search")?.value||"")}
+ catch(e){toast(e.message)}
+};
 async function loadOwner(search=ownerSearchQuery){
  ownerSearchQuery=String(search||'');
  const box=$("#owner-content");
