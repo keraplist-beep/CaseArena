@@ -327,6 +327,7 @@ const cases=[
  {id:"gloves",name:"GLOVE CASE",subtitle:"Перчатки и редкие ножи",price:3499,cover:"★ Sport Gloves | Vice",items:[["★ Driver Gloves | Crimson Weave",14500,57],["★ Specialist Gloves | Fade",22000,28],["★ Sport Gloves | Vice",48000,11],["★ Butterfly Knife | Fade",62000,3.5],["★ Karambit | Sapphire",115000,0.5]]},
  {id:"blackpearl",name:"BLACK PEARL",subtitle:"Максимальная редкость и риск",price:5999,cover:"★ Butterfly Knife | Doppler",items:[["★ Bowie Knife | Doppler",17500,58],["★ Skeleton Knife | Slaughter",33000,27],["★ M9 Bayonet | Crimson Web",41000,11],["★ Butterfly Knife | Doppler",85000,3.5],["★ Karambit | Sapphire",115000,0.5]]}
 ];
+cases.forEach(c=>{if(!c.cover)c.cover=c.items[c.items.length-1][0];});
 app.get("/api/cases",async(req,res)=>{const imageIndex=await getSkinImageIndex();res.json(cases.map(({id,name,subtitle,price,cover})=>({id,name,subtitle,price,image:imageIndex.get(cover)||""})));});
 const skinCatalog=[
  ["Glock-18 | Candy Apple",45,65,"Армейское","pistols/glock-18-candy-apple.png"],
