@@ -185,10 +185,10 @@ req.session.save(err => {
 app.post("/api/logout",(req,res)=>req.session.destroy(()=>res.json({ok:true})));
 
 const cases=[
-  {id:"starter",name:"STARTER",price:50,items:[["Glock-18 | Candy Apple",35],["MP9 | Slide",65],["P250 | Steel Disruption",90]]},
-  {id:"neon",name:"NEON",price:180,items:[["USP-S | Neo-Noir",100],["AK-47 | Neon Rider",260],["AWP | Electric Hive",420]]},
-  {id:"dragon",name:"DRAGON",price:500,items:[["M4A4 | 龍王 (Dragon King)",280],["AWP | Redline",700],["AK-47 | Bloodsport",1200]]},
-  {id:"royal",name:"ROYAL",price:1200,items:[["★ Huntsman Knife | Doppler",800],["★ Sport Gloves | Vice",1600],["★ Karambit | Doppler",3500]]}
+  {id:"starter",name:"СТАРТОВЫЙ",price:50,items:[["Glock-18 | Candy Apple",35],["MP9 | Slide",65],["P250 | Steel Disruption",90]]},
+  {id:"neon",name:"НЕОНОВЫЙ",price:180,items:[["USP-S | Neo-Noir",100],["AK-47 | Neon Rider",260],["AWP | Electric Hive",420]]},
+  {id:"dragon",name:"ДРАКОНОВЫЙ",price:500,items:[["M4A4 | 龍王 (Dragon King)",280],["AWP | Redline",700],["AK-47 | Bloodsport",1200]]},
+  {id:"royal",name:"КОРОЛЕВСКИЙ",price:1200,items:[["★ Huntsman Knife | Doppler",800],["★ Sport Gloves | Vice",1600],["★ Karambit | Doppler",3500]]}
 ];
 app.get("/api/cases",(req,res)=>res.json(cases.map(({id,name,price})=>({id,name,price}))));
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
@@ -214,7 +214,8 @@ app.post("/api/upgrade",requireAuth,(req,res)=>{
   const chance=Math.min(75,item.item_value/target*75);
   if(Math.random()*100<chance) {
     db.prepare("DELETE FROM inventory WHERE id=?").run(item.id);
-    db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,`Upgrade item (${target})`,target);
+    const targetName=String(req.body.targetName||`Upgrade item (${target})`).slice(0,100);
+    db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,targetName,target);
     log(u.id,`Успешный апгрейд до ${target}`);
     return res.json({success:true,chance:Math.round(chance),message:"Апгрейд успешен",user:userView(current(req))});
   }
