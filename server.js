@@ -313,15 +313,15 @@ res.json({user:userView(u)});
 app.post("/api/logout",(req,res)=>{req.session=null;res.json({ok:true});});
 
 const cases=[
- {id:"starter",name:"РАЗМИНКА",subtitle:"Начни собирать инвентарь",price:79,items:[["Glock-18 | Candy Apple",45],["MP9 | Capillary",65,68],["P250 | Sand Dune",85,23],["USP-S | Ticket to Hell",120,7],["AK-47 | Elite Build",190]]},
- {id:"dust",name:"DUST II",subtitle:"Классика легендарной карты",price:179,items:[["Desert Eagle | Bronze Deco",95],["AWP | Atheris",220,68],["AK-47 | Slate",360,23],["M4A4 | Desolate Space",590,7],["USP-S | Neo-Noir",880]]},
- {id:"neon",name:"НЕОНОВЫЙ",subtitle:"Яркие цвета и контраст",price:349,items:[["Glock-18 | Vogue",180],["MP9 | Food Chain",290,68],["AK-47 | Neon Rider",980,23],["AWP | Neo-Noir",1450,7],["M4A1-S | Printstream",2350]]},
- {id:"inferno",name:"INFERNO",subtitle:"Огненная коллекция",price:599,items:[["AK-47 | Redline",720],["AWP | Wildfire",1250,68],["M4A4 | The Emperor",1750,23],["Desert Eagle | Blaze",4200,7],["AK-47 | Bloodsport",5100]]},
- {id:"sniper",name:"СНАЙПЕРСКИЙ",subtitle:"Только точные попадания",price:899,items:[["SSG 08 | Dragonfire",420],["AWP | Asiimov",1850,68],["AWP | Hyper Beast",2200,23],["AWP | Containment Breach",3900,7],["AWP | Dragon Lore",25000]]},
- {id:"royal",name:"КОРОЛЕВСКИЙ",subtitle:"Редкие и дорогие предметы",price:1499,items:[["M4A1-S | Printstream",2350],["AK-47 | Fire Serpent",9800,68],["★ Huntsman Knife | Doppler",12500,23],["★ Karambit | Doppler",38500,7],["★ Butterfly Knife | Fade",62000]]},
- {id:"knife",name:"ОХОТА ЗА НОЖОМ",subtitle:"Кейс для любителей ножей",price:2499,items:[["★ Navaja Knife | Fade",7500],["★ Shadow Daggers | Doppler",9800,68],["★ Huntsman Knife | Doppler",12500,23],["★ Karambit | Fade",55000,7],["★ Butterfly Knife | Fade",62000]]},
- {id:"elite",name:"ЭЛИТА",subtitle:"Максимальный риск и награда",price:4999,items:[["★ Bayonet | Doppler",32000],["★ M9 Bayonet | Crimson Web",41000,68],["★ Karambit | Doppler",38500,23],["★ Butterfly Knife | Fade",62000,7],["★ Karambit | Sapphire",115000]]}
- {id:"viper",name:"VIPER",subtitle:"Ядовитая подборка редких скинов",price:799,cover:"AK-47 | The Empress",items:[["AWP | Fever Dream",340,58],["AK-47 | The Empress",6900,29],["★ Bowie Knife | Doppler",17500,10],["★ Talon Knife | Fade",42000,2.5],["★ Butterfly Knife | Fade",62000,0.5]]},
+ {id:"starter",name:"РАЗМИНКА",subtitle:"Начни собирать инвентарь",price:79,items:[["Glock-18 | Candy Apple",45,68],["MP9 | Capillary",65,23],["P250 | Sand Dune",85,7],["USP-S | Ticket to Hell",120,1.7],["AK-47 | Elite Build",190,0.3]]},
+ {id:"dust",name:"DUST II",subtitle:"Классика легендарной карты",price:179,items:[["Desert Eagle | Bronze Deco",95,68],["AWP | Atheris",220,23],["AK-47 | Slate",360,7],["M4A4 | Desolate Space",590,1.7],["USP-S | Neo-Noir",880,0.3]]},
+ {id:"neon",name:"НЕОНОВЫЙ",subtitle:"Яркие цвета и контраст",price:349,items:[["Glock-18 | Vogue",180,68],["MP9 | Food Chain",290,23],["AK-47 | Neon Rider",980,7],["AWP | Neo-Noir",1450,1.7],["M4A1-S | Printstream",2350,0.3]]},
+ {id:"inferno",name:"INFERNO",subtitle:"Огненная коллекция",price:599,items:[["AK-47 | Redline",720,68],["AWP | Wildfire",1250,23],["M4A4 | The Emperor",1750,7],["Desert Eagle | Blaze",4200,1.7],["AK-47 | Bloodsport",5100,0.3]]},
+ {id:"sniper",name:"СНАЙПЕРСКИЙ",subtitle:"Только точные попадания",price:899,items:[["SSG 08 | Dragonfire",420,68],["AWP | Asiimov",1850,23],["AWP | Hyper Beast",2200,7],["AWP | Containment Breach",3900,1.7],["AWP | Dragon Lore",25000,0.3]]},
+ {id:"royal",name:"КОРОЛЕВСКИЙ",subtitle:"Редкие и дорогие предметы",price:1499,items:[["M4A1-S | Printstream",2350,68],["AK-47 | Fire Serpent",9800,23],["★ Huntsman Knife | Doppler",12500,7],["★ Karambit | Doppler",38500,1.7],["★ Butterfly Knife | Fade",62000,0.3]]},
+ {id:"knife",name:"ОХОТА ЗА НОЖОМ",subtitle:"Кейс для любителей ножей",price:2499,items:[["★ Navaja Knife | Fade",7500,68],["★ Shadow Daggers | Doppler",9800,23],["★ Huntsman Knife | Doppler",12500,7],["★ Karambit | Fade",55000,1.7],["★ Butterfly Knife | Fade",62000,0.3]]},
+ {id:"elite",name:"ЭЛИТА",subtitle:"Максимальный риск и награда",price:4999,items:[["★ Bayonet | Doppler",32000,68],["★ M9 Bayonet | Crimson Web",41000,23],["★ Karambit | Doppler",38500,7],["★ Butterfly Knife | Fade",62000,1.7],["★ Karambit | Sapphire",115000,0.3]]}
+ ,{id:"viper",name:"VIPER",subtitle:"Ядовитая подборка редких скинов",price:799,cover:"AK-47 | The Empress",items:[["AWP | Fever Dream",340,58],["AK-47 | The Empress",6900,29],["★ Bowie Knife | Doppler",17500,10],["★ Talon Knife | Fade",42000,2.5],["★ Butterfly Knife | Fade",62000,0.5]]},
  {id:"dragon",name:"DRAGON LORE",subtitle:"Охота за легендарным AWP",price:1999,cover:"AWP | Dragon Lore",items:[["AWP | Asiimov",1850,60],["AWP | Hyper Beast",2200,27],["AWP | Containment Breach",3900,10],["AWP | Dragon Lore",25000,2.7],["★ Karambit | Sapphire",115000,0.3]]},
  {id:"doppler",name:"DOPPLER",subtitle:"Ножи с редкими фазами",price:2999,cover:"★ Karambit | Doppler",items:[["★ Navaja Knife | Fade",7500,55],["★ Huntsman Knife | Doppler",12500,29],["★ Flip Knife | Gamma Doppler",28000,12],["★ Karambit | Doppler",38500,3.5],["★ Karambit | Sapphire",115000,0.5]]},
  {id:"gloves",name:"GLOVE CASE",subtitle:"Перчатки и редкие ножи",price:3499,cover:"★ Sport Gloves | Vice",items:[["★ Driver Gloves | Crimson Weave",14500,57],["★ Specialist Gloves | Fade",22000,28],["★ Sport Gloves | Vice",48000,11],["★ Butterfly Knife | Fade",62000,3.5],["★ Karambit | Sapphire",115000,0.5]]},
@@ -414,7 +414,8 @@ const skinCatalog=[
  ["★ Ursus Knife | Doppler",23500,35250,"Нож",""],
  ["★ Bowie Knife | Doppler",17500,26250,"Нож",""],
  ["★ Falchion Knife | Doppler",21000,31500,"Нож",""],
- ["★ Gut Knife | Doppler",16000,24000,"Нож",""]
+ ["★ Gut Knife | Doppler",16000,24000,"Нож",""],
+ ["★ Flip Knife | Gamma Doppler",28000,42000,"Нож",""]
 ].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub,rarity,image:"https://images.konekocode.pl/images/"+image,steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
 let skinImageIndexPromise=null;
 async function getSkinImageIndex(){
