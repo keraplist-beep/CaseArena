@@ -4,5 +4,5 @@ export async function onRequest(context) {
   target.hostname = "casearena-opqb.onrender.com";
   target.port = "";
   const upstreamRequest = new Request(target.toString(), context.request);
-  return fetch(upstreamRequest);
+  return fetch(upstreamRequest, { redirect: "manual" });
 }
