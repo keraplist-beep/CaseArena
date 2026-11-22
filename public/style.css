@@ -325,3 +325,31 @@ footer{max-width:1320px;margin:0 auto;background:transparent;border-top:1px soli
  .roulette-skin{width:120px}
  .profile-head{padding:14px}
 }
+
+/* Fixed centered bottom navigation */
+body{padding-bottom:100px}
+.top nav{display:none!important}
+.bottom-nav{
+ position:fixed;z-index:8;left:50%;bottom:max(14px,env(safe-area-inset-bottom));
+ transform:translateX(-50%);width:min(720px,calc(100% - 28px));
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;
+ padding:8px;background:#0d1928ed;border:1px solid #38516b;
+ border-radius:17px;box-shadow:0 12px 40px #0009,0 0 28px #4de1d11a;
+ backdrop-filter:blur(18px)
+}
+.bottom-nav a{
+ min-width:0;min-height:52px;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:4px;border-radius:11px;
+ color:#9db0c7;font-size:10px;font-weight:800;white-space:nowrap;
+ transition:background .18s,color .18s
+}
+.bottom-nav a:hover,.bottom-nav a.active{
+ color:#4de1d1;background:linear-gradient(145deg,#1b3447,#142638);
+}
+.bottom-nav-icon{font-size:19px;line-height:1;font-weight:900}
+@media(max-width:430px){
+ body{padding-bottom:94px}
+ .bottom-nav{bottom:max(9px,env(safe-area-inset-bottom));width:calc(100% - 18px);padding:6px;gap:2px}
+ .bottom-nav a{min-height:49px;font-size:9px}
+ .bottom-nav-icon{font-size:17px}
+}
