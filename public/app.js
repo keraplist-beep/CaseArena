@@ -27,3 +27,30 @@ async function loadLeaders(){const rows=await api("/api/leaderboard");$("#leader
 async function loadOwner(){try{const d=await api("/api/owner/overview");$("#owner").classList.remove("hidden");$("#owner-content").innerHTML=`<p>Всего аккаунтов: <b>${d.totalUsers}</b></p><h3>Пользователи</h3>${d.users.map(u=>`<div class="user-row"><span><b>${u.username}</b> ${u.role==="owner"?'<span class="owner-tag">OWNER</span>':""}<br><span class="muted">${u.role}</span></span><input id="bal-${u.id}" type="number" value="${u.balance}" ${u.role==="owner"?"disabled":""}><select id="role-${u.id}" ${u.role==="owner"?"disabled":""} style="background:#0c121c;color:white;border:1px solid #35445a;border-radius:7px"><option value="user" ${u.role==="user"?"selected":""}>user</option><option value="admin" ${u.role==="admin"?"selected":""}>admin</option></select><button class="btn secondary" onclick="saveUser(${u.id})" ${u.role==="owner"?"disabled":""}>Сохранить</button></div>`).join("")}<h3>Последние действия</h3>${d.activity.map(a=>`<p class="small muted">${a.username||"Система"} — ${a.message} <span>· ${a.created_at}</span></p>`).join("")}`}catch(e){$("#owner").classList.add("hidden")}}
 window.saveUser=async id=>{try{await api(`/api/owner/users/${id}/balance`,{method:"POST",body:JSON.stringify({amount:Number($(`#bal-${id}`).value)})});await api(`/api/owner/users/${id}/role`,{method:"POST",body:JSON.stringify({role:$(`#role-${id}`).value})});await loadOwner();toast("Изменения сохранены")}catch(e){toast(e.message)}};
 (async()=>{await loadCases();await loadBattles();await loadLeaders();await refresh();const params=new URLSearchParams(location.search);if(params.get("chooseNick")==="1"){nicknameModal()}else if(params.has("google")){toast("Не удалось выполнить вход через Google. Попробуйте ещё раз.");history.replaceState({},"",location.pathname)}})().catch(e=>toast(e.message));
+
+
+// Enhanced profile, activity feed and live upgrade preview.
+function renderProfile(){
+ const p=$("#profile-content");
+ if(!me){p.innerHTML='<p class="muted">Войди в аккаунт, чтобы увидеть инвентарь.</p>';$("#activity-list").innerHTML='<p class="muted small">История появится после входа.</p>';return}
+ const initials=me.username.slice(0,2).toUpperCase();
+ const total=inventory.reduce((s,x)=>s+Number(x.item_value),0);
+ p.innerHTML='<div class="profile-head"><div class="avatar">'+initials+'</div><div><h3>'+me.username+' '+(me.role==="owner"?'<span class="owner-tag">OWNER</span>':'')+'</h3><div class="profile-stats"><span class="stat-chip">Баланс <b>'+money(me.balance)+'</b></span><span class="stat-chip">Предметы <b>'+inventory.length+'</b></span><span class="stat-chip">Инвентарь <b>'+money(total)+'</b></span></div></div></div><div class="inventory">'+(inventory.length?inventory.map(x=>'<div class="item"><label><input type="checkbox" '+(selected.has(x.id)?'checked':'')+' onchange="toggleItem('+x.id+',this.checked)"> Выбрать</label><strong>'+escapeText(x.item_name)+'</strong><span style="color:var(--gold)">'+money(x.item_value)+'</span></div>').join(''):'<p class="muted">Инвентарь пока пуст. Открой первый кейс!</p>')+'</div>';
+ loadActivity();
+}
+function escapeText(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function loadActivity(){
+ try{const rows=await api("/api/activity");$("#activity-list").innerHTML=rows.length?rows.map(a=>'<div class="activity-row"><span>'+escapeText(a.message)+'</span><time>'+new Date(a.created_at+"Z").toLocaleString("ru-RU",{dateStyle:"short",timeStyle:"short"})+'</time></div>').join(''):'<p class="muted small">Пока нет действий.</p>'}
+ catch(e){$("#activity-list").innerHTML='<p class="muted small">История временно недоступна.</p>'}
+}
+window.updateUpgradePreview=()=>{
+ const box=$("#upgrade-preview");if(!box)return;
+ const item=inventory.find(x=>selected.has(x.id))||inventory[0],target=Number($("#target-value")?.value);
+ if(!item||!target||target<=item.item_value){box.innerHTML='<span class="muted">Выбери предмет и введи цель дороже него</span>';return}
+ const chance=Math.min(75,item.item_value/target*75),rounded=Math.round(chance);
+ box.innerHTML='<div><b>'+escapeText(item.item_name)+'</b><div class="muted small">Стоимость '+money(item.item_value)+' → '+money(target)+'</div><div class="chance-track"><div class="chance-fill" style="width:'+rounded+'%"></div></div></div><div class="chance-number">'+rounded+'%</div>';
+};
+const originalToggleItem=window.toggleItem;
+window.toggleItem=(id,on)=>{on?selected.add(id):selected.delete(id);updateUpgradePreview()};
+const originalRefresh=refresh;
+refresh=async()=>{await originalRefresh();updateUpgradePreview()};
