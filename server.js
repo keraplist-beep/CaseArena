@@ -402,7 +402,7 @@ async function getSkinImageIndex(){
 }
 app.get("/api/skins",async(req,res)=>{
  const imageIndex=await getSkinImageIndex();
- res.json(skinCatalog.map(s=>({...s,image:imageIndex.get(s.name)||s.image,steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name)})));
+ res.json(skinCatalog.map(s=>({...s,image:imageIndex.get(s.name)||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name)})));
 });
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
   const u=current(req), c=cases.find(x=>x.id===req.params.id);
