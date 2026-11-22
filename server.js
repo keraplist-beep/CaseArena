@@ -525,7 +525,8 @@ app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
  const totalUsers=db.prepare("SELECT COUNT(*) n FROM users").get().n;
  const totalItems=db.prepare("SELECT COUNT(*) n FROM inventory").get().n;
  const totalBalance=db.prepare("SELECT COALESCE(SUM(balance),0) n FROM users").get().n;
- res.json({users,activity,totalUsers,totalItems,totalBalance});
+ const totalInventoryValue=db.prepare("SELECT COALESCE(SUM(item_value),0) n FROM inventory").get().n;
+ res.json({users,activity,totalUsers,totalItems,totalBalance,totalInventoryValue});
 });
 app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
  const id=Number(req.params.id), amount=Number(req.body.amount), mode=req.body.mode==="add"?"add":"set";
