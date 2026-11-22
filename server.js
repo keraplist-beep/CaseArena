@@ -132,6 +132,8 @@ app.post("/api/google/complete-nickname", authLimiter, (req,res) => {
   } catch(e) { res.status(409).json({error:"Этот ник уже занят"}); }
 });
 
+app.get("/api/activity",requireAuth,(req,res)=>{const u=current(req);res.json(db.prepare("SELECT message,created_at FROM activity WHERE user_id=? ORDER BY id DESC LIMIT 12").all(u.id));});
+
 app.get("/api/me",(req,res)=> {
   const u=current(req);
   if (!u) return res.json({user:null});
