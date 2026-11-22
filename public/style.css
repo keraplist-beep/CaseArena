@@ -399,3 +399,14 @@ body{padding-bottom:100px}
  .owner-activity p{flex-direction:column;gap:4px}
  .owner-activity p span{text-align:left}
 }
+
+
+/* Separate app pages */
+.page-view{display:none!important}
+.page-view.active-page{display:block!important}
+.hero.page-view.active-page,.ticker.page-view.active-page{display:grid!important}
+.ticker.page-view.active-page{display:block!important}
+.bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))}
+.bottom-nav a{font-size:9px}
+.bottom-nav a[data-nav="owner"]{color:#f5b942}
+@media(max-width:430px){.bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))}.bottom-nav a{font-size:8px;gap:3px}}
