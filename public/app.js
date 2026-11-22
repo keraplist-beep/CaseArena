@@ -45,7 +45,7 @@ function renderUpgrade(){const source=$("#upgrade-source"),targets=$("#upgrade-t
 window.setUpgradeMultiplier=mult=>{const item=inventory.find(x=>x.id===upgradeSourceId);if(!item)return toast("Сначала выбери свой предмет");const target=skins.filter(x=>x.value>=item.item_value*mult).sort((x,y)=>Math.abs(x.value-item.item_value*mult)-Math.abs(y.value-item.item_value*mult))[0];if(!target)return toast("Нет подходящего скина для X"+mult);upgradeTarget=target.name;renderUpgrade()};
 window.chooseUpgradeSource=id=>{upgradeSourceId=id;renderUpgrade()};
 window.chooseUpgradeTarget=name=>{upgradeTarget=name;renderUpgrade()};
-function updateUpgradePreview(){const box=$("#upgrade-preview"),wheel=$("#upgrade-wheel-value"),dial=$("#upgrade-wheel-dial"),caption=$("#upgrade-wheel-caption"),status=$("#upgrade-spin-status");if(!box)return;const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);if(!item||!target||target.value<=item.item_value){const msg=!item?"Сначала выбери предмет из инвентаря":!target?"Выбери скин-цель справа":"Цель должна стоить дороже исходного предмета";box.innerHTML='<span class="muted">'+msg+'</span>';if(wheel)wheel.textContent="—";if(caption)caption.textContent="—";if(dial)dial.style.setProperty("--chance","0%");if(status)status.textContent=msg;return}const chance=Math.min(75,item.item_value/target.value*75),pct=Math.round(chance);if(wheel)wheel.textContent=pct+"%";if(caption)caption.textContent=pct+"%";if(dial)dial.style.setProperty("--chance",chance+"%");if(status)status.textContent=esc(item.item_name)+"  →  "+esc(target.name);box.innerHTML='<div><b>'+esc(item.item_name)+'</b><div class="muted small">'+money(item.item_value)+' → '+esc(target.name)+' · '+money(target.value)+'</div><div class="chance-track"><div class="chance-fill" style="width:'+pct+'%"></div></div></div><div class="chance-number">'+pct+'%</div>'}
+function updateUpgradePreview(){const box=$("#upgrade-preview"),wheel=$("#upgrade-wheel-value"),dial=$("#upgrade-wheel-dial"),caption=$("#upgrade-wheel-caption"),status=$("#upgrade-spin-status"),win=$("#upgrade-success-percent"),fail=$("#upgrade-fail-percent");if(!box)return;const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);if(!item||!target||target.value<=item.item_value){const msg=!item?"Сначала выбери предмет из инвентаря":!target?"Выбери скин-цель справа":"Цель должна стоить дороже исходного предмета";box.innerHTML='<span class="muted">'+msg+'</span>';if(wheel)wheel.textContent="—";if(caption)caption.textContent="—";if(dial)dial.style.setProperty("--chance","0%");if(status)status.textContent=msg;if(win)win.textContent="—";if(fail)fail.textContent="—";return}const chance=Math.min(75,item.item_value/target.value*75),pct=Math.round(chance);if(wheel)wheel.textContent=pct+"%";if(caption)caption.textContent=pct+"%";if(dial)dial.style.setProperty("--chance",chance+"%");if(status)status.textContent=esc(item.item_name)+"  →  "+esc(target.name);if(win)win.textContent=pct+"%";if(fail)fail.textContent=(100-pct)+"%";box.innerHTML='<div><b>'+esc(item.item_name)+'</b><div class="muted small">'+money(item.item_value)+' → '+esc(target.name)+' · '+money(target.value)+'</div><div class="chance-track"><div class="chance-fill" style="width:'+pct+'%"></div></div></div><div class="chance-number">'+pct+'%</div>'}
 window.upgrade=async()=>{if(!me)return authModal();if(rolling)return;const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);if(!item)return toast("Выбери предмет из инвентаря");if(!target)return toast("Выбери целевой скин");if(target.value<=item.item_value)return toast("Целевой скин должен быть дороже");rolling=true;try{
  const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemId:item.id,targetValue:target.value,targetName:target.name})});
  const dial=$("#upgrade-wheel-dial"),pointer=$("#upgrade-wheel-pointer"),status=$("#upgrade-spin-status");
@@ -53,7 +53,7 @@ window.upgrade=async()=>{if(!me)return authModal();if(rolling)return;const item=
  const stopAngle=d.success?chance*3.6/2:chance*3.6+(360-chance*3.6)/2;
  if(dial)dial.style.setProperty("--chance",chance+"%");
  if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance+"%";
- if($("#upgrade-wheel-caption"))$("#upgrade-wheel-caption").textContent=chance+"%";
+ if($("#upgrade-wheel-caption"))$("#upgrade-wheel-caption").textContent=chance+"%";if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance+"%";if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance)+"%";
  if(status)status.textContent="Стрелка вращается…";
  if(pointer){pointer.style.transition="transform 4.6s cubic-bezier(.08,.76,.12,1)";requestAnimationFrame(()=>{pointer.style.transform="rotate("+(360*6+stopAngle)+"deg)"})}
  await new Promise(resolve=>setTimeout(resolve,4700));
@@ -89,14 +89,18 @@ async function loadOwner(){
     '<div class="owner-stat"><small>БАЛАНСЫ ИГРОКОВ</small><b>'+money(d.totalBalance)+'</b></div>'+
     '<div class="owner-stat"><small>СТОИМОСТЬ ИНВЕНТАРЯ</small><b>'+money(inventoryValue)+'</b></div>'+
    '</div>'+
-   '<div class="owner-toolbar"><h3>Управление игроками</h3><div class="owner-toolbar-actions"><input id="owner-search" placeholder="Поиск по нику…" oninput="filterOwnerUsers()"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
+   '<div class="owner-toolbar"><div><h3>Управление игроками</h3><small class="muted">Выдача баланса и смена роли — отдельными действиями</small></div><div class="owner-toolbar-actions"><input id="owner-search" placeholder="Поиск по нику…" oninput="filterOwnerUsers()"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
    '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>
     '<div class="user-row" data-user="'+esc(u.username.toLowerCase())+'">'+
      '<div class="user-info"><b>'+esc(u.username)+'</b> '+(u.role==="owner"?'<span class="owner-tag">OWNER</span>':'')+
-     '<small>'+esc(u.role)+' · '+Number(u.item_count||0)+' предметов · '+money(u.inventory_value)+'</small></div>'+
-     '<label class="owner-field"><small>БАЛАНС</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" value="'+Number(u.balance||0)+'" '+(u.role==="owner"?"disabled":"")+'></label>'+
-     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+(u.role==="owner"?"disabled":"")+'><option value="user" '+(u.role==="user"?"selected":"")+'>Игрок</option><option value="admin" '+(u.role==="admin"?"selected":"")+'>Админ</option></select></label>'+
-     '<div class="owner-actions"><button class="btn primary" onclick="saveUser('+u.id+')" '+(u.role==="owner"?"disabled":"")+'>Сохранить</button>'+
+     '<small>'+esc(u.role==="admin"?"Администратор":u.role==="owner"?"Владелец":"Игрок")+' · '+Number(u.item_count||0)+' предметов · инвентарь '+money(u.inventory_value)+'</small></div>'+
+     '<div class="owner-field"><small>БАЛАНС · '+money(u.balance)+'</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" placeholder="Сумма" '+(u.role==="owner"?"disabled":"")+'></div>'+
+     '<div class="owner-actions owner-balance-actions">'+
+      '<button class="btn primary" onclick="ownerBalance('+u.id+',\'add\')" '+(u.role==="owner"?"disabled":"")+'>Выдать +</button>'+
+      '<button class="btn secondary" onclick="ownerBalance('+u.id+',\'set\')" '+(u.role==="owner"?"disabled":"")+'>Задать</button>'+
+     '</div>'+
+     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+(u.role==="owner"?"disabled":"")+'><option value="user" '+(u.role==="user"?"selected":"")+'>Игрок</option><option value="admin" '+(u.role==="admin"?"selected":"")+'>Администратор</option></select></label>'+
+     '<div class="owner-actions"><button class="btn secondary" onclick="ownerRole('+u.id+')" '+(u.role==="owner"?"disabled":"")+'>Сохранить роль</button>'+
      (u.role==="owner"?'':'<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>')+'</div></div>'
    ).join(""):'<p class="muted">Пока нет игроков.</p>')+'</div>'+
    '<div class="owner-activity"><h3>Последние действия</h3>'+
@@ -106,10 +110,22 @@ async function loadOwner(){
   box.innerHTML='<p class="muted">Не удалось загрузить панель: '+esc(e.message)+'</p><button class="btn secondary" onclick="loadOwner()">Повторить</button>';
  }
 }
+window.loadOwner=loadOwner;
 window.filterOwnerUsers=()=>{const q=($("#owner-search")?.value||"").trim().toLowerCase();document.querySelectorAll("#owner-users .user-row").forEach(row=>row.style.display=row.dataset.user.includes(q)?"":"none")};
+window.ownerBalance=async(id,mode)=>{
+ const field=$("#bal-"+id),amount=Number(field?.value);
+ if(!Number.isInteger(amount)||amount<(mode==="add"?1:0)){toast("Укажи корректную сумму");return}
+ if(mode==="set"&&!confirm("Установить игроку новый баланс "+money(amount)+"?"))return;
+ try{const d=await api("/api/owner/users/"+id+"/balance",{method:"POST",body:JSON.stringify({amount,mode})});await loadOwner();toast(mode==="add"?"Баланс выдан. Новый баланс: "+money(d.balance):"Баланс изменён: "+money(d.balance))}
+ catch(e){toast(e.message)}
+};
+window.ownerRole=async id=>{
+ const role=$("#role-"+id)?.value;
+ try{await api("/api/owner/users/"+id+"/role",{method:"POST",body:JSON.stringify({role})});await loadOwner();toast("Роль игрока изменена")}
+ catch(e){toast(e.message)}
+};
 window.deleteUser=async(id,username)=>{
  if(!confirm("Удалить аккаунт "+username+" и весь его инвентарь?"))return;
  try{await api("/api/owner/users/"+id,{method:"DELETE"});await loadOwner();toast("Аккаунт удалён")}catch(e){toast(e.message)}
 };
-window.saveUser=async id=>{try{await api("/api/owner/users/"+id+"/balance",{method:"POST",body:JSON.stringify({amount:Number($("#bal-"+id).value)})});await api("/api/owner/users/"+id+"/role",{method:"POST",body:JSON.stringify({role:$("#role-"+id).value})});await loadOwner();toast("Изменения сохранены")}catch(e){toast(e.message)}};
 (async()=>{try{await loadSkins();await loadCases();await loadBattles();await loadLeaders();await refresh();const p=new URLSearchParams(location.search);if(p.get("chooseNick")==="1")nicknameModal();else if(p.has("google")){toast("Не удалось выполнить вход через Google");history.replaceState({},"",location.pathname)}}catch(e){toast(e.message)}})();
