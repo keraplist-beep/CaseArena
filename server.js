@@ -526,6 +526,20 @@ const skinCatalog=[
  ,["★ M9 Bayonet | Lore",88000,132000,"Нож",""]
 ].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub:value,rarity,image:"https://images.konekocode.pl/images/"+image,marketWear:rarity==="Нож" && /(Doppler|Fade|Marble Fade|Tiger Tooth|Sapphire|Emerald)/i.test(name)?"Factory New":"Field-Tested",steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
  skinCatalog.push(...[
+  ["★ Sport Gloves | Pandora's Box",140000,"Перчатки"],["★ Sport Gloves | Hedge Maze",125000,"Перчатки"],
+  ["★ Specialist Gloves | Crimson Kimono",95000,"Перчатки"],["★ Driver Gloves | King Snake",45000,"Перчатки"],
+  ["★ Butterfly Knife | Emerald",260000,"Нож"],["★ Karambit | Emerald",220000,"Нож"],
+  ["★ M9 Bayonet | Sapphire",180000,"Нож"],["★ Talon Knife | Sapphire",90000,"Нож"],
+  ["★ Butterfly Knife | Gamma Doppler",105000,"Нож"],["★ Karambit | Gamma Doppler",92000,"Нож"],
+  ["★ M9 Bayonet | Lore",88000,"Нож"],["★ Butterfly Knife | Tiger Tooth",79000,"Нож"],
+  ["★ Butterfly Knife | Slaughter",68000,"Нож"],["★ Karambit | Crimson Web",72000,"Нож"],
+  ["★ Karambit | Autotronic",52000,"Нож"],["★ M9 Bayonet | Autotronic",48000,"Нож"],
+  ["★ Skeleton Knife | Crimson Web",39000,"Нож"],["★ Nomad Knife | Crimson Web",28000,"Нож"],
+  ["AWP | Gungnir",95000,"Тайное"],["AWP | Medusa",78000,"Тайное"],["AWP | Fade",52000,"Тайное"],
+  ["AK-47 | Wild Lotus",110000,"Тайное"],["AK-47 | Gold Arabesque",68000,"Тайное"],["AK-47 | X-Ray",42000,"Тайное"],
+  ["M4A4 | Poseidon",32000,"Тайное"],["M4A1-S | Hot Rod",18000,"Тайное"],["Glock-18 | Fade",16000,"Тайное"]
+ ].filter(([name])=>!skinCatalog.some(s=>s.name===name)).map(([name,value,rarity])=>({name,value,steamRub:value,rarity,marketWear:"Field-Tested",image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)})));
+ skinCatalog.push(...[
   ["AK-47 | Inheritance",4200,"Тайное"],["AWP | Chromatic Aberration",950,"Тайное"],
   ["M4A4 | Temukau",1800,"Тайное"],["USP-S | Printstream",1250,"Тайное"],
   ["Desert Eagle | Printstream",2100,"Тайное"],["AK-47 | Head Shot",1150,"Засекреченное"],
@@ -620,22 +634,22 @@ app.post("/api/inventory/:id/sell",requireAuth,(req,res)=>{
  res.json({ok:true,sold:item.item_value,user:userView(current(req))});
 });
 app.post("/api/upgrade",requireAuth,(req,res)=>{
-  const u=current(req), itemId=Number(req.body.itemId), target=Number(req.body.targetValue);
-  if(!Number.isInteger(itemId)||!Number.isInteger(target)||target<50||target>1000000) return res.status(400).json({error:"Некорректные параметры"});
+  const u=current(req),itemId=Number(req.body.itemId),targetName=String(req.body.targetName||"").slice(0,120);
+  if(!Number.isInteger(itemId)||!targetName)return res.status(400).json({error:"Выбери предмет и целевой скин"});
   const item=db.prepare("SELECT * FROM inventory WHERE id=? AND user_id=?").get(itemId,u.id);
-  if(!item) return res.status(404).json({error:"Предмет не найден"});
-  if(target<=item.item_value) return res.status(400).json({error:"Цель должна быть дороже предмета"});
-  const chance=Math.min(75,item.item_value/target*75);
-  if(Math.random()*100<chance) {
-    db.prepare("DELETE FROM inventory WHERE id=?").run(item.id);
-    const targetName=String(req.body.targetName||`Upgrade item (${target})`).slice(0,100);
-    db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,targetName,target);
-    log(u.id,`Успешный апгрейд до ${target}`);
-    return res.json({success:true,chance:Math.round(chance),message:"Апгрейд успешен",user:userView(current(req))});
-  }
-  db.prepare("DELETE FROM inventory WHERE id=?").run(item.id);
-  log(u.id,`Неудачный апгрейд предмета ${item.item_name}`);
-  res.json({success:false,chance:Math.round(chance),message:"Не получилось — предмет потерян",user:userView(current(req))});
+  if(!item)return res.status(404).json({error:"Предмет не найден"});
+  const targetSkin=skinCatalog.find(s=>s.name===targetName);
+  if(!targetSkin)return res.status(400).json({error:"Такого скина нет в каталоге"});
+  const target=Number(targetSkin.value);
+  if(!Number.isFinite(target)||target<50||target>1000000||target<=item.item_value)return res.status(400).json({error:"Цель должна быть дороже предмета"});
+  const chance=Math.min(75,item.item_value/target*75),success=Math.random()*100<chance;
+  const tx=db.transaction(()=>{
+    db.prepare("DELETE FROM inventory WHERE id=? AND user_id=?").run(item.id,u.id);
+    if(success)db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,targetSkin.name,target);
+    log(u.id,success?`Успешный апгрейд до ${targetSkin.name}`:`Неудачный апгрейд предмета ${item.item_name}`);
+  });
+  tx();
+  res.json({success,chance:Math.round(chance),targetName:targetSkin.name,targetValue:target,message:success?"Апгрейд успешен":"Не получилось — предмет потерян",user:userView(current(req))});
 });
 app.post("/api/contracts",requireAuth,(req,res)=>{
   const u=current(req), ids=Array.isArray(req.body.itemIds)?req.body.itemIds.map(Number):[];
