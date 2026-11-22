@@ -644,15 +644,23 @@ app.get("/api/staff/users",requireAuth,requireStaff,(req,res)=>{
 app.post("/api/staff/users/:id/action",requireAuth,requireStaff,(req,res)=>{
  const actor=current(req), id=Number(req.params.id), action=String(req.body.action||"");
  if(!Number.isInteger(id)||id<1)return res.status(400).json({error:"Некорректный игрок"});
- if(!["kick","ban","unban"].includes(action))return res.status(400).json({error:"Неизвестное действие"});
+ if(!["kick","ban","unban","promote_moderator"].includes(action))return res.status(400).json({error:"Неизвестное действие"});
  if(action==="ban" && !["owner","admin"].includes(actor.role))return res.status(403).json({error:"Банить может только администратор"});
- if(action==="unban" && actor.role!=="owner")return res.status(403).json({error:"Снимать бан может только владелец"});
+ if(action==="unban" && !["owner","admin"].includes(actor.role))return res.status(403).json({error:"Снимать блокировку может только администратор"});
+ if(action==="promote_moderator" && !["owner","admin"].includes(actor.role))return res.status(403).json({error:"Назначать модераторов может только администратор"});
  const target=db.prepare("SELECT id,username,role,banned FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(ownerShield(target))return res.status(403).json({error:"Этот игрок является владельцем CaseArena. Его нельзя кикнуть или забанить."});
- if(target.role==="admin" && actor.role!=="owner")return res.status(403).json({error:"Администратор может управлять только обычными игроками и модераторами"});
- if(target.role==="moderator" && actor.role==="admin")return res.status(403).json({error:"Администратор не может наказывать модератора"});
+ if(ownerShield(target))return res.status(403).json({error:"Аккаунт владельца защищён"});
+ if(target.role==="admin" && actor.role!=="owner")return res.status(403).json({error:"Нельзя управлять аккаунтом администратора"});
+ if(target.role==="moderator" && actor.role==="admin")return res.status(403).json({error:"Администратор может управлять только обычными игроками"});
+ if(action==="promote_moderator"){
+  if(target.role!=="user")return res.status(400).json({error:"Модератором можно назначить только обычного игрока"});
+  db.prepare("UPDATE users SET role='moderator' WHERE id=?").run(id);
+  log(actor.id,"Назначен модератором "+target.username);
+  return res.json({ok:true,message:"Игрок назначен модератором"});
+ }
  if(action==="unban"){
+  if(!target.banned)return res.status(400).json({error:"Игрок не заблокирован"});
   db.prepare("UPDATE users SET banned=0,session_version=session_version+1 WHERE id=?").run(id);
   log(actor.id,"Снят бан с игрока "+target.username);
   return res.json({ok:true,message:"Блокировка снята"});
