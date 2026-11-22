@@ -359,8 +359,51 @@ const skinCatalog=[
  ["AK-47 | Fire Serpent",9800,14700,"Тайное","rifles/ak-47-fire-serpent.png"],
  ["★ M9 Bayonet | Crimson Web",41000,61500,"Нож","knives/m9-bayonet-crimson-web.png"],
  ["★ Karambit | Sapphire",115000,172500,"Нож","knives/karambit-sapphire.png"]
+
+ ["M4A1-S | Decimator",650,975,"Засекреченное",""],
+ ["AK-47 | Ice Coaled",520,780,"Засекреченное",""],
+ ["AWP | Fever Dream",340,510,"Засекреченное",""],
+ ["USP-S | Cortex",260,390,"Засекреченное",""],
+ ["Desert Eagle | Printstream",2100,3150,"Тайное",""],
+ ["Glock-18 | Water Elemental",720,1080,"Засекреченное",""],
+ ["M4A4 | Magnesium",75,110,"Армейское",""],
+ ["MP9 | Starlight Protector",1850,2775,"Тайное",""],
+ ["AK-47 | The Empress",6900,10350,"Тайное",""],
+ ["M4A1-S | Hyper Beast",1850,2775,"Тайное",""],
+ ["AK-47 | Asiimov",1650,2475,"Тайное",""],
+ ["FAMAS | Mecha Industries",520,780,"Засекреченное",""],
+ ["P90 | Asiimov",850,1275,"Засекреченное",""],
+ ["MAC-10 | Disco Tech",420,630,"Засекреченное",""],
+ ["Five-SeveN | Angry Mob",980,1470,"Тайное",""],
+ ["P250 | See Ya Later",920,1380,"Тайное",""],
+ ["Galil AR | Chatterbox",1250,1875,"Тайное",""],
+ ["SSG 08 | Blood in the Water",2350,3525,"Тайное",""],
+ ["★ Bowie Knife | Doppler",17500,26250,"Нож",""],
+ ["★ Talon Knife | Fade",42000,63000,"Нож",""],
+ ["★ Flip Knife | Gamma Doppler",28000,42000,"Нож",""],
+ ["★ Stiletto Knife | Doppler",24500,36750,"Нож",""],
+ ["★ Ursus Knife | Fade",19000,28500,"Нож",""],
+ ["★ Skeleton Knife | Slaughter",33000,49500,"Нож",""],
+ ["AWP | Mortis",330,495,"Засекреченное",""],
+ ["AK-47 | Phantom Disruptor",390,585,"Засекреченное",""],
+ ["M4A4 | Neo-Noir",2250,3375,"Тайное",""],
+ ["USP-S | Kill Confirmed",3600,5400,"Тайное",""],
+ ["Desert Eagle | Kumicho Dragon",980,1470,"Засекреченное",""],
+ ["AK-47 | Jaguar",1850,2775,"Тайное",""]
 ].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub,rarity,image:"https://images.konekocode.pl/images/"+image,steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
-app.get("/api/skins",(req,res)=>res.json(skinCatalog));
+let skinImageIndexPromise=null;
+async function getSkinImageIndex(){
+ if(!skinImageIndexPromise){
+  skinImageIndexPromise=fetch("https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json",{signal:AbortSignal.timeout(12000)})
+   .then(async response=>{if(!response.ok)throw new Error("Skin catalogue unavailable");const rows=await response.json();return new Map(rows.map(item=>[item.name,item.image]).filter(row=>row[0]&&row[1]));})
+   .catch(error=>{console.warn("Skin image catalogue unavailable:",error.message);return new Map();});
+ }
+ return skinImageIndexPromise;
+}
+app.get("/api/skins",async(req,res)=>{
+ const imageIndex=await getSkinImageIndex();
+ res.json(skinCatalog.map(s=>({...s,image:imageIndex.get(s.name)||s.image,steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name)})));
+});
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
   const u=current(req), c=cases.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({error:"Кейс не найден"});
@@ -374,6 +417,19 @@ app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
     return {name,value,balance:fresh.balance-c.price,caseName:c.name};
   });
   try { res.json(tx()); } catch(e) { res.status(400).json({error:e.message}); }
+});
+app.post("/api/inventory/:id/sell",requireAuth,(req,res)=>{
+ const u=current(req),id=Number(req.params.id);
+ if(!Number.isInteger(id))return res.status(400).json({error:"Некорректный предмет"});
+ const item=db.prepare("SELECT * FROM inventory WHERE id=? AND user_id=?").get(id,u.id);
+ if(!item)return res.status(404).json({error:"Предмет не найден"});
+ const tx=db.transaction(()=>{
+  db.prepare("DELETE FROM inventory WHERE id=? AND user_id=?").run(id,u.id);
+  db.prepare("UPDATE users SET balance=balance+? WHERE id=?").run(item.item_value,u.id);
+  log(u.id,"Продан "+item.item_name+" за "+item.item_value+" CR");
+ });
+ tx();
+ res.json({ok:true,sold:item.item_value,user:userView(current(req))});
 });
 app.post("/api/upgrade",requireAuth,(req,res)=>{
   const u=current(req), itemId=Number(req.body.itemId), target=Number(req.body.targetValue);
@@ -437,9 +493,12 @@ app.post("/api/battles/:id/join",requireAuth,(req,res)=>{
  catch(e){res.status(400).json({error:e.message});}
 });
 app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
- const users=db.prepare("SELECT id,username,role,balance,created_at FROM users ORDER BY id DESC LIMIT 100").all();
+ const users=db.prepare("SELECT id,username,role,balance,created_at,(SELECT COUNT(*) FROM inventory WHERE user_id=users.id) AS item_count,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users ORDER BY id DESC LIMIT 100").all();
  const activity=db.prepare("SELECT activity.*,users.username FROM activity LEFT JOIN users ON users.id=activity.user_id ORDER BY activity.id DESC LIMIT 30").all();
- res.json({users,activity,totalUsers:db.prepare("SELECT COUNT(*) n FROM users").get().n});
+ const totalUsers=db.prepare("SELECT COUNT(*) n FROM users").get().n;
+ const totalItems=db.prepare("SELECT COUNT(*) n FROM inventory").get().n;
+ const totalBalance=db.prepare("SELECT COALESCE(SUM(balance),0) n FROM users").get().n;
+ res.json({users,activity,totalUsers,totalItems,totalBalance});
 });
 app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
  const amount=Number(req.body.amount);
@@ -454,9 +513,16 @@ app.post("/api/owner/users/:id/role",requireAuth,requireOwner,(req,res)=>{
  res.json({ok:true});
 });
 app.delete("/api/owner/users/:id",requireAuth,requireOwner,(req,res)=>{
- db.prepare("DELETE FROM inventory WHERE user_id=?").run(Number(req.params.id));
- db.prepare("DELETE FROM users WHERE id=? AND role!='owner'").run(Number(req.params.id));
- res.json({ok:true});
+ const id=Number(req.params.id);
+ const target=db.prepare("SELECT id,username,role FROM users WHERE id=?").get(id);
+ if(!target)return res.status(404).json({error:"Игрок не найден"});
+ if(target.role==="owner")return res.status(403).json({error:"Нельзя удалить владельца"});
+ const tx=db.transaction(()=>{
+  db.prepare("DELETE FROM inventory WHERE user_id=?").run(id);
+  db.prepare("DELETE FROM activity WHERE user_id=?").run(id);
+  db.prepare("DELETE FROM users WHERE id=? AND role!='owner'").run(id);
+ });
+ tx();res.json({ok:true});
 });
 
 app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
