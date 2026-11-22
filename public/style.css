@@ -353,3 +353,49 @@ body{padding-bottom:100px}
  .bottom-nav a{min-height:49px;font-size:9px}
  .bottom-nav-icon{font-size:17px}
 }
+
+/* Circular upgrade roulette */
+.upgrade-wheel-stage{position:relative;width:min(330px,82vw);aspect-ratio:1;margin:18px auto 12px;display:grid;place-items:center}
+.upgrade-wheel-caption{position:absolute;top:-5px;left:0;right:0;text-align:center;color:#a8bfd3;font:800 10px Orbitron;letter-spacing:1.5px}
+.upgrade-wheel-dial{width:100%;height:100%;border-radius:50%;position:relative;display:grid;place-items:center;
+ background:conic-gradient(from 0deg,#4de1d1 0 var(--chance),#23364c var(--chance) 100%);
+ border:7px solid #15283b;box-shadow:0 0 0 2px #4de1d155,0 0 45px #4de1d133,inset 0 0 25px #0008;
+ transition:transform 4.6s cubic-bezier(.08,.76,.12,1);will-change:transform}
+.upgrade-wheel-dial:before{content:"";position:absolute;inset:12px;border-radius:50%;border:1px dashed #ffffff55}
+.upgrade-wheel-center{width:42%;height:42%;border-radius:50%;background:radial-gradient(circle,#243d52,#0d1827 72%);border:2px solid #6bded2;box-shadow:0 0 25px #4de1d155;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1}
+.upgrade-wheel-center b{font:800 clamp(23px,7vw,34px) Orbitron;color:#f4f8ff}
+.upgrade-wheel-center small{font:800 9px Orbitron;letter-spacing:2px;color:#4de1d1}
+.upgrade-wheel-pointer{position:absolute;z-index:3;top:5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:0;border-bottom:30px solid #ffd16a;filter:drop-shadow(0 3px 5px #000b)}
+.sell-skin-btn{width:100%;margin-top:8px;padding:9px 7px;font-size:10px;border-color:#4de1d177;color:#65e2d3}
+.sell-skin-btn:hover{background:#173b3a}
+.btn.danger{background:#542632;color:#ffdce1;border:1px solid #a94a5c}
+.owner-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:22px}
+.owner-stat{padding:16px;border:1px solid #2e465f;border-radius:12px;background:linear-gradient(145deg,#1a3046,#101b29);display:flex;flex-direction:column;gap:7px}
+.owner-stat small,.owner-field small{font-size:9px;color:#8ea6be;letter-spacing:1px;font-weight:800}
+.owner-stat b{font:800 20px Orbitron;color:#63e0d2;overflow-wrap:anywhere}
+.owner-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
+.owner-toolbar h3,.owner-activity h3{margin:0;font-size:15px}
+.owner-toolbar input{max-width:240px}
+.owner-users{display:grid;gap:9px}
+.user-row{display:grid;grid-template-columns:minmax(130px,1.4fr) minmax(100px,.8fr) minmax(95px,.65fr) auto;gap:10px;align-items:center;padding:13px;border:1px solid #2b4158;border-radius:10px;background:#101c2b}
+.user-info{display:flex;flex-direction:column;gap:5px;min-width:0}
+.user-info>b{overflow-wrap:anywhere}
+.user-info small{font-size:10px;color:#8da3ba}
+.owner-field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.owner-field input,.owner-field select{width:100%;min-width:0;margin:0}
+.owner-actions{display:flex;gap:6px;flex-wrap:wrap}
+.owner-actions .btn{padding:9px 10px;font-size:10px}
+.owner-activity{margin-top:24px;border-top:1px solid #2a4058;padding-top:18px}
+.owner-activity p{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #ffffff0d;font-size:11px}
+.owner-activity p span{color:#9aadc2;text-align:right}
+@media(max-width:700px){
+ .owner-stats{grid-template-columns:1fr 1fr}
+ .owner-stat:last-child{grid-column:1/-1}
+ .owner-toolbar{align-items:stretch;flex-direction:column}
+ .owner-toolbar input{max-width:none}
+ .user-row{grid-template-columns:1fr 1fr}
+ .user-info{grid-column:1/-1}
+ .owner-actions{grid-column:1/-1}
+ .owner-activity p{flex-direction:column;gap:4px}
+ .owner-activity p span{text-align:left}
+}
