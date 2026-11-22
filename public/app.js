@@ -54,3 +54,97 @@ const originalToggleItem=window.toggleItem;
 window.toggleItem=(id,on)=>{on?selected.add(id):selected.delete(id);updateUpgradePreview()};
 const originalRefresh=refresh;
 refresh=async()=>{await originalRefresh();updateUpgradePreview()};
+
+
+// CaseArena gameplay interface: case roulette, skin upgrade picker and profile shortcut.
+let upgradeTargetSkin = null;
+let caseOpening = false;
+const upgradeCatalog = [
+ {name:"Glock-18 | Candy Apple",value:120,rarity:"Армейское",symbol:"◈"},
+ {name:"USP-S | Cortex",value:260,rarity:"Запрещённое",symbol:"◉"},
+ {name:"AK-47 | Slate",value:450,rarity:"Запрещённое",symbol:"◆"},
+ {name:"AWP | Neo-Noir",value:900,rarity:"Тайное",symbol:"✦"},
+ {name:"M4A1-S | Printstream",value:1800,rarity:"Тайное",symbol:"✧"},
+ {name:"AK-47 | Neon Rider",value:3200,rarity:"Тайное",symbol:"◆"},
+ {name:"★ Karambit | Doppler",value:8500,rarity:"Нож",symbol:"★"},
+ {name:"★ Butterfly Knife | Fade",value:16000,rarity:"Нож",symbol:"✦"}
+];
+const caseArt=["▣","◈","✦","♛"];
+function renderAccount(){
+ const a=$("#account");
+ a.innerHTML=me
+ ? '<button class="profile-shortcut" onclick="goProfile()"><span class="mini-avatar">'+escapeText(me.username.slice(0,1).toUpperCase())+'</span><span class="account-name">'+escapeText(me.username)+(me.role==="owner"?' <b class="owner-tag">OWNER</b>':'')+'<small>'+money(me.balance)+'</small></span></button><button class="btn secondary" onclick="logout()">Выйти</button>'
+ : '<button class="btn secondary" onclick="authModal()">Войти</button><button class="btn primary" onclick="authModal()">Регистрация</button>';
+}
+window.goProfile=()=>{if(!me)return authModal();location.hash="profile";$("#profile").scrollIntoView({behavior:"smooth"});};
+async function loadCases(){
+ const cs=await api("/api/cases");
+ $("#case-grid").innerHTML=cs.map((c,i)=>'<article class="case-card"><div class="case-visual"><span class="case-glow"></span><div class="case-box-art">'+caseArt[i%caseArt.length]+'</div><span class="case-index">CASE 0'+(i+1)+'</span></div><div class="case-info"><h3>'+escapeText(c.name)+'</h3><p class="case-subtitle">'+(["Стартовый дроп","Неоновые сокровища","Охота за редкостью","Премиальная коллекция"][i%4])+'</p><div class="case-bottom"><div class="price">'+money(c.price)+'</div><button class="btn primary" onclick="openCase(\''+c.id+'\')">ОТКРЫТЬ</button></div></div></article>').join("");
+}
+window.openCase=async id=>{
+ if(caseOpening)return;
+ if(!me)return authModal();
+ caseOpening=true;
+ try{
+  const d=await api('/api/cases/'+id+'/open',{method:'POST'});
+  const decoys=["AK-47 | Slate","USP-S | Cortex","AWP | Neo-Noir","M4A1-S | Decimator","Glock-18 | Vogue","P250 | Asiimov","MP9 | Food Chain","FAMAS | Mecha Industries"];
+  const items=Array.from({length:27},()=>decoys[Math.floor(Math.random()*decoys.length)]);
+  items[23]=d.name;
+  openModal("ОТКРЫТИЕ КЕЙСА",'<div class="roulette-wrap"><div class="roulette-pointer"></div><div id="roulette-window"><div id="roulette-track" class="roulette-track">'+items.map((n,i)=>'<div class="roulette-item '+(i===23?'roulette-winner':'')+'"><div class="roulette-item-art">'+(i===23?'★':'◆')+'</div><b>'+escapeText(n)+'</b><small>'+(i===23?money(d.value):"CS2 SKIN")+'</small></div>').join("")+'</div></div></div><p class="roulette-caption">Прокрутка предметов...</p>');
+  const track=$("#roulette-track");
+  requestAnimationFrame(()=>{track.style.transform='translateX(-'+(23*164-($("#roulette-window").clientWidth/2-82))+'px)'});
+  await new Promise(resolve=>setTimeout(resolve,4300));
+  $("#modal-body").innerHTML='<div class="win-result"><div class="win-star">★</div><p class="muted small">ТЕБЕ ВЫПАЛО</p><h3>'+escapeText(d.name)+'</h3><strong>'+money(d.value)+'</strong></div><button class="btn primary" style="width:100%;margin-top:18px" onclick="closeModal()">ЗАБРАТЬ ПРЕДМЕТ</button>';
+  await refresh();
+ }catch(e){toast(e.message)}finally{caseOpening=false}
+};
+function renderUpgrade(){
+ const source=$("#upgrade-source"),targets=$("#upgrade-targets");
+ if(!source||!targets)return;
+ source.innerHTML=inventory.length?inventory.map(x=>'<button class="pick-card '+(selected.has(x.id)?'chosen':'')+'" onclick="chooseUpgradeSource('+x.id+')"><span class="pick-art">◆</span><b>'+escapeText(x.item_name)+'</b><small>'+money(x.item_value)+'</small></button>').join(""):'<p class="muted small">Инвентарь пуст — сначала открой кейс</p>';
+ targets.innerHTML=upgradeCatalog.map((x,i)=>'<button class="pick-card target-card '+(upgradeTargetSkin===i?'chosen':'')+'" onclick="chooseUpgradeTarget('+i+')"><span class="pick-art">'+x.symbol+'</span><b>'+escapeText(x.name)+'</b><small>'+money(x.value)+'</small></button>').join("");
+ updateUpgradePreview();
+}
+window.chooseUpgradeSource=id=>{selected.clear();selected.add(id);renderUpgrade()};
+window.chooseUpgradeTarget=i=>{upgradeTargetSkin=i;renderUpgrade()};
+window.updateUpgradePreview=()=>{
+ const box=$("#upgrade-preview"),wheel=$("#upgrade-wheel-value");
+ if(!box)return;
+ const item=inventory.find(x=>selected.has(x.id))||inventory[0];
+ const target=upgradeTargetSkin===null?null:upgradeCatalog[upgradeTargetSkin];
+ if(!item||!target||target.value<=Number(item.item_value)){
+  box.innerHTML='<span class="muted">'+(!item?'Открой кейс и выбери предмет':!target?'Выбери скин, который хочешь получить':'Цель должна быть дороже твоего предмета')+'</span>';
+  if(wheel)wheel.textContent="—";
+  return;
+ }
+ const chance=Math.min(75,Number(item.item_value)/target.value*75),n=Math.round(chance);
+ if(wheel)wheel.textContent=n+"%";
+ box.innerHTML='<div><b>'+escapeText(item.item_name)+'</b><div class="muted small">'+money(item.item_value)+' → '+escapeText(target.name)+' · '+money(target.value)+'</div><div class="chance-track"><div class="chance-fill" style="width:'+n+'%"></div></div></div><div class="chance-number">'+n+'%</div>';
+};
+window.upgrade=async()=>{
+ if(!me)return authModal();
+ const item=inventory.find(x=>selected.has(x.id))||inventory[0];
+ const target=upgradeTargetSkin===null?null:upgradeCatalog[upgradeTargetSkin];
+ if(!item)return toast("Сначала открой кейс");
+ if(!target)return toast("Выбери целевой скин");
+ if(target.value<=item.item_value)return toast("Целевой скин должен быть дороже");
+ try{
+  const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemId:item.id,targetValue:target.value,targetName:target.name})});
+  selected.clear();
+  openModal(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО",'<div class="win-result"><div class="win-star">'+(d.success?'✦':'×')+'</div><h3>'+(d.success?escapeText(target.name):'Предмет не улучшен')+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+escapeText(d.message)+'</p></div><button class="btn primary" style="width:100%;margin-top:18px" onclick="closeModal()">ПОНЯТНО</button>');
+  await refresh();
+ }catch(e){toast(e.message)}
+};
+const baseRefresh=refresh;
+refresh=async()=>{await baseRefresh();renderUpgrade()};
+const baseProfile=renderProfile;
+renderProfile=function(){
+ baseProfile();
+ if(me){
+  const p=$("#profile-content");
+  const btn=document.createElement("button");btn.className="btn secondary profile-edit-shortcut";btn.textContent="ПРОФИЛЬ И ИНВЕНТАРЬ";
+  btn.onclick=()=>$("#profile").scrollIntoView({behavior:"smooth"});
+  const head=p.querySelector(".profile-head");if(head)head.appendChild(btn);
+ }
+};
+loadCases().catch(e=>toast(e.message));
