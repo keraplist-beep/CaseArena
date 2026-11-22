@@ -10,16 +10,17 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 
 const app = express();
-const db = new Database("casearena.db");
-db.pragma("journal_mode = WAL");
-db.exec(`
+const localDb = new Database("casearena.db");
+localDb.pragma("journal_mode = WAL");
+localDb.exec(\`
 CREATE TABLE IF NOT EXISTS users (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  username TEXT UNIQUE NOT NULL,
  password_hash TEXT NOT NULL,
  role TEXT NOT NULL DEFAULT 'user',
  balance INTEGER NOT NULL DEFAULT 1000,
- created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ google_sub TEXT
 );
 CREATE TABLE IF NOT EXISTS inventory (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,31 +35,164 @@ CREATE TABLE IF NOT EXISTS activity (
  message TEXT NOT NULL,
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-`);
-// Backward-compatible migration for Google sign-in.
-const userColumns = db.prepare("PRAGMA table_info(users)").all().map(c => c.name);
-if (!userColumns.includes("google_sub")) db.exec("ALTER TABLE users ADD COLUMN google_sub TEXT");
+\`);
+const localUserColumns = localDb.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+if (!localUserColumns.includes("google_sub")) localDb.exec("ALTER TABLE users ADD COLUMN google_sub TEXT");
+
+const { Pool } = require("pg");
+if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for persistent CaseArena storage");
+const pool = new Pool({
+ connectionString: process.env.DATABASE_URL,
+ ssl: { rejectUnauthorized: false },
+ max: 5,
+ idleTimeoutMillis: 30000,
+ connectionTimeoutMillis: 15000
+});
+let writeQueue = Promise.resolve();
+let writeError = null;
+let capturedWrites = null;
+
+function toPgSql(sql) {
+ let index = 0;
+ return sql.replace(/\?/g, () => "$" + (++index));
+}
+function enqueueWrites(writes) {
+ if (!writes.length) return;
+ writeQueue = writeQueue.then(async () => {
+   const client = await pool.connect();
+   try {
+     if (writes.length > 1) await client.query("BEGIN");
+     for (const item of writes) await client.query(item.sql, item.params);
+     if (writes.length > 1) await client.query("COMMIT");
+     writeError = null;
+   } catch (error) {
+     if (writes.length > 1) await client.query("ROLLBACK").catch(() => {});
+     writeError = error;
+     console.error("Postgres write failed:", error.message);
+   } finally {
+     client.release();
+   }
+ });
+}
+function mirrorWrite(sql, params, result) {
+ const insert = sql.match(/^INSERT\s+INTO\s+([a-z_]+)\s*\(([^)]+)\)\s*VALUES\s*\(/i);
+ let pgStatement = toPgSql(sql);
+ let pgParams = params;
+ if (insert && result && result.lastInsertRowid != null) {
+   const table = insert[1];
+   const columns = insert[2].trim();
+   pgStatement = "INSERT INTO " + table + " (id, " + columns + ") VALUES (" +
+     ["$1", ...params.map((_, i) => "$" + (i + 2))].join(",") + ")";
+   pgParams = [Number(result.lastInsertRowid), ...params];
+ }
+ const item = { sql: pgStatement, params: pgParams };
+ if (capturedWrites) capturedWrites.push(item);
+ else enqueueWrites([item]);
+}
+const db = {
+ pragma: (...args) => localDb.pragma(...args),
+ exec: (...args) => localDb.exec(...args),
+ prepare(sql) {
+   const statement = localDb.prepare(sql);
+   return {
+     get: (...params) => statement.get(...params),
+     all: (...params) => statement.all(...params),
+     run: (...params) => {
+       const result = statement.run(...params);
+       mirrorWrite(sql, params, result);
+       return result;
+     }
+   };
+ },
+ transaction(callback) {
+   const localTransaction = localDb.transaction(callback);
+   return (...args) => {
+     const previousCapture = capturedWrites;
+     const writes = [];
+     capturedWrites = writes;
+     try {
+       const result = localTransaction(...args);
+       capturedWrites = previousCapture;
+       if (previousCapture) previousCapture.push(...writes);
+       else enqueueWrites(writes);
+       return result;
+     } catch (error) {
+       capturedWrites = previousCapture;
+       throw error;
+     }
+   };
+ }
+};
+
+async function initializePersistentDatabase() {
+ await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT");
+ const [users, inventory, activity] = await Promise.all([
+   pool.query("SELECT * FROM users ORDER BY id"),
+   pool.query("SELECT * FROM inventory ORDER BY id"),
+   pool.query("SELECT * FROM activity ORDER BY id")
+ ]);
+ const remoteHasData = users.rowCount + inventory.rowCount + activity.rowCount > 0;
+ if (remoteHasData) {
+   localDb.exec("DELETE FROM inventory; DELETE FROM activity; DELETE FROM users;");
+   for (const u of users.rows) localDb.prepare(
+     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub) VALUES(?,?,?,?,?,?,?)"
+   ).run(u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub);
+   for (const item of inventory.rows) localDb.prepare(
+     "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES(?,?,?,?,?)"
+   ).run(item.id,item.user_id,item.item_name,item.item_value,item.created_at);
+   for (const item of activity.rows) localDb.prepare(
+     "INSERT INTO activity(id,user_id,message,created_at) VALUES(?,?,?,?)"
+   ).run(item.id,item.user_id,item.message,item.created_at);
+ } else {
+   const localUsers = localDb.prepare("SELECT * FROM users ORDER BY id").all();
+   const localInventory = localDb.prepare("SELECT * FROM inventory ORDER BY id").all();
+   const localActivity = localDb.prepare("SELECT * FROM activity ORDER BY id").all();
+   for (const u of localUsers) await pool.query(
+     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING",
+     [u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub]
+   );
+   for (const item of localInventory) await pool.query(
+     "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING",
+     [item.id,item.user_id,item.item_name,item.item_value,item.created_at]
+   );
+   for (const item of localActivity) await pool.query(
+     "INSERT INTO activity(id,user_id,message,created_at) VALUES($1,$2,$3,$4) ON CONFLICT (id) DO NOTHING",
+     [item.id,item.user_id,item.message,item.created_at]
+   );
+ }
+ for (const table of ["users","inventory","activity"]) {
+   await pool.query("SELECT setval(pg_get_serial_sequence($1,'id'), GREATEST(COALESCE((SELECT MAX(id) FROM " + table + "),1),1), true)", [table]);
+ }
+ console.log("Persistent PostgreSQL storage initialized", { users: users.rowCount, inventory: inventory.rowCount, activity: activity.rowCount, importedLocal: !remoteHasData });
+}
+async function flushWrites() {
+ await writeQueue;
+ if (writeError) throw writeError;
+}
 const OWNER_USERNAME = (process.env.OWNER_USERNAME || "").trim().toLowerCase();
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD || "";
 const OWNER_RESET_PASSWORD = process.env.OWNER_RESET_PASSWORD === "true";
-if (OWNER_USERNAME && OWNER_PASSWORD) {
-  const existing = db.prepare("SELECT id FROM users WHERE username=?").get(OWNER_USERNAME);
-  if (!existing) {
-    const hash = bcrypt.hashSync(OWNER_PASSWORD, 12);
-    db.prepare("INSERT INTO users(username,password_hash,role,balance) VALUES(?,?,?,?)")
-      .run(OWNER_USERNAME, hash, "owner", 100000);
-    console.log("OWNER account created:", OWNER_USERNAME);
-  } else if (OWNER_RESET_PASSWORD) {
-    const hash = bcrypt.hashSync(OWNER_PASSWORD, 12);
-    db.prepare("UPDATE users SET role='owner', password_hash=? WHERE username=?").run(hash, OWNER_USERNAME);
-    console.log("OWNER account password reset:", OWNER_USERNAME);
-  } else {
-    db.prepare("UPDATE users SET role='owner' WHERE username=?").run(OWNER_USERNAME);
-  }
-}
 app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({limit:"30kb"}));
+app.use((req,res,next) => {
+ const originalJson = res.json.bind(res);
+ res.json = (payload) => {
+   writeQueue.then(() => {
+     if (writeError) {
+       res.status(503);
+       return originalJson({error:"Хранилище временно недоступно. Попробуйте ещё раз."});
+     }
+     return originalJson(payload);
+   }).catch(error => {
+     console.error("Response persistence check failed:", error.message);
+     res.status(503);
+     originalJson({error:"Хранилище временно недоступно."});
+   });
+   return res;
+ };
+ next();
+});
 app.use(cookieSession({
   name: "casearena_session",
   keys: [process.env.SESSION_SECRET || "casearena-stable-cookie-key-change-in-render"],
@@ -326,4 +460,27 @@ app.delete("/api/owner/users/:id",requireAuth,requireOwner,(req,res)=>{
 
 app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
 const port=Number(process.env.PORT)||3000;
-app.listen(port,()=>console.log(`CaseArena running at http://localhost:${port}`));
+async function startServer() {
+ await initializePersistentDatabase();
+ if (OWNER_USERNAME && OWNER_PASSWORD) {
+   const existing = db.prepare("SELECT id FROM users WHERE username=?").get(OWNER_USERNAME);
+   if (!existing) {
+     const hash = bcrypt.hashSync(OWNER_PASSWORD, 12);
+     db.prepare("INSERT INTO users(username,password_hash,role,balance) VALUES(?,?,?,?)")
+       .run(OWNER_USERNAME, hash, "owner", 100000);
+     console.log("OWNER account created:", OWNER_USERNAME);
+   } else if (OWNER_RESET_PASSWORD) {
+     const hash = bcrypt.hashSync(OWNER_PASSWORD, 12);
+     db.prepare("UPDATE users SET role='owner', password_hash=? WHERE username=?").run(hash, OWNER_USERNAME);
+     console.log("OWNER account password reset:", OWNER_USERNAME);
+   } else {
+     db.prepare("UPDATE users SET role='owner' WHERE username=?").run(OWNER_USERNAME);
+   }
+ }
+ await flushWrites();
+ app.listen(port,()=>console.log("CaseArena running on port",port));
+}
+startServer().catch(error => {
+ console.error("CaseArena startup failed:", error);
+ process.exit(1);
+});
