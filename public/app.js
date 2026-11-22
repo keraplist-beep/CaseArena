@@ -135,7 +135,7 @@ async function loadOwner(search=ownerSearchQuery){
    '<div class="owner-toolbar"><div><h3>Управление игроками</h3><small class="muted">Выдача баланса и смена роли — отдельными действиями</small></div><div class="owner-toolbar-actions"><input id="owner-search" value="'+esc(ownerSearchQuery)+'" placeholder="Поиск по нику…" oninput="searchOwnerUsers(this.value)"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
    '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>
     '<div class="user-row" data-user="'+esc(u.username.toLowerCase())+'">'+
-     '<div class="user-info"><b>'+esc(u.username)+'</b> '+(u.role==="owner"?'<span class="owner-tag">OWNER</span>':'')+
+     '<div class="user-info"><b>'+esc(u.username)+'</b> '+roleBadge(u.role)+
      '<small>'+esc(ROLE_LABELS[u.role]||u.role)+' · '+Number(u.item_count||0)+' предметов · инвентарь '+money(u.inventory_value)+'</small></div>'+
      '<div class="owner-field"><small>БАЛАНС · '+money(u.balance)+'</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" placeholder="Сумма" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'></div>'+
      '<div class="owner-actions owner-balance-actions">'+
