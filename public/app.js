@@ -1,7 +1,7 @@
 const $=s=>document.querySelector(s);
 let me=null, inventory=[], selected=new Set(), skins=[], casesCache=[], upgradeSourceId=null, upgradeTarget=null, rolling=false;
 const money=n=>Number(n||0).toLocaleString("ru-RU")+" CR";
-const rub=n=>"≈ "+Number(n||0).toLocaleString("ru-RU")+" ₽";
+const rub=n=>Number(n||0).toLocaleString("ru-RU")+" ₽";
 const api=async(url,opts={})=>{const r=await fetch(url,{...opts,headers:{"Content-Type":"application/json",...(opts.headers||{})}});const d=await r.json();if(!r.ok)throw Error(d.error||"Ошибка запроса");return d};
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function toast(t){const el=$("#toast");el.textContent=t;el.style.display="block";clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.style.display="none",3000)}
