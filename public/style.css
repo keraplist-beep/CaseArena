@@ -563,3 +563,5 @@ body{padding-bottom:100px}
 .staff-list{display:grid;gap:9px}.staff-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #2a435d;border-radius:10px;background:#101e2e}.staff-row>div:first-child{display:flex;flex-direction:column;gap:5px;min-width:0}.staff-row small{font-size:10px;color:#91a9c1}.staff-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.staff-actions .btn{padding:7px 11px;font-size:10px}.owner-shield{font-size:10px;color:#f4d17f;font-weight:900;white-space:nowrap}
 @media(max-width:850px){.upgrade-layout{grid-template-columns:1fr}.upgrader-center{order:0}.upgrade-select-panel{min-width:0}.pick-grid{max-height:290px}}
 @media(max-width:560px){.upgrader-center{padding:14px}.upgrader-art{height:90px}.upgrader-item>b{font-size:9px}.staff-toolbar{align-items:stretch;flex-direction:column}.staff-toolbar input{max-width:none}.staff-row{align-items:flex-start;flex-direction:column}.staff-actions{width:100%}}
+
+.bottom-nav{grid-template-columns:repeat(8,minmax(0,1fr))}
