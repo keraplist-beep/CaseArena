@@ -1,7 +1,6 @@
 require("dotenv").config();
 const express = require("express");
-const session = require("express-session");
-const SQLiteStore = require("connect-sqlite3")(session);
+const cookieSession = require("cookie-session");
 const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
 const helmet = require("helmet");
@@ -60,11 +59,13 @@ if (OWNER_USERNAME && OWNER_PASSWORD) {
 app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({limit:"30kb"}));
-app.use(session({
-  store: new SQLiteStore({ db: "sessions.db", dir: "." }),
-  secret: process.env.SESSION_SECRET || "development-only-change-this-secret",
-  resave: false, saveUninitialized: false,
-  cookie: { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 1000*60*60*24*7 }
+app.use(cookieSession({
+  name: "casearena_session",
+  keys: [process.env.SESSION_SECRET || "casearena-stable-cookie-key-change-in-render"],
+  maxAge: 1000 * 60 * 60 * 24 * 30,
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production"
 }));
 app.use(passport.initialize());
 const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -113,10 +114,10 @@ app.get("/auth/google/callback", (req,res,next) => {
     if (result.existing) {
       req.session.userId = result.user.id;
       delete req.session.pendingGoogle;
-      return req.session.save(() => res.redirect("/"));
+      return res.redirect("/");
     }
     req.session.pendingGoogle = { googleSub: result.googleSub, email: result.email };
-    return req.session.save(() => res.redirect("/?chooseNick=1"));
+    return res.redirect("/?chooseNick=1");
   })(req,res,next);
 });
 app.get("/api/google/status", (req,res) => res.json({ configured: googleConfigured, pending: Boolean(req.session.pendingGoogle) }));
@@ -133,7 +134,7 @@ app.post("/api/google/complete-nickname", authLimiter, (req,res) => {
     req.session.userId = info.lastInsertRowid;
     delete req.session.pendingGoogle;
     log(info.lastInsertRowid, "Аккаунт создан через Google");
-    req.session.save(() => res.json({user:userView(current(req))}));
+    res.json({user:userView(current(req))});
   } catch(e) { res.status(409).json({error:"Этот ник уже занят"}); }
 });
 
@@ -157,13 +158,7 @@ app.post("/api/register",authLimiter,async(req,res)=>{
  req.session.userId = info.lastInsertRowid;
 log(info.lastInsertRowid, "Создан аккаунт");
 
-req.session.save(err => {
-  if (err) {
-    return res.status(500).json({error:"Не удалось сохранить авторизацию"});
-  }
-
-  res.json({user:userView(current(req))});
-});
+res.json({user:userView(current(req))});
   } catch(e) { res.status(409).json({error:"Такой ник уже занят"}); }
 });
 app.post("/api/login",authLimiter,async(req,res)=>{
@@ -174,23 +169,54 @@ app.post("/api/login",authLimiter,async(req,res)=>{
   req.session.userId=u.id;
   req.session.userId = u.id;
 
-req.session.save(err => {
-  if (err) {
-    return res.status(500).json({error:"Не удалось сохранить авторизацию"});
-  }
-
-  res.json({user:userView(u)});
+res.json({user:userView(u)});
 });
-});
-app.post("/api/logout",(req,res)=>req.session.destroy(()=>res.json({ok:true})));
+app.post("/api/logout",(req,res)=>{req.session=null;res.json({ok:true});});
 
 const cases=[
-  {id:"starter",name:"СТАРТОВЫЙ",price:50,items:[["Glock-18 | Candy Apple",35],["MP9 | Slide",65],["P250 | Steel Disruption",90]]},
-  {id:"neon",name:"НЕОНОВЫЙ",price:180,items:[["USP-S | Neo-Noir",100],["AK-47 | Neon Rider",260],["AWP | Electric Hive",420]]},
-  {id:"dragon",name:"ДРАКОНОВЫЙ",price:500,items:[["M4A4 | 龍王 (Dragon King)",280],["AWP | Redline",700],["AK-47 | Bloodsport",1200]]},
-  {id:"royal",name:"КОРОЛЕВСКИЙ",price:1200,items:[["★ Huntsman Knife | Doppler",800],["★ Sport Gloves | Vice",1600],["★ Karambit | Doppler",3500]]}
+ {id:"starter",name:"РАЗМИНКА",subtitle:"Начни собирать инвентарь",price:79,items:[["Glock-18 | Candy Apple",45],["MP9 | Capillary",65],["P250 | Sand Dune",85],["USP-S | Ticket to Hell",120],["AK-47 | Elite Build",190]]},
+ {id:"dust",name:"DUST II",subtitle:"Классика легендарной карты",price:179,items:[["Desert Eagle | Bronze Deco",95],["AWP | Atheris",220],["AK-47 | Slate",360],["M4A4 | Desolate Space",590],["USP-S | Neo-Noir",880]]},
+ {id:"neon",name:"НЕОНОВЫЙ",subtitle:"Яркие цвета и контраст",price:349,items:[["Glock-18 | Vogue",180],["MP9 | Food Chain",290],["AK-47 | Neon Rider",980],["AWP | Neo-Noir",1450],["M4A1-S | Printstream",2350]]},
+ {id:"inferno",name:"INFERNO",subtitle:"Огненная коллекция",price:599,items:[["AK-47 | Redline",720],["AWP | Wildfire",1250],["M4A4 | The Emperor",1750],["Desert Eagle | Blaze",4200],["AK-47 | Bloodsport",5100]]},
+ {id:"sniper",name:"СНАЙПЕРСКИЙ",subtitle:"Только точные попадания",price:899,items:[["SSG 08 | Dragonfire",420],["AWP | Asiimov",1850],["AWP | Hyper Beast",2200],["AWP | Containment Breach",3900],["AWP | Dragon Lore",25000]]},
+ {id:"royal",name:"КОРОЛЕВСКИЙ",subtitle:"Редкие и дорогие предметы",price:1499,items:[["M4A1-S | Printstream",2350],["AK-47 | Fire Serpent",9800],["★ Huntsman Knife | Doppler",12500],["★ Karambit | Doppler",38500],["★ Butterfly Knife | Fade",62000]]},
+ {id:"knife",name:"ОХОТА ЗА НОЖОМ",subtitle:"Кейс для любителей ножей",price:2499,items:[["★ Navaja Knife | Fade",7500],["★ Shadow Daggers | Doppler",9800],["★ Huntsman Knife | Doppler",12500],["★ Karambit | Fade",55000],["★ Butterfly Knife | Fade",62000]]},
+ {id:"elite",name:"ЭЛИТА",subtitle:"Максимальный риск и награда",price:4999,items:[["★ Bayonet | Doppler",32000],["★ M9 Bayonet | Crimson Web",41000],["★ Karambit | Doppler",38500],["★ Butterfly Knife | Fade",62000],["★ Karambit | Sapphire",115000]]}
 ];
-app.get("/api/cases",(req,res)=>res.json(cases.map(({id,name,price})=>({id,name,price}))));
+app.get("/api/cases",(req,res)=>res.json(cases.map(({id,name,subtitle,price})=>({id,name,subtitle,price}))));
+const skinCatalog=[
+ ["Glock-18 | Candy Apple",45,65,"Армейское","pistols/glock-18-candy-apple.png"],
+ ["MP9 | Capillary",65,95,"Армейское","smgs/mp9-capillary.png"],
+ ["P250 | Sand Dune",85,120,"Промышленное","pistols/p250-sand-dune.png"],
+ ["USP-S | Ticket to Hell",120,180,"Запрещённое","pistols/usp-s-ticket-to-hell.png"],
+ ["AK-47 | Elite Build",190,290,"Запрещённое","rifles/ak-47-elite-build.png"],
+ ["Desert Eagle | Bronze Deco",95,140,"Запрещённое","pistols/desert-eagle-bronze-deco.png"],
+ ["AWP | Atheris",220,330,"Запрещённое","rifles/awp-atheris.png"],
+ ["AK-47 | Slate",360,540,"Запрещённое","rifles/ak-47-slate.png"],
+ ["M4A4 | Desolate Space",590,890,"Засекреченное","rifles/m4a4-desolate-space.png"],
+ ["USP-S | Neo-Noir",880,1320,"Тайное","pistols/usp-s-neo-noir.png"],
+ ["Glock-18 | Vogue",180,270,"Засекреченное","pistols/glock-18-vogue.png"],
+ ["MP9 | Food Chain",290,435,"Тайное","smgs/mp9-food-chain.png"],
+ ["AK-47 | Neon Rider",980,1470,"Тайное","rifles/ak-47-neon-rider.png"],
+ ["AWP | Neo-Noir",1450,2175,"Тайное","rifles/awp-neo-noir.png"],
+ ["M4A1-S | Printstream",2350,3525,"Тайное","rifles/m4a1-s-printstream.png"],
+ ["AK-47 | Redline",720,1080,"Засекреченное","rifles/ak-47-redline.png"],
+ ["AWP | Wildfire",1250,1875,"Тайное","rifles/awp-wildfire.png"],
+ ["M4A4 | The Emperor",1750,2625,"Тайное","rifles/m4a4-the-emperor.png"],
+ ["Desert Eagle | Blaze",4200,6300,"Запрещённое","pistols/desert-eagle-blaze.png"],
+ ["AK-47 | Bloodsport",5100,7650,"Тайное","rifles/ak-47-bloodsport.png"],
+ ["AWP | Asiimov",1850,2775,"Тайное","rifles/awp-asiimov.png"],
+ ["AWP | Hyper Beast",2200,3300,"Тайное","rifles/awp-hyper-beast.png"],
+ ["AWP | Dragon Lore",25000,37500,"Тайное","rifles/awp-dragon-lore.png"],
+ ["★ Karambit | Doppler",38500,57750,"Нож","knives/karambit-doppler.png"],
+ ["★ Butterfly Knife | Fade",62000,93000,"Нож","knives/butterfly-knife-fade.png"],
+ ["★ Karambit | Fade",55000,82500,"Нож","knives/karambit-fade.png"],
+ ["★ Huntsman Knife | Doppler",12500,18750,"Нож","knives/huntsman-knife-doppler.png"],
+ ["★ Bayonet | Doppler",32000,48000,"Нож","knives/bayonet-doppler.png"],
+ ["★ Navaja Knife | Fade",7500,11250,"Нож","knives/navaja-knife-fade.png"],
+ ["★ Shadow Daggers | Doppler",9800,14700,"Нож","knives/shadow-daggers-doppler.png"]
+].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub,rarity,image:"https://images.konekocode.pl/images/"+image,steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
+app.get("/api/skins",(req,res)=>res.json(skinCatalog));
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
   const u=current(req), c=cases.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({error:"Кейс не найден"});
@@ -201,7 +227,7 @@ app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
     db.prepare("UPDATE users SET balance=balance-? WHERE id=?").run(c.price,u.id);
     db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,name,value);
     log(u.id,`Открыт кейс ${c.name}: ${name}`);
-    return {name,value,balance:fresh.balance-c.price};
+    return {name,value,balance:fresh.balance-c.price,caseName:c.name};
   });
   try { res.json(tx()); } catch(e) { res.status(400).json({error:e.message}); }
 });
@@ -237,6 +263,14 @@ app.post("/api/contracts",requireAuth,(req,res)=>{
   });
   tx(); res.json({message:`Контракт создан. Новый предмет: ${value}`,user:userView(current(req))});
 });
+app.get("/api/users/:username",(req,res)=>{
+ const username=String(req.params.username||"").trim().toLowerCase();
+ const u=db.prepare("SELECT id,username,role,balance,created_at FROM users WHERE username=?").get(username);
+ if(!u)return res.status(404).json({error:"Игрок не найден"});
+ const items=db.prepare("SELECT item_name,item_value,created_at FROM inventory WHERE user_id=? ORDER BY id DESC").all(u.id);
+ res.json({user:userView(u),inventory:items,inventoryValue:items.reduce((sum,x)=>sum+x.item_value,0),joined:u.created_at});
+});
+
 app.get("/api/leaderboard",(req,res)=>{
   res.json(db.prepare("SELECT username,role,balance,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users ORDER BY balance+inventory_value DESC LIMIT 20").all());
 });
