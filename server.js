@@ -214,7 +214,12 @@ const skinCatalog=[
  ["★ Huntsman Knife | Doppler",12500,18750,"Нож","knives/huntsman-knife-doppler.png"],
  ["★ Bayonet | Doppler",32000,48000,"Нож","knives/bayonet-doppler.png"],
  ["★ Navaja Knife | Fade",7500,11250,"Нож","knives/navaja-knife-fade.png"],
- ["★ Shadow Daggers | Doppler",9800,14700,"Нож","knives/shadow-daggers-doppler.png"]
+ ["★ Shadow Daggers | Doppler",9800,14700,"Нож","knives/shadow-daggers-doppler.png"],
+ ["SSG 08 | Dragonfire",420,630,"Тайное","rifles/ssg-08-dragonfire.png"],
+ ["AWP | Containment Breach",3900,5850,"Тайное","rifles/awp-containment-breach.png"],
+ ["AK-47 | Fire Serpent",9800,14700,"Тайное","rifles/ak-47-fire-serpent.png"],
+ ["★ M9 Bayonet | Crimson Web",41000,61500,"Нож","knives/m9-bayonet-crimson-web.png"],
+ ["★ Karambit | Sapphire",115000,172500,"Нож","knives/karambit-sapphire.png"]
 ].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub,rarity,image:"https://images.konekocode.pl/images/"+image,steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
 app.get("/api/skins",(req,res)=>res.json(skinCatalog));
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
