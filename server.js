@@ -717,6 +717,8 @@ app.delete("/api/owner/users/:id",requireAuth,requireOwner,(req,res)=>{
  tx();res.json({ok:true});
 });
 
+const port=Number(process.env.PORT)||3000;
+
 async function startServer() {
  await initializePersistentDatabase();
  if (OWNER_USERNAME && OWNER_PASSWORD) {
