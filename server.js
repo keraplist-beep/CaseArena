@@ -435,7 +435,7 @@ const skinCatalog=[
  ["AK-47 | Bloodsport",5100,7650,"Тайное","rifles/ak-47-bloodsport.png"],
  ["AWP | Asiimov",1850,2775,"Тайное","rifles/awp-asiimov.png"],
  ["AWP | Hyper Beast",2200,3300,"Тайное","rifles/awp-hyper-beast.png"],
- ["AWP | Dragon Lore",25000,37500,"Тайное","rifles/awp-dragon-lore.png"],
+ ["AWP | Dragon Lore",471500,471500,"Тайное","rifles/awp-dragon-lore.png"],
  ["★ Karambit | Doppler",38500,57750,"Нож","knives/karambit-doppler.png"],
  ["★ Butterfly Knife | Fade",62000,93000,"Нож","knives/butterfly-knife-fade.png"],
  ["★ Karambit | Fade",55000,82500,"Нож","knives/karambit-fade.png"],
@@ -521,7 +521,44 @@ const skinCatalog=[
  ,["★ Karambit | Gamma Doppler",92000,138000,"Нож",""]
  ,["★ Butterfly Knife | Tiger Tooth",79000,118500,"Нож",""]
  ,["★ M9 Bayonet | Lore",88000,132000,"Нож",""]
-].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub,rarity,image:"https://images.konekocode.pl/images/"+image,steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
+].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub:value,rarity,image:"https://images.konekocode.pl/images/"+image,marketWear:rarity==="Нож" && /(Doppler|Fade|Marble Fade|Tiger Tooth|Sapphire|Emerald)/i.test(name)?"Factory New":"Field-Tested",steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
+ skinCatalog.push(...[
+  ["AK-47 | Inheritance",4200,"Тайное"],["AWP | Chromatic Aberration",950,"Тайное"],
+  ["M4A4 | Temukau",1800,"Тайное"],["USP-S | Printstream",1250,"Тайное"],
+  ["Desert Eagle | Printstream",2100,"Тайное"],["AK-47 | Head Shot",1150,"Засекреченное"],
+  ["M4A1-S | Black Lotus",850,"Засекреченное"],["Glock-18 | Shinobu",720,"Засекреченное"],
+  ["M4A1-S | Blue Phosphor",12500,"Тайное"],["AWP | Duality",380,"Засекреченное"]
+ ].map(([name,value,rarity])=>({name,value,steamRub:value,rarity,marketWear:"Field-Tested",image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)})));
+ cases.push({id:"new-drop",name:"НОВЫЙ ДРОП",subtitle:"Свежие скины CS2",price:599,theme:"gradient",cover:"AK-47 | Inheritance",items:[["AWP | Chromatic Aberration",950,38],["Glock-18 | Shinobu",720,28],["AK-47 | Head Shot",1150,20],["M4A4 | Temukau",1800,10],["AK-47 | Inheritance",4200,4]]});
+ const STEAM_PRICE_REFRESH_MS=6*60*60*1000;
+ let steamPriceRefreshRunning=false,steamPriceLastUpdated=0;
+ const parseSteamRubPrice=value=>{if(!value)return 0;const normalized=String(value).replace(/[^0-9,\.]/g,"").replace(/\.(?=.*\.)/g,"").replace(",",".");const n=Number(normalized);return Number.isFinite(n)&&n>0?n:0};
+ async function refreshSteamPrices(){
+  if(steamPriceRefreshRunning)return;
+  steamPriceRefreshRunning=true;
+  let updated=0;
+  try{
+   for(const skin of skinCatalog){
+    try{
+     const marketHashName=skin.name+" ("+(skin.marketWear||"Field-Tested")+")";
+     const url="https://steamcommunity.com/market/priceoverview/?"+new URLSearchParams({appid:"730",country:"RU",currency:"5",market_hash_name:marketHashName});
+     const response=await fetch(url,{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0 CaseArena/1.0"},signal:AbortSignal.timeout(12000)});
+     if(response.status===429){console.warn("Steam Market rate limit reached; remaining prices will refresh next cycle");break}
+     if(response.ok){
+      const data=await response.json();
+      const price=parseSteamRubPrice(data.lowest_price)||parseSteamRubPrice(data.median_price);
+      if(data.success&&price>0){const value=Math.max(1,Math.round(price));skin.value=value;skin.steamRub=value;skin.priceSource="Steam Market";skin.priceUpdatedAt=Date.now();updated++}
+     }
+    }catch(error){console.warn("Steam price unavailable for",skin.name,error.message)}
+    await new Promise(resolve=>setTimeout(resolve,3300));
+   }
+   const priceByName=new Map(skinCatalog.map(s=>[s.name,s.value]));
+   for(const crate of cases)for(const item of crate.items)if(priceByName.has(item[0]))item[1]=priceByName.get(item[0]);
+   for(const [name,value] of priceByName)db.prepare("UPDATE inventory SET item_value=? WHERE item_name=?").run(value,name);
+   await flushWrites();steamPriceLastUpdated=Date.now();
+   console.log("Steam Market prices refreshed",{updated,total:skinCatalog.length,updatedAt:new Date(steamPriceLastUpdated).toISOString()});
+  }finally{steamPriceRefreshRunning=false}
+ }
 let skinImageIndexPromise=null;
 const caseImageSource={
  starter:"Kilowatt Case",dust:"Prisma 2 Case",neon:"Dreams & Nightmares Case",inferno:"Revolution Case",sniper:"Snakebite Case",royal:"Operation Bravo Case",knife:"Huntsman Weapon Case",elite:"Operation Breakout Weapon Case",viper:"Fracture Case",dragon:"Operation Phoenix Weapon Case",doppler:"Chroma Case",gloves:"Glove Case",blackpearl:"Spectrum Case",
@@ -546,7 +583,7 @@ async function getSkinImageIndex(){
 }
 app.get("/api/skins",async(req,res)=>{
  const imageIndex=await getSkinImageIndex();
- res.json(skinCatalog.map(s=>({...s,image:imageIndex.get(s.name)||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name)})));
+ res.json(skinCatalog.map(s=>({...s,image:imageIndex.get(s.name)||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Ожидает котировку Steam"})));
 });
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
   const u=current(req), c=cases.find(x=>x.id===req.params.id);
@@ -745,7 +782,12 @@ async function startServer() {
    }
  }
  await flushWrites();
- app.listen(port,()=>console.log("CaseArena running on port",port));
+ app.listen(port,()=>{
+  console.log("CaseArena running on port",port);
+  setTimeout(()=>refreshSteamPrices().catch(error=>console.error("Steam price refresh failed:",error.message)),8000);
+  const priceTimer=setInterval(()=>refreshSteamPrices().catch(error=>console.error("Steam price refresh failed:",error.message)),STEAM_PRICE_REFRESH_MS);
+  priceTimer.unref?.();
+ });
 }
 startServer().catch(error => {
  console.error("CaseArena startup failed:", error);
