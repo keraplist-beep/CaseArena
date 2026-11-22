@@ -530,6 +530,10 @@ const skinCatalog=[
   ["M4A1-S | Blue Phosphor",12500,"Тайное"],["AWP | Duality",380,"Засекреченное"]
  ].map(([name,value,rarity])=>({name,value,steamRub:value,rarity,marketWear:"Field-Tested",image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)})));
  cases.push({id:"new-drop",name:"НОВЫЙ ДРОП",subtitle:"Свежие скины CS2",price:599,theme:"gradient",cover:"AK-47 | Inheritance",items:[["AWP | Chromatic Aberration",950,38],["Glock-18 | Shinobu",720,28],["AK-47 | Head Shot",1150,20],["M4A4 | Temukau",1800,10],["AK-47 | Inheritance",4200,4]]});
+ const dragonLoreFallback=skinCatalog.find(s=>s.name==="AWP | Dragon Lore");
+ if(dragonLoreFallback){dragonLoreFallback.priceSource="Оценка рынка";dragonLoreFallback.priceUpdatedAt=Date.now()}
+ const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
+ for(const crate of cases)for(const item of crate.items)if(initialSkinPrices.has(item[0]))item[1]=initialSkinPrices.get(item[0]);
  const STEAM_PRICE_REFRESH_MS=6*60*60*1000;
  let steamPriceRefreshRunning=false,steamPriceLastUpdated=0;
  const parseSteamRubPrice=value=>{if(!value)return 0;const normalized=String(value).replace(/[^0-9,\.]/g,"").replace(/\.(?=.*\.)/g,"").replace(",",".");const n=Number(normalized);return Number.isFinite(n)&&n>0?n:0};
@@ -554,7 +558,7 @@ const skinCatalog=[
    }
    const priceByName=new Map(skinCatalog.map(s=>[s.name,s.value]));
    for(const crate of cases)for(const item of crate.items)if(priceByName.has(item[0]))item[1]=priceByName.get(item[0]);
-   for(const [name,value] of priceByName)db.prepare("UPDATE inventory SET item_value=? WHERE item_name=?").run(value,name);
+   for(const skin of skinCatalog)if(skin.priceSource==="Steam Market"||skin.priceSource==="Оценка рынка")db.prepare("UPDATE inventory SET item_value=? WHERE item_name=?").run(skin.value,skin.name);
    await flushWrites();steamPriceLastUpdated=Date.now();
    console.log("Steam Market prices refreshed",{updated,total:skinCatalog.length,updatedAt:new Date(steamPriceLastUpdated).toISOString()});
   }finally{steamPriceRefreshRunning=false}
