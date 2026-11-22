@@ -86,17 +86,19 @@ window.upgrade=async()=>{
  rolling=true;
  try{
   const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemId:item.id,targetName:target.name})});
-  const chance=Math.max(0,Math.min(100,Number(d.chance)||0)),wheel=$("#upgrade-wheel"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status");
-  if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance+"%";
+  const chance=Math.max(0,Math.min(100,Number(d.chance)||0)),wheel=$("#upgrade-wheel"),pointer=$("#upgrade-wheel-pointer"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status");
+  if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance.toFixed(2)+"%";
   if(wheel)wheel.style.setProperty("--chance",chance+"%");
-  if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance+"%";
-  if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance)+"%";
-  if(status)status.textContent="Колесо вращается…";
-  if(dial){
-   const arc=chance*3.6,landing=d.success?(360-arc/2):(360-(arc+(360-arc)/2));
-   dial.style.transition="none";dial.style.transform="rotate(0deg)";void dial.offsetWidth;
-   dial.style.transition="transform 5.2s cubic-bezier(.08,.76,.12,1)";
-   dial.style.transform="rotate("+(360*7+landing)+"deg)";
+  if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance.toFixed(2)+"%";
+  if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance).toFixed(2)+"%";
+  if(status)status.textContent="Стрелка вращается…";
+  if(dial){dial.style.transition="none";dial.style.transform="rotate(0deg)"}
+  if(pointer){
+   const successArc=chance*3.6;
+   const landing=d.success?successArc/2:successArc+(360-successArc)/2;
+   pointer.style.transition="none";pointer.style.transform="rotate(0deg)";void pointer.offsetWidth;
+   pointer.style.transition="transform 5.2s cubic-bezier(.08,.76,.12,1)";
+   pointer.style.transform="rotate("+(360*7+landing)+"deg)";
   }
   await new Promise(resolve=>setTimeout(resolve,5350));
   openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?(d.targetName||target.name):item.item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(d.targetName||target.name):"Предмет потерян")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p></div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
