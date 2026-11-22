@@ -52,7 +52,7 @@ if (OWNER_USERNAME && OWNER_PASSWORD) {
     db.prepare("UPDATE users SET role='owner' WHERE username=?").run(OWNER_USERNAME);
   }
 }
-
+app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({limit:"30kb"}));
 app.use(session({
