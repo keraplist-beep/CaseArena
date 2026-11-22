@@ -182,6 +182,9 @@ async function flushWrites() {
  await writeQueue;
  if (writeError) throw writeError;
 }
+const ROLE_ORDER = ["user","moderator","admin","senior_admin","deputy_head_admin","head_admin","owner"];
+const ROLE_LABELS = {user:"Игрок",moderator:"Модератор",admin:"Администратор",senior_admin:"Старший администратор",deputy_head_admin:"ЗГА",head_admin:"Главный администратор",owner:"Владелец"};
+const roleRank = role => { const rank=ROLE_ORDER.indexOf(role); return rank<0?0:rank; };
 const OWNER_USERNAME = (process.env.OWNER_USERNAME || "").trim().toLowerCase();
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD || "";
 const OWNER_RESET_PASSWORD = process.env.OWNER_RESET_PASSWORD === "true";
@@ -253,7 +256,7 @@ function requireOwner(req,res,next) {
 }
 function requireStaff(req,res,next) {
   const u=current(req);
-  if (!u || !["owner","admin","moderator"].includes(u.role)) return res.status(403).json({error:"Недостаточно прав"});
+  if (!u || roleRank(u.role)<1) return res.status(403).json({error:"Недостаточно прав"});
   next();
 }
 function ownerShield(target) {
@@ -685,30 +688,31 @@ app.get("/api/staff/users",requireAuth,requireStaff,(req,res)=>{
 app.post("/api/staff/users/:id/action",requireAuth,requireStaff,(req,res)=>{
  const actor=current(req), id=Number(req.params.id), action=String(req.body.action||"");
  if(!Number.isInteger(id)||id<1)return res.status(400).json({error:"Некорректный игрок"});
- if(!["kick","ban","unban","promote_moderator"].includes(action))return res.status(400).json({error:"Неизвестное действие"});
- if(action==="ban" && !["owner","admin"].includes(actor.role))return res.status(403).json({error:"Банить может только администратор"});
- if(action==="unban" && !["owner","admin"].includes(actor.role))return res.status(403).json({error:"Снимать блокировку может только администратор"});
- if(action==="promote_moderator" && !["owner","admin"].includes(actor.role))return res.status(403).json({error:"Назначать модераторов может только администратор"});
+ if(!["kick","ban","unban","set_role"].includes(action))return res.status(400).json({error:"Неизвестное действие"});
  const target=db.prepare("SELECT id,username,role,banned FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
  if(ownerShield(target))return res.status(403).json({error:"Аккаунт владельца защищён"});
- if(target.role==="admin" && actor.role!=="owner")return res.status(403).json({error:"Нельзя управлять аккаунтом администратора"});
- if(target.role==="moderator" && actor.role==="admin")return res.status(403).json({error:"Администратор может управлять только обычными игроками"});
- if(action==="promote_moderator"){
-  if(target.role!=="user")return res.status(400).json({error:"Модератором можно назначить только обычного игрока"});
-  db.prepare("UPDATE users SET role='moderator' WHERE id=?").run(id);
-  log(actor.id,"Назначен модератором "+target.username);
-  return res.json({ok:true,message:"Игрок назначен модератором"});
+ const actorRank=roleRank(actor.role), targetRank=roleRank(target.role);
+ if(Number(target.id)===Number(actor.id))return res.status(403).json({error:"Нельзя управлять собственной ролью или аккаунтом"});
+ if(actorRank<=targetRank)return res.status(403).json({error:"Можно управлять только сотрудниками ниже по иерархии"});
+ if(action==="set_role"){
+  const nextRole=String(req.body.role||"");
+  if(actorRank<2)return res.status(403).json({error:"Назначать роли может администратор и выше"});
+  if(!ROLE_ORDER.includes(nextRole)||nextRole==="owner"||roleRank(nextRole)>=actorRank)return res.status(403).json({error:"Нельзя назначить равную или более высокую роль"});
+  if(nextRole===target.role)return res.status(400).json({error:"У игрока уже эта роль"});
+  db.prepare("UPDATE users SET role=? WHERE id=?").run(nextRole,id);
+  log(actor.id,"Роль игрока "+target.username+" изменена: "+ROLE_LABELS[target.role]+" → "+ROLE_LABELS[nextRole]);
+  return res.json({ok:true,message:"Роль игрока изменена на "+ROLE_LABELS[nextRole]});
  }
- if(action==="unban"){
-  if(!target.banned)return res.status(400).json({error:"Игрок не заблокирован"});
-  db.prepare("UPDATE users SET banned=0,session_version=session_version+1 WHERE id=?").run(id);
-  log(actor.id,"Снят бан с игрока "+target.username);
-  return res.json({ok:true,message:"Блокировка снята"});
- }
- db.prepare("UPDATE users SET "+(action==="ban"?"banned=1,":"")+"session_version=session_version+1 WHERE id=?").run(id);
- log(actor.id,(action==="ban"?"Заблокирован ":"Кикнут ")+target.username);
- res.json({ok:true,message:action==="ban"?"Игрок заблокирован":"Игрок отключён от сервера"});
+ if(actorRank===1&&action!=="kick")return res.status(403).json({error:"Банить и разбанивать может администратор и выше"});
+ if(actorRank===1&&target.role!=="user")return res.status(403).json({error:"Модератор может кикать только игроков"});
+ if(action==="ban"&&target.banned)return res.status(400).json({error:"Игрок уже заблокирован"});
+ if(action==="unban"&&!target.banned)return res.status(400).json({error:"Игрок не заблокирован"});
+ if(action==="unban")db.prepare("UPDATE users SET banned=0,session_version=session_version+1 WHERE id=?").run(id);
+ else db.prepare("UPDATE users SET "+(action==="ban"?"banned=1,":"")+"session_version=session_version+1 WHERE id=?").run(id);
+ const messages={kick:"Игрок отключён",ban:"Игрок заблокирован",unban:"Блокировка снята"};
+ log(actor.id,(action==="ban"?"Заблокирован ":action==="unban"?"Снят бан с ":"Кикнут ")+target.username);
+ res.json({ok:true,message:messages[action]});
 });
 
 app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
@@ -742,13 +746,13 @@ app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
 app.post("/api/owner/users/:id/role",requireAuth,requireOwner,(req,res)=>{
  const id=Number(req.params.id), role=String(req.body.role||"");
  if(!Number.isInteger(id)||id<1)return res.status(400).json({error:"Некорректный игрок"});
- if(!["user","admin","moderator"].includes(role)) return res.status(400).json({error:"Выбери роль игрока, модератора или администратора"});
+ if(!ROLE_ORDER.includes(role)||role==="owner") return res.status(400).json({error:"Недопустимая роль"});
  const target=db.prepare("SELECT id,username,role FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
  if(ownerShield(target))return res.status(403).json({error:"Владелец защищён от любых изменений роли"});
  const tx=db.transaction(()=>{
   db.prepare("UPDATE users SET role=? WHERE id=?").run(role,id);
-  log(current(req).id,"Роль игрока "+target.username+" изменена на "+role);
+  log(current(req).id,"Роль игрока "+target.username+" изменена на "+(ROLE_LABELS[role]||role));
  });
  tx();
  res.json({ok:true,role});
