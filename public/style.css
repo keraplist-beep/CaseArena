@@ -492,3 +492,46 @@ body{padding-bottom:100px}
 .owner-balance-actions{flex-wrap:nowrap}
 .owner-balance-actions .btn{white-space:nowrap}
 @media(max-width:700px){.user-row{grid-template-columns:1fr 1fr}.owner-balance-actions{grid-column:1/-1}.user-row>.owner-field,.user-row>.owner-actions{min-width:0}}
+
+.case-card{padding:0;overflow:hidden;cursor:pointer;text-align:left}
+.case-card:hover{transform:translateY(-6px);box-shadow:0 15px 38px #0008}
+.case-visual.case-visual-photo{height:178px;isolation:isolate;background:radial-gradient(ellipse at 50% 55%,#31506d 0,transparent 65%),linear-gradient(145deg,#243b56,#0b1422)}
+.case-visual:before{content:"";position:absolute;inset:0;z-index:0;opacity:.38;background:repeating-linear-gradient(135deg,transparent 0 18px,#fff1 19px 20px)}
+.case-art-mark{position:absolute;z-index:1;left:14px;right:14px;top:35px;text-align:left;font:900 clamp(17px,2vw,24px) Orbitron;color:#fff;text-shadow:0 3px 16px #000;letter-spacing:1.2px;line-height:1.1;pointer-events:none}
+.case-cover-image{z-index:2;width:88%;height:145px;object-fit:contain;object-position:70% center;filter:drop-shadow(0 13px 15px #000c);transform:translate(15%,7px) rotate(-12deg)}
+.case-art-sub{position:absolute;z-index:3;bottom:11px;left:14px;font:800 8px Orbitron;letter-spacing:1.5px;color:#d5e5f6;text-shadow:0 2px 8px #000}
+.case-theme-ice .case-visual,.case-theme-ice .case-detail-hero{background:radial-gradient(circle at 80% 20%,#9eeaff66,transparent 38%),linear-gradient(135deg,#123d5b,#0a172b 75%)}
+.case-theme-cyber .case-visual,.case-theme-cyber .case-detail-hero{background:radial-gradient(circle at 15% 20%,#ff3cba55,transparent 38%),linear-gradient(135deg,#361653,#11152d)}
+.case-theme-gold .case-visual,.case-theme-gold .case-detail-hero{background:radial-gradient(circle at 80% 20%,#ffda6b66,transparent 38%),linear-gradient(135deg,#65451b,#171626)}
+.case-theme-fire .case-visual,.case-theme-fire .case-detail-hero{background:radial-gradient(circle at 80% 20%,#ff5d3155,transparent 38%),linear-gradient(135deg,#682c20,#191421)}
+.case-theme-arctic .case-visual,.case-theme-arctic .case-detail-hero{background:radial-gradient(circle at 80% 20%,#8ce9ff55,transparent 38%),linear-gradient(135deg,#254c70,#101a2c)}
+.case-theme-steel .case-visual,.case-theme-steel .case-detail-hero{background:radial-gradient(circle at 80% 20%,#c1d0e055,transparent 38%),linear-gradient(135deg,#3c4c61,#111a27)}
+.case-theme-black .case-visual,.case-theme-black .case-detail-hero{background:radial-gradient(circle at 80% 20%,#aa80ff44,transparent 38%),linear-gradient(135deg,#29243f,#090d17)}
+.case-theme-glitch .case-visual,.case-theme-glitch .case-detail-hero{background:radial-gradient(circle at 80% 20%,#f15aff55,transparent 38%),linear-gradient(135deg,#3d1d53,#101326)}
+.case-theme-emerald .case-visual,.case-theme-emerald .case-detail-hero{background:radial-gradient(circle at 80% 20%,#4affb455,transparent 38%),linear-gradient(135deg,#14543f,#0b1820)}
+.case-theme-ruby .case-visual,.case-theme-ruby .case-detail-hero{background:radial-gradient(circle at 80% 20%,#ff496b55,transparent 38%),linear-gradient(135deg,#5d1e35,#150f20)}
+.case-theme-sapphire .case-visual,.case-theme-sapphire .case-detail-hero{background:radial-gradient(circle at 80% 20%,#448bff66,transparent 38%),linear-gradient(135deg,#173f77,#0c1428)}
+.case-theme-knife .case-visual,.case-theme-knife .case-detail-hero{background:radial-gradient(circle at 80% 20%,#ffcc7455,transparent 38%),linear-gradient(135deg,#57402d,#111724)}
+.case-theme-gloves .case-visual,.case-theme-gloves .case-detail-hero{background:radial-gradient(circle at 80% 20%,#ff84c655,transparent 38%),linear-gradient(135deg,#542b56,#171427)}
+.case-theme-dragon .case-visual,.case-theme-dragon .case-detail-hero{background:radial-gradient(circle at 80% 20%,#ffae4655,transparent 38%),linear-gradient(135deg,#6b321b,#160f1b)}
+.case-theme-eco .case-visual,.case-theme-eco .case-detail-hero{background:radial-gradient(circle at 80% 20%,#8dff9d44,transparent 38%),linear-gradient(135deg,#24563d,#101d20)}
+.case-theme-starter .case-visual,.case-theme-starter .case-detail-hero{background:radial-gradient(circle at 80% 20%,#80c5ff55,transparent 38%),linear-gradient(135deg,#244c77,#11192b)}
+.case-theme-midnight .case-visual,.case-theme-midnight .case-detail-hero{background:radial-gradient(circle at 80% 20%,#9582ff55,transparent 38%),linear-gradient(135deg,#2d285b,#0b1122)}
+.case-theme-gradient .case-visual,.case-theme-gradient .case-detail-hero{background:linear-gradient(135deg,#204b71,#572d66 55%,#9b6332)}
+.case-detail{max-height:75vh;overflow:auto}
+.case-detail-hero{height:190px;position:relative;overflow:hidden;border-radius:12px;display:flex;align-items:center;padding:22px;background:linear-gradient(135deg,#23415d,#101827)}
+.case-detail-hero:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,transparent 0 22px,#fff1 23px 24px)}
+.case-detail-hero img{position:absolute;right:2%;top:0;width:55%;height:100%;object-fit:contain;filter:drop-shadow(0 15px 15px #000b)}
+.case-detail-hero>span{position:absolute;left:22px;bottom:17px;max-width:48%;font-size:11px;color:#d1dfed}
+.case-detail-art{position:relative;z-index:1;max-width:55%;font:900 24px Orbitron;color:#fff;text-shadow:0 3px 15px #000}
+.case-detail-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:17px 2px}
+.case-detail-heading h3{margin:0;font:800 16px Orbitron}
+.case-detail-heading strong{color:var(--gold);font:900 17px Orbitron;white-space:nowrap}
+.case-detail-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:16px}
+.case-drop-card{min-width:0;padding:10px 7px;text-align:center;border:1px solid #34485f;border-radius:10px;background:linear-gradient(145deg,#1b2b40,#101a29);display:flex;flex-direction:column;align-items:center;gap:5px}
+.case-drop-image{height:62px;width:100%;display:grid;place-items:center}
+.case-drop-image img{max-width:100%;height:62px;object-fit:contain;filter:drop-shadow(0 5px 7px #0009)}
+.case-drop-card b{font-size:9px;line-height:1.35;min-height:26px}
+.case-drop-card small{color:var(--gold);font-weight:800}
+.case-drop-card em{font-style:normal;color:#9fb1c7;font-size:9px}
+@media(max-width:520px){.case-visual.case-visual-photo{height:140px}.case-cover-image{height:116px}.case-art-mark{font-size:15px;left:10px;right:8px}.case-art-sub{font-size:6px;left:9px}.case-detail-hero{height:150px}.case-detail-art{font-size:17px}.case-detail-items{grid-template-columns:repeat(2,minmax(0,1fr))}.case-drop-card{padding:8px 5px}}
