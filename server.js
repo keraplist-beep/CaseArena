@@ -667,11 +667,11 @@ app.delete("/api/owner/users/:id",requireAuth,requireOwner,(req,res)=>{
  const id=Number(req.params.id);
  const target=db.prepare("SELECT id,username,role FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(target.role==="owner")return res.status(403).json({error:"Нельзя удалить владельца"});
+ if(ownerShield(target))return res.status(403).json({error:"Нельзя удалить владельца"});
  const tx=db.transaction(()=>{
   db.prepare("DELETE FROM inventory WHERE user_id=?").run(id);
   db.prepare("DELETE FROM activity WHERE user_id=?").run(id);
   db.prepare("DELETE FROM users WHERE id=? AND role!='owner'").run(id);
  });
  tx();res.json({ok:true});
-  if(ownerShield(target))return res.status(403).json({error:"Нельзя удалить владельца"});
+});
