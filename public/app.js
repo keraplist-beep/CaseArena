@@ -49,23 +49,64 @@ function renderUpgrade(){const source=$("#upgrade-source"),targets=$("#upgrade-t
 window.setUpgradeMultiplier=mult=>{const item=inventory.find(x=>x.id===upgradeSourceId);if(!item)return toast("Сначала выбери свой предмет");const target=skins.filter(x=>x.value>=item.item_value*mult).sort((x,y)=>Math.abs(x.value-item.item_value*mult)-Math.abs(y.value-item.item_value*mult))[0];if(!target)return toast("Нет подходящего скина для X"+mult);upgradeTarget=target.name;renderUpgrade()};
 window.chooseUpgradeSource=id=>{upgradeSourceId=id;renderUpgrade()};
 window.chooseUpgradeTarget=name=>{upgradeTarget=name;renderUpgrade()};
-function updateUpgradePreview(){const box=$("#upgrade-preview"),chanceText=$("#upgrade-wheel-value"),wheel=$("#upgrade-wheel"),status=$("#upgrade-spin-status"),win=$("#upgrade-success-percent"),fail=$("#upgrade-fail-percent");if(!box)return;const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);const fromArt=$("#upgrade-from-art"),toArt=$("#upgrade-to-art"),fromName=$("#upgrade-from-name"),toName=$("#upgrade-to-name"),fromPrice=$("#upgrade-from-price"),toPrice=$("#upgrade-to-price");if(fromArt)fromArt.innerHTML=item?skinArt(item.item_name):"<span>?</span>";if(toArt)toArt.innerHTML=target?skinArt(target.name):"<span>?</span>";if(fromName)fromName.textContent=item?item.item_name:"Твой предмет";if(toName)toName.textContent=target?target.name:"Желаемый скин";if(fromPrice)fromPrice.textContent=item?money(item.item_value):"Выбери слева";if(toPrice)toPrice.textContent=target?money(target.value):"Выбери справа";if(!item||!target||target.value<=item.item_value){const msg=!item?"Сначала выбери предмет из инвентаря":!target?"Теперь выбери желаемый скин справа":"Целевой предмет должен стоить дороже";box.innerHTML='<span class="muted">'+msg+'</span>';if(chanceText)chanceText.textContent="—";if(wheel)wheel.style.setProperty("--chance","0%");const pointer=$("#upgrade-wheel-pointer");if(pointer){pointer.style.transition="none";pointer.style.transform="rotate(0deg)"}if(status)status.textContent=msg;if(win)win.textContent="—";if(fail)fail.textContent="—";return}const chance=Math.min(75,item.item_value/target.value*75),pct=Math.round(chance);if(chanceText)chanceText.textContent=pct+"%";if(wheel)wheel.style.setProperty("--chance",pct+"%");const pointer=$("#upgrade-wheel-pointer");if(pointer){pointer.style.transition="none";pointer.style.transform="rotate(0deg)"}if(status)status.textContent="Шанс рассчитан. Готов к апгрейду";if(win)win.textContent=pct+"%";if(fail)fail.textContent=(100-pct)+"%";box.innerHTML='<div><b>'+esc(item.item_name)+'</b><div class="muted small">'+money(item.item_value)+' → '+esc(target.name)+' · '+money(target.value)+'</div></div><div class="chance-number">'+pct+'%</div>'}
-window.upgrade=async()=>{if(!me)return authModal();if(rolling)return;const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);if(!item)return toast("Выбери предмет из инвентаря");if(!target)return toast("Выбери целевой скин");if(target.value<=item.item_value)return toast("Целевой скин должен быть дороже");rolling=true;try{
- const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemId:item.id,targetValue:target.value,targetName:target.name})});
- const chance=Math.max(0,Math.min(100,Number(d.chance)||0)),wheel=$("#upgrade-wheel"),pointer=$("#upgrade-wheel-pointer"),status=$("#upgrade-spin-status");
+function updateUpgradePreview(){
+ const box=$("#upgrade-preview"),chanceText=$("#upgrade-wheel-value"),wheel=$("#upgrade-wheel"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status"),win=$("#upgrade-success-percent"),fail=$("#upgrade-fail-percent");
+ if(!box)return;
+ const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);
+ const fromArt=$("#upgrade-from-art"),toArt=$("#upgrade-to-art"),fromName=$("#upgrade-from-name"),toName=$("#upgrade-to-name"),fromPrice=$("#upgrade-from-price"),toPrice=$("#upgrade-to-price");
+ if(fromArt)fromArt.innerHTML=item?skinArt(item.item_name):"<span>?</span>";
+ if(toArt)toArt.innerHTML=target?skinArt(target.name):"<span>?</span>";
+ if(fromName)fromName.textContent=item?item.item_name:"Твой предмет";
+ if(toName)toName.textContent=target?target.name:"Желаемый скин";
+ if(fromPrice)fromPrice.textContent=item?money(item.item_value):"Выбери слева";
+ if(toPrice)toPrice.textContent=target?money(target.value):"Выбери справа";
+ if(dial){dial.style.transition="none";dial.style.transform="rotate(0deg)"}
+ if(!item||!target||target.value<=item.item_value){
+  const msg=!item?"Сначала выбери предмет из инвентаря":!target?"Теперь выбери желаемый скин справа":"Целевой предмет должен стоить дороже";
+  box.innerHTML='<span class="muted">'+msg+'</span>';
+  if(chanceText)chanceText.textContent="—";
+  if(wheel)wheel.style.setProperty("--chance","0%");
+  if(status)status.textContent=msg;
+  if(win)win.textContent="—";if(fail)fail.textContent="—";
+  return;
+ }
+ const chance=Math.min(75,item.item_value/target.value*75),pct=Math.round(chance);
+ if(chanceText)chanceText.textContent=pct+"%";
+ if(wheel)wheel.style.setProperty("--chance",pct+"%");
+ if(status)status.textContent="Колесо готово. Нажми «Улучшить предмет»";
+ if(win)win.textContent=pct+"%";if(fail)fail.textContent=(100-pct)+"%";
+ box.innerHTML='<div><b>'+esc(item.item_name)+'</b><div class="muted small">'+money(item.item_value)+' → '+esc(target.name)+' · '+money(target.value)+'</div></div><div class="chance-number">'+pct+'%</div>';
+}
+window.upgrade=async()=>{
+ if(!me)return authModal();if(rolling)return;
+ const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);
+ if(!item)return toast("Выбери предмет из инвентаря");
+ if(!target)return toast("Выбери целевой скин");
+ if(target.value<=item.item_value)return toast("Целевой скин должен быть дороже");
+ rolling=true;
+ try{
+  const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemId:item.id,targetName:target.name})});
+  const chance=Math.max(0,Math.min(100,Number(d.chance)||0)),wheel=$("#upgrade-wheel"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status");
   if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance+"%";
   if(wheel)wheel.style.setProperty("--chance",chance+"%");
-  if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance+"%";if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance)+"%";
-  if(status)status.textContent="Стрелка вращается…";
-  if(pointer){const arc=chance*3.6,landing=d.success?arc/2:arc+(360-arc)/2,rotation=1800+landing;pointer.style.transition="none";pointer.style.transform="rotate(0deg)";void pointer.offsetWidth;pointer.style.transition="transform 4.4s cubic-bezier(.08,.76,.08,1)";pointer.style.transform="rotate("+rotation+"deg)"}
-  await new Promise(resolve=>setTimeout(resolve,4500));
- openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?target.name:item.item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(target.name):"Предмет потерян")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p></div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
- selected.clear();await refresh()
- }catch(e){toast(e.message)}finally{rolling=false}};
+  if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance+"%";
+  if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance)+"%";
+  if(status)status.textContent="Колесо вращается…";
+  if(dial){
+   const arc=chance*3.6,landing=d.success?(360-arc/2):(360-(arc+(360-arc)/2));
+   dial.style.transition="none";dial.style.transform="rotate(0deg)";void dial.offsetWidth;
+   dial.style.transition="transform 5.2s cubic-bezier(.08,.76,.12,1)";
+   dial.style.transform="rotate("+(360*7+landing)+"deg)";
+  }
+  await new Promise(resolve=>setTimeout(resolve,5350));
+  openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?(d.targetName||target.name):item.item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(d.targetName||target.name):"Предмет потерян")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p></div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
+  selected.clear();await refresh();
+ }catch(e){toast(e.message)}finally{rolling=false}
+};
 function renderProfile(){const p=$("#profile-content");if(!p)return;if(!me){p.innerHTML='<p class="muted">Войди в аккаунт, чтобы увидеть профиль и инвентарь.</p>';$("#activity-list").innerHTML='<p class="muted small">История появится после входа.</p>';return}const total=inventory.reduce((s,x)=>s+Number(x.item_value),0);p.innerHTML='<div class="profile-head"><div class="avatar">'+esc(me.username.slice(0,2).toUpperCase())+'</div><div class="profile-main"><h3>'+esc(me.username)+roleBadge(me.role)+'</h3><div class="profile-stats"><span class="stat-chip">Баланс <b>'+money(me.balance)+'</b></span><span class="stat-chip">Предметы <b>'+inventory.length+'</b></span><span class="stat-chip">Инвентарь <b>'+money(total)+'</b></span></div></div></div><div id="profile-bonuses" class="bonus-panel"><p class="muted">Загружаю бонусы…</p></div><div class="inventory-toolbar"><h3>Мой инвентарь</h3><span class="muted small">Выбери от 3 до 5 предметов для контракта</span></div><div class="inventory">'+(inventory.length?inventory.map(x=>skinCard(x.item_name,x.item_value,{market:true,select:true,sell:true,id:x.id})).join(""):'<p class="muted">Инвентарь пока пуст. Открой первый кейс!</p>')+'</div>';loadActivity();loadBonusStatus()}
-async function loadBonusStatus(){const box=$("#profile-bonuses");if(!box||!me)return;try{const d=await api("/api/bonus/status");const left=Math.max(0,d.hourlyReadyAt-Math.floor(Date.now()/1000));const time=left?Math.floor(left/60)+" мин "+(left%60)+" сек":"Доступно сейчас";box.innerHTML='<div class="bonus-card"><div><b>Бесплатное пополнение</b><small>+10 000 CR · раз в час</small><em>'+(d.hourlyReady?"Можно забрать":"Следующее через "+time)+'</em></div><button class="btn primary" '+(!d.hourlyReady?"disabled":"")+' onclick="claimHourlyBonus()">Забрать +10 000</button></div><div class="bonus-card promo-card"><div><b>Промокод LUNACY</b><small>Одноразовый бонус +10 000 CR</small><em>'+(d.lunacyRedeemed?"Уже активирован":"Введи код ниже")+'</em></div>'+(d.lunacyRedeemed?'<span class="promo-used">Активирован</span>':'<form onsubmit="redeemLunacy(event)"><input name="code" placeholder="Промокод"  maxlength="30"><button class="btn secondary">Активировать</button></form>')+'</div>'}catch(e){box.innerHTML='<p class="muted">'+esc(e.message)+'</p>'}}
+async function loadBonusStatus(){const box=$("#profile-bonuses");if(!box||!me)return;try{const d=await api("/api/bonus/status");const left=Math.max(0,d.hourlyReadyAt-Math.floor(Date.now()/1000));const time=left?Math.floor(left/60)+" мин "+(left%60)+" сек":"Доступно сейчас";box.innerHTML='<div class="bonus-card"><div><b>Бесплатное пополнение</b><small>+10 000 CR · раз в час</small><em>'+(d.hourlyReady?"Можно забрать":"Следующее через "+time)+'</em></div><button class="btn primary" '+(!d.hourlyReady?"disabled":"")+' onclick="claimHourlyBonus()">Забрать +10 000</button></div><div class="bonus-card promo-card"><div><b>Промокод LUNACY</b><small>Одноразовый бонус +10 000 CR</small><em>'+(d.lunacyRedeemed?"Уже активирован":"Введи код ниже")+'</em></div>'+(d.lunacyRedeemed?'<span class="promo-used">Активирован</span>':'<form onsubmit="redeemLunacy(event)"><input name="code" placeholder="Введи промокод вручную" maxlength="30" autocomplete="off" required><button type="submit" class="btn secondary">Активировать вручную</button></form>')+'</div>'}catch(e){box.innerHTML='<p class="muted">'+esc(e.message)+'</p>'}}
 window.claimHourlyBonus=async()=>{try{const d=await api("/api/bonus/hourly",{method:"POST",body:"{}"});me.balance=d.balance;renderAccount();toast("Получено +10 000 CR");await loadBonusStatus()}catch(e){toast(e.message);await loadBonusStatus()}};
-window.redeemLunacy=async e=>{e.preventDefault();const code=new FormData(e.target).get("code");try{const d=await api("/api/promo/redeem",{method:"POST",body:JSON.stringify({code})});me.balance=d.balance;renderAccount();toast("Промокод активирован: +10 000 CR");await loadBonusStatus()}catch(err){toast(err.message);await loadBonusStatus()}};
+window.redeemLunacy=async e=>{e.preventDefault();const code=String(new FormData(e.target).get("code")||"").trim();if(!code)return toast("Сначала введи промокод");if(!confirm("Активировать промокод "+code.toUpperCase()+"?"))return;try{const d=await api("/api/promo/redeem",{method:"POST",body:JSON.stringify({code})});me.balance=d.balance;renderAccount();toast("Промокод активирован: +10 000 CR");await loadBonusStatus()}catch(err){toast(err.message);await loadBonusStatus()}};
 window.sellItem=async id=>{
  if(rolling)return;
  if(!confirm("Продать этот скин за его виртуальную стоимость?"))return;
