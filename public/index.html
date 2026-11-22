@@ -10,22 +10,27 @@
 <section id="upgrade" class="section page-view" data-page="upgrade">
  <div class="section-head"><div><p class="eyebrow">UPGRADE MACHINE</p><h2>Апгрейд скинов</h2></div><span class="muted">Собери апгрейд и испытай удачу</span></div>
  <div class="upgrade-machine panel">
-  <div class="upgrade-layout">
-   <div class="upgrade-select-panel"><div class="upgrade-panel-head"><b>ТВОЙ ПРЕДМЕТ</b><span>1. Выбери скин</span></div><div id="upgrade-source" class="pick-grid"></div></div>
-   <div class="upgrade-main-panel">
-    <div class="upgrade-wheel-stage upgrade-inline-wheel">
-     <div class="upgrade-wheel-caption">ШАНС УСПЕХА <b id="upgrade-wheel-caption">—</b></div>
-     <div class="upgrade-wheel-dial" id="upgrade-wheel-dial" style="--chance:0%">
-      <div class="upgrade-wheel-center"><b id="upgrade-wheel-value">—</b><small>CHANCE</small></div>
+   <div class="upgrade-layout">
+    <div class="upgrade-select-panel"><div class="upgrade-panel-head"><b>ТВОЙ ПРЕДМЕТ</b><span>1. Выбери скин</span></div><div id="upgrade-source" class="pick-grid"></div></div>
+    <div class="upgrade-main-panel upgrader-center">
+     <div class="upgrader-title"><span>UPGRADE</span><small>СОБЕРИ СВОЙ АПГРЕЙД</small></div>
+     <div class="upgrader-comparison">
+      <div class="upgrader-item"><div id="upgrade-from-art" class="upgrader-art"><span>?</span></div><b id="upgrade-from-name">Твой предмет</b><small id="upgrade-from-price">Выбери слева</small></div>
+      <div class="upgrader-arrow"><span>➜</span><small>ЦЕЛЬ</small></div>
+      <div class="upgrader-item"><div id="upgrade-to-art" class="upgrader-art"><span>?</span></div><b id="upgrade-to-name">Желаемый скин</b><small id="upgrade-to-price">Выбери справа</small></div>
      </div>
-     <div class="upgrade-wheel-pointer" id="upgrade-wheel-pointer"></div>
+     <div class="upgrader-chance-head"><span>ШАНС УСПЕХА</span><b id="upgrade-wheel-value">—</b></div>
+     <div class="upgrader-chance-track"><div id="upgrade-chance-fill"></div></div>
+     <div class="upgrader-odds"><span>Успех <b id="upgrade-success-percent">—</b></span><span>Неудача <b id="upgrade-fail-percent">—</b></span></div>
+     <div class="upgrade-multipliers"><button onclick="setUpgradeMultiplier(2)">X2</button><button onclick="setUpgradeMultiplier(5)">X5</button><button onclick="setUpgradeMultiplier(10)">X10</button><button onclick="setUpgradeMultiplier(20)">X20</button></div>
+     <div id="upgrade-spin-status" class="upgrade-spin-status">Выбери исходный и целевой предмет</div>
+     <div id="upgrade-preview" class="chance-preview"><span class="muted">Шанс и результат появятся здесь</span></div>
+     <button class="btn primary upgrade-action" onclick="upgrade()">УЛУЧШИТЬ ПРЕДМЕТ</button>
     </div>
-    <div class="upgrade-wheel-legend"><span><i class="legend-win"></i> УСПЕХ <b id="upgrade-success-percent">—</b></span><span><i class="legend-lose"></i> НЕУДАЧА <b id="upgrade-fail-percent">—</b></span></div><div id="upgrade-spin-status" class="upgrade-spin-status">Выбери предмет и желаемый скин</div>
-    <div class="upgrade-multipliers"><button onclick="setUpgradeMultiplier(2)">X2</button><button onclick="setUpgradeMultiplier(5)">X5</button><button onclick="setUpgradeMultiplier(10)">X10</button><button onclick="setUpgradeMultiplier(20)">X20</button></div>
-    <div id="upgrade-preview" class="chance-preview"><span class="muted">Выбери предмет и целевой скин</span></div>
-    <button class="btn primary upgrade-action" onclick="upgrade()">ПРОКАЧАТЬ</button>
+    <div class="upgrade-select-panel"><div class="upgrade-panel-head"><b>ЖЕЛАЕМЫЙ СКИН</b><span>2. Выбери награду</span></div><div id="upgrade-targets" class="pick-grid"></div></div>
    </div>
-   <div class="upgrade-select-panel"><div class="upgrade-panel-head"><b>ЖЕЛАЕМЫЙ СКИН</b><span>2. Выбери награду</span></div><div id="upgrade-targets" class="pick-grid"></div></div>
+   <div id="upgrade-roulette" class="upgrade-roulette hidden"></div>
+   <p class="muted small upgrade-disclaimer">Демо-режим: все предметы и стоимость виртуальные. При неудаче предмет сгорает.</p>
   </div>
   <div id="upgrade-roulette" class="upgrade-roulette hidden"></div>
   <p class="muted small upgrade-disclaimer">Демо-режим: все предметы и стоимость виртуальные. При неудаче предмет сгорает.</p>
