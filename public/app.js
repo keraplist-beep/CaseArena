@@ -137,7 +137,7 @@ async function loadStaff(search=""){
    else if(canManage){
     if(actorRank>=2){
      actions.push('<button class="btn danger" onclick="staffAction('+u.id+',\'ban\')">Бан</button>');
-     if(u.banned)actions.push('<button class="btn secondary" onclick="staffAction('+u.id+',\'unban\')">Разбан</button>');
+     actions.push('<button class="btn secondary" onclick="staffAction('+u.id+',\'unban\')">Разбан</button>');
     }else if(u.role==="user")actions.push('<button class="btn secondary" onclick="staffAction('+u.id+',\'kick\')">Кик</button>');
     if(actorRank>=2){
      const options=ROLE_ORDER.slice(0,actorRank).map(role=>'<option value="'+role+'" '+(u.role===role?"selected":"")+'>'+ROLE_LABELS[role]+'</option>').join("");
