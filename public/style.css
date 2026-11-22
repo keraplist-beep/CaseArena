@@ -565,3 +565,11 @@ body{padding-bottom:100px}
 @media(max-width:560px){.upgrader-center{padding:14px}.upgrader-art{height:90px}.upgrader-item>b{font-size:9px}.staff-toolbar{align-items:stretch;flex-direction:column}.staff-toolbar input{max-width:none}.staff-row{align-items:flex-start;flex-direction:column}.staff-actions{width:100%}}
 
 .bottom-nav{grid-template-columns:repeat(8,minmax(0,1fr))}
+
+/* Free hourly credit and LUNACY promo */
+.bonus-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0 22px}
+.bonus-card{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:15px;border:1px solid #2c4962;border-radius:12px;background:linear-gradient(135deg,#152b40,#101d2c)}
+.bonus-card>div{display:flex;flex-direction:column;gap:5px;min-width:0}.bonus-card b{font-size:13px}.bonus-card small{font-size:10px;color:#9bb2c9}.bonus-card em{font-size:10px;color:#5fe0c6;font-style:normal;font-weight:800}
+.bonus-card button{white-space:nowrap;font-size:10px}.bonus-card button:disabled{opacity:.45;cursor:not-allowed}
+.promo-card form{display:flex;gap:6px;align-items:center;min-width:0}.promo-card input{width:100px;min-width:0;padding:9px;font-size:11px}.promo-used{font-size:10px;color:#6cdbb7;font-weight:900;white-space:nowrap}
+@media(max-width:720px){.bonus-panel{grid-template-columns:1fr}.bonus-card{align-items:flex-start;flex-wrap:wrap}.bonus-card button{margin-left:auto}.promo-card form{width:100%}.promo-card input{flex:1}}
