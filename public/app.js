@@ -16,6 +16,7 @@ function nicknameModal(){openModal("Выбери игровой ник",'<p clas
 window.completeGoogleNick=async e=>{e.preventDefault();const username=new FormData(e.target).get("username");try{await api("/api/google/complete-nickname",{method:"POST",body:JSON.stringify({username})});closeModal();history.replaceState({},"",location.pathname);await refresh()}catch(err){toast(err.message)}};
 function renderAccount(){const a=$("#account");if(!a)return;a.innerHTML=me?'<button class="profile-shortcut" onclick="goProfile()"><span class="mini-avatar">'+esc(me.username.slice(0,1).toUpperCase())+'</span><span class="account-name">'+esc(me.username)+(me.role==="owner"?' <b class="owner-tag">OWNER</b>':'')+'<small>'+money(me.balance)+'</small></span></button><button class="btn secondary" onclick="logout()">Выйти</button>':'<button class="btn secondary" onclick="authModal()">Войти</button><button class="btn primary" onclick="authModal()">Регистрация</button>'}
 window.canAccessOwner=()=>me?.role==="owner";
+window.ownerAccessReady=false;
 window.updateOwnerNavigation=()=>{
  const nav=document.querySelector(".bottom-nav");
  if(!nav)return;
@@ -25,11 +26,12 @@ window.updateOwnerNavigation=()=>{
   link.innerHTML='<span class="bottom-nav-icon">⚙</span><span>Владелец</span>';
   nav.appendChild(link);
  }else if(me?.role!=="owner"&&link){link.remove()}
+ nav.classList.toggle("owner-mode",me?.role==="owner");
  window.renderCaseArenaPage?.();
 };
 window.goProfile=()=>{location.hash="profile"};
 window.logout=async()=>{try{await api("/api/logout",{method:"POST"});me=null;inventory=[];selected.clear();renderAccount();renderProfile();renderUpgrade();window.updateOwnerNavigation?.();toast("Вы вышли из аккаунта")}catch(e){toast(e.message)}};
-async function refresh(){const d=await api("/api/me");me=d.user;inventory=d.inventory||[];if(!inventory.some(x=>x.id===upgradeSourceId))upgradeSourceId=inventory[0]?.id??null;renderAccount();renderProfile();renderUpgrade();window.updateOwnerNavigation?.();if(me?.role==="owner")await loadOwner();else $("#owner-content").innerHTML="";}
+async function refresh(){const d=await api("/api/me");me=d.user;inventory=d.inventory||[];if(!inventory.some(x=>x.id===upgradeSourceId))upgradeSourceId=inventory[0]?.id??null;renderAccount();renderProfile();renderUpgrade();window.ownerAccessReady=true;window.updateOwnerNavigation?.();if(me?.role==="owner")await loadOwner();else $("#owner-content").innerHTML="";}
 function skinInfo(name){return skins.find(x=>x.name===name)||{name,value:0,steamRub:0,rarity:"Предмет",image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)}}
 function skinArt(name){const s=skinInfo(name);const glyph=name.startsWith("★")?"✦":name.split(" | ")[0].slice(0,3).toUpperCase();const image=s.image||"";return '<div class="skin-art '+(image?"":"no-image")+'">'+(image?'<img loading="lazy" src="'+esc(image)+'" alt="'+esc(name)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'no-image\')">':'')+'<span class="skin-glyph">'+esc(glyph)+'</span></div>'}
 function skinCard(name,value,opts={}){const s=skinInfo(name);return '<article class="skin-card rarity-'+esc((s.rarity||"").toLowerCase().replace(/[^a-zа-яё]+/g,"-"))+'">'+skinArt(name)+'<div class="skin-card-info"><span class="rarity-text">'+esc(s.rarity||"CS2")+'</span><b>'+esc(name)+'</b><strong>'+money(value??s.value)+'</strong><small class="steam-price">'+rub(s.steamRub)+'</small>'+(opts.market?'<a class="market-link" href="'+esc(s.steamUrl)+'" target="_blank" rel="noopener">Steam Market ↗</a>':'')+(opts.select?'<label class="select-item"><input type="checkbox" '+(selected.has(opts.id)?"checked":"")+' onchange="toggleItem('+opts.id+',this.checked)"> Выбрать</label>':'')+(opts.sell?'<button class="btn secondary sell-skin-btn" onclick="sellItem('+opts.id+')">Продать за '+money(value??s.value)+'</button>':'')+'</div></article>'}
@@ -66,17 +68,37 @@ window.viewPlayer=async username=>{try{const d=await api("/api/users/"+encodeURI
 async function loadBattles(){const bs=await api("/api/battles");$("#battle-list").innerHTML=bs.map(b=>'<div class="battle"><div><strong>'+esc(b.name)+'</strong><p class="muted small">'+b.players+' игрока · '+b.rounds+' раунда · '+esc(b.status)+'</p></div><div><b class="battle-price">'+money(b.entry)+'</b> <button class="btn primary" onclick="joinBattle('+b.id+','+b.entry+')">Участвовать</button></div></div>').join("")}
 window.joinBattle=async(id,entry)=>{try{const d=await api("/api/battles/"+id+"/join",{method:"POST",body:JSON.stringify({entry})});await refresh();toast(d.message)}catch(e){toast(e.message)}};
 async function loadOwner(){
+ const box=$("#owner-content");
+ if(!me||me.role!=="owner"){box.innerHTML='<p class="muted">Доступ запрещён.</p>';return}
+ box.innerHTML='<p class="muted">Загружаю данные панели…</p>';
  try{
   const d=await api("/api/owner/overview");
-  $("#owner-content").innerHTML=
+  const users=Array.isArray(d.users)?d.users:[];
+  const activity=Array.isArray(d.activity)?d.activity:[];
+  const inventoryValue=users.reduce((sum,u)=>sum+Number(u.inventory_value||0),0);
+  box.innerHTML=
    '<div class="owner-stats">'+
-    '<div class="owner-stat"><small>АККАУНТОВ</small><b>'+d.totalUsers+'</b></div>'+
-    '<div class="owner-stat"><small>ПРЕДМЕТОВ</small><b>'+d.totalItems+'</b></div>'+
+    '<div class="owner-stat"><small>АККАУНТОВ</small><b>'+Number(d.totalUsers||0)+'</b></div>'+
+    '<div class="owner-stat"><small>ПРЕДМЕТОВ У ИГРОКОВ</small><b>'+Number(d.totalItems||0)+'</b></div>'+
     '<div class="owner-stat"><small>БАЛАНСЫ ИГРОКОВ</small><b>'+money(d.totalBalance)+'</b></div>'+
-   '</div><div class="owner-toolbar"><h3>Управление игроками</h3><input id="owner-search" placeholder="Поиск по нику…" oninput="filterOwnerUsers()"></div>'+
-   '<div id="owner-users" class="owner-users">'+(d.users.length?d.users.map(u=>'<div class="user-row" data-user="'+esc(u.username.toLowerCase())+'"><div class="user-info"><b>'+esc(u.username)+'</b> '+(u.role==="owner"?'<span class="owner-tag">OWNER</span>':'')+'<small>'+esc(u.role)+' · '+u.item_count+' предметов · '+money(u.inventory_value)+'</small></div><label class="owner-field"><small>БАЛАНС</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" value="'+u.balance+'" '+(u.role==="owner"?"disabled":"")+'></label><label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+(u.role==="owner"?"disabled":"")+'><option value="user" '+(u.role==="user"?"selected":"")+'>Игрок</option><option value="admin" '+(u.role==="admin"?"selected":"")+'>Админ</option></select></label><div class="owner-actions"><button class="btn primary" onclick="saveUser('+u.id+')" '+(u.role==="owner"?"disabled":"")+'>Сохранить</button>'+(u.role==="owner"?'':'<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>')+'</div></div>').join("")+'</div>'+
-   '<div class="owner-activity"><h3>Последние действия</h3>'+(d.activity||[]).map(a=>'<p><b>'+esc(a.username||"Система")+'</b><span>'+esc(a.message)+'</span></p>').join("")||'<p class="muted">Действий пока нет.</p>'+'</div>';
- }catch(e){$("#owner-content").innerHTML='<p class="muted">Не удалось загрузить панель: '+esc(e.message)+'</p>'}
+    '<div class="owner-stat"><small>СТОИМОСТЬ ИНВЕНТАРЯ</small><b>'+money(inventoryValue)+'</b></div>'+
+   '</div>'+
+   '<div class="owner-toolbar"><h3>Управление игроками</h3><div class="owner-toolbar-actions"><input id="owner-search" placeholder="Поиск по нику…" oninput="filterOwnerUsers()"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
+   '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>
+    '<div class="user-row" data-user="'+esc(u.username.toLowerCase())+'">'+
+     '<div class="user-info"><b>'+esc(u.username)+'</b> '+(u.role==="owner"?'<span class="owner-tag">OWNER</span>':'')+
+     '<small>'+esc(u.role)+' · '+Number(u.item_count||0)+' предметов · '+money(u.inventory_value)+'</small></div>'+
+     '<label class="owner-field"><small>БАЛАНС</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" value="'+Number(u.balance||0)+'" '+(u.role==="owner"?"disabled":"")+'></label>'+
+     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+(u.role==="owner"?"disabled":"")+'><option value="user" '+(u.role==="user"?"selected":"")+'>Игрок</option><option value="admin" '+(u.role==="admin"?"selected":"")+'>Админ</option></select></label>'+
+     '<div class="owner-actions"><button class="btn primary" onclick="saveUser('+u.id+')" '+(u.role==="owner"?"disabled":"")+'>Сохранить</button>'+
+     (u.role==="owner"?'':'<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>')+'</div></div>'
+   ).join(""):'<p class="muted">Пока нет игроков.</p>')+'</div>'+
+   '<div class="owner-activity"><h3>Последние действия</h3>'+
+   (activity.length?activity.map(item=>'<p><b>'+esc(item.username||"Система")+'</b><span>'+esc(item.message)+'</span></p>').join(""):'<p class="muted">Действий пока нет.</p>')+
+   '</div>';
+ }catch(e){
+  box.innerHTML='<p class="muted">Не удалось загрузить панель: '+esc(e.message)+'</p><button class="btn secondary" onclick="loadOwner()">Повторить</button>';
+ }
 }
 window.filterOwnerUsers=()=>{const q=($("#owner-search")?.value||"").trim().toLowerCase();document.querySelectorAll("#owner-users .user-row").forEach(row=>row.style.display=row.dataset.user.includes(q)?"":"none")};
 window.deleteUser=async(id,username)=>{
