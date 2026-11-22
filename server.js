@@ -716,3 +716,28 @@ app.delete("/api/owner/users/:id",requireAuth,requireOwner,(req,res)=>{
  });
  tx();res.json({ok:true});
 });
+
+async function startServer() {
+ await initializePersistentDatabase();
+ if (OWNER_USERNAME && OWNER_PASSWORD) {
+   const existing = db.prepare("SELECT id FROM users WHERE username=?").get(OWNER_USERNAME);
+   if (!existing) {
+     const hash = bcrypt.hashSync(OWNER_PASSWORD, 12);
+     db.prepare("INSERT INTO users(username,password_hash,role,balance) VALUES(?,?,?,?)")
+       .run(OWNER_USERNAME, hash, "owner", 100000);
+     console.log("OWNER account created:", OWNER_USERNAME);
+   } else if (OWNER_RESET_PASSWORD) {
+     const hash = bcrypt.hashSync(OWNER_PASSWORD, 12);
+     db.prepare("UPDATE users SET role='owner', password_hash=? WHERE username=?").run(hash, OWNER_USERNAME);
+     console.log("OWNER account password reset:", OWNER_USERNAME);
+   } else {
+     db.prepare("UPDATE users SET role='owner' WHERE username=?").run(OWNER_USERNAME);
+   }
+ }
+ await flushWrites();
+ app.listen(port,()=>console.log("CaseArena running on port",port));
+}
+startServer().catch(error => {
+ console.error("CaseArena startup failed:", error);
+ process.exit(1);
+});
