@@ -87,7 +87,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const userView = u => ({id:u.id, username:u.username, role:u.role, balance:u.balance});
 function current(req) {
-  if (!req.session.userId) return null;
+  if (!req.session || !req.session.userId) return null;
   return db.prepare("SELECT id,username,role,balance FROM users WHERE id=?").get(req.session.userId) || null;
 }
 function requireAuth(req,res,next) {
@@ -112,17 +112,19 @@ app.get("/auth/google/callback", (req,res,next) => {
   passport.authenticate("google", { session: false }, (err, result) => {
     if (err || !result) return res.redirect("/?google=error");
     if (result.existing) {
+      req.session = req.session || {};
       req.session.userId = result.user.id;
       delete req.session.pendingGoogle;
       return res.redirect("/");
     }
+    req.session = req.session || {};
     req.session.pendingGoogle = { googleSub: result.googleSub, email: result.email };
     return res.redirect("/?chooseNick=1");
   })(req,res,next);
 });
-app.get("/api/google/status", (req,res) => res.json({ configured: googleConfigured, pending: Boolean(req.session.pendingGoogle) }));
+app.get("/api/google/status", (req,res) => res.json({ configured: googleConfigured, pending: Boolean(req.session && req.session.pendingGoogle) }));
 app.post("/api/google/complete-nickname", authLimiter, (req,res) => {
-  const pending = req.session.pendingGoogle;
+  const pending = req.session && req.session.pendingGoogle;
   if (!pending) return res.status(400).json({error:"Сначала войдите через Google"});
   const username = String(req.body.username || "").trim().toLowerCase();
   if (!/^[a-z0-9_]{3,20}$/.test(username)) return res.status(400).json({error:"Ник: 3–20 символов, латиница, цифры и _"});
@@ -131,7 +133,9 @@ app.post("/api/google/complete-nickname", authLimiter, (req,res) => {
     const placeholderHash = bcrypt.hashSync(require("crypto").randomBytes(48).toString("hex"), 12);
     const info = db.prepare("INSERT INTO users(username,password_hash,google_sub,balance) VALUES(?,?,?,?)")
       .run(username, placeholderHash, pending.googleSub, 1000);
-    req.session.userId = info.lastInsertRowid;
+    req.session = req.session || {};
+    req.session = req.session || {};
+ req.session.userId = info.lastInsertRowid;
     delete req.session.pendingGoogle;
     log(info.lastInsertRowid, "Аккаунт создан через Google");
     res.json({user:userView(current(req))});
@@ -166,7 +170,7 @@ app.post("/api/login",authLimiter,async(req,res)=>{
   const password=String(req.body.password||"");
   const u=db.prepare("SELECT * FROM users WHERE username=?").get(username);
   if (!u || !(await bcrypt.compare(password,u.password_hash))) return res.status(401).json({error:"Неверный ник или пароль"});
-  req.session.userId=u.id;
+  req.session = req.session || {};
   req.session.userId = u.id;
 
 res.json({user:userView(u)});
