@@ -447,3 +447,16 @@ body{padding-bottom:100px}
 .upgrade-disclaimer{margin:15px 0 0;text-align:center}
 @media(max-width:900px){.upgrade-layout{grid-template-columns:minmax(0,1fr) minmax(250px,320px)}.upgrade-main-panel{grid-column:1/-1;grid-row:1}.upgrade-select-panel{grid-row:2}.upgrade-inline-wheel{width:min(100%,300px)}}
 @media(max-width:560px){.upgrade-machine{padding:10px}.upgrade-layout{grid-template-columns:1fr;gap:10px}.upgrade-main-panel{grid-column:1;grid-row:1}.upgrade-select-panel{grid-row:auto}.upgrade-select-panel .pick-grid{max-height:260px;grid-template-columns:repeat(2,minmax(0,1fr))}.upgrade-inline-wheel{width:min(78vw,290px)}.upgrade-multipliers button{padding:12px 4px}}
+
+/* Photo-led case catalogue */
+.case-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.case-card{background:linear-gradient(155deg,#17283b,#0b1522);border:1px solid #2d4661;box-shadow:0 12px 30px #0005}
+.case-card:hover{transform:translateY(-4px);border-color:#4de1d1;box-shadow:0 16px 36px #0008,0 0 22px #4de1d11a}
+.case-visual.case-visual-photo{height:178px;display:grid;place-items:center;isolation:isolate;background:radial-gradient(ellipse at 50% 58%,#315b75 0,transparent 66%),linear-gradient(145deg,#213a55,#0b1625)}
+.case-cover-image{position:relative;z-index:1;width:94%;height:155px;object-fit:contain;filter:drop-shadow(0 12px 14px #000b);transition:transform .25s}
+.case-card:hover .case-cover-image{transform:scale(1.1) rotate(-3deg)}
+.case-cover-glow{position:absolute;z-index:0;width:125px;height:125px;border-radius:50%;background:#49dccc2b;filter:blur(24px)}
+.case-info{background:linear-gradient(180deg,#142338,#0f1b2a)}
+.case-info h3{font-size:14px;font-weight:900}
+.case-bottom .btn{min-width:92px}
+@media(max-width:520px){.case-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.case-visual.case-visual-photo{height:125px}.case-cover-image{height:112px}.case-info{padding:11px}.case-info h3{font-size:11px}.case-subtitle{font-size:9px}.case-bottom{align-items:flex-start;flex-direction:column}.case-bottom .btn{width:100%}}
