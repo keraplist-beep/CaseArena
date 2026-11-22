@@ -125,6 +125,7 @@ const db = {
 };
 
 async function initializePersistentDatabase() {
+ const sqlTimestamp = value => value instanceof Date ? value.toISOString() : value;
  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT");
  const [users, inventory, activity] = await Promise.all([
    pool.query("SELECT * FROM users ORDER BY id"),
@@ -136,13 +137,13 @@ async function initializePersistentDatabase() {
    localDb.exec("DELETE FROM inventory; DELETE FROM activity; DELETE FROM users;");
    for (const u of users.rows) localDb.prepare(
      "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub) VALUES(?,?,?,?,?,?,?)"
-   ).run(u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub);
+   ).run(u.id,u.username,u.password_hash,u.role,u.balance,sqlTimestamp(u.created_at),u.google_sub);
    for (const item of inventory.rows) localDb.prepare(
      "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES(?,?,?,?,?)"
-   ).run(item.id,item.user_id,item.item_name,item.item_value,item.created_at);
+   ).run(item.id,item.user_id,item.item_name,item.item_value,sqlTimestamp(item.created_at));
    for (const item of activity.rows) localDb.prepare(
      "INSERT INTO activity(id,user_id,message,created_at) VALUES(?,?,?,?)"
-   ).run(item.id,item.user_id,item.message,item.created_at);
+   ).run(item.id,item.user_id,item.message,sqlTimestamp(item.created_at));
  } else {
    const localUsers = localDb.prepare("SELECT * FROM users ORDER BY id").all();
    const localInventory = localDb.prepare("SELECT * FROM inventory ORDER BY id").all();
