@@ -158,7 +158,15 @@ app.post("/api/login",authLimiter,async(req,res)=>{
   const u=db.prepare("SELECT * FROM users WHERE username=?").get(username);
   if (!u || !(await bcrypt.compare(password,u.password_hash))) return res.status(401).json({error:"Неверный ник или пароль"});
   req.session.userId=u.id;
+  req.session.userId = u.id;
+
+req.session.save(err => {
+  if (err) {
+    return res.status(500).json({error:"Не удалось сохранить авторизацию"});
+  }
+
   res.json({user:userView(u)});
+});
 });
 app.post("/api/logout",(req,res)=>req.session.destroy(()=>res.json({ok:true})));
 
