@@ -573,3 +573,30 @@ body{padding-bottom:100px}
 .bonus-card button{white-space:nowrap;font-size:10px}.bonus-card button:disabled{opacity:.45;cursor:not-allowed}
 .promo-card form{display:flex;gap:6px;align-items:center;min-width:0}.promo-card input{width:100px;min-width:0;padding:9px;font-size:11px}.promo-used{font-size:10px;color:#6cdbb7;font-weight:900;white-space:nowrap}
 @media(max-width:720px){.bonus-panel{grid-template-columns:1fr}.bonus-card{align-items:flex-start;flex-wrap:wrap}.bonus-card button{margin-left:auto}.promo-card form{width:100%}.promo-card input{flex:1}}
+
+/* Circular CS2 upgrader wheel */
+.upgrader-center{background:radial-gradient(ellipse at 50% 45%,#202a32 0%,#111820 62%,#0b1118 100%);border-color:#3c4148;overflow:hidden}
+.upgrader-title span{color:#f7f7f7;letter-spacing:4px}
+.upgrade-wheel-stage{display:flex;justify-content:center;align-items:center;padding:14px 0 4px}
+.upgrade-wheel{--chance:0%;position:relative;width:min(100%,278px);aspect-ratio:1;border-radius:50%;padding:15px;background:conic-gradient(from -90deg,#ffd43b 0 var(--chance),#642d35 var(--chance) 100%);box-shadow:0 0 0 5px #252b31,0 0 0 8px #080d12,0 0 30px #f2b63225,inset 0 0 14px #000b}
+.upgrade-wheel:before{content:"";position:absolute;inset:8px;border-radius:50%;border:2px solid #ffffff18;pointer-events:none}
+.upgrade-wheel-inner{position:absolute;inset:18px;border-radius:50%;background:radial-gradient(circle at 50% 45%,#202b32 0%,#11191f 65%,#0b1116 100%);box-shadow:inset 0 0 0 2px #59616a55,inset 0 8px 20px #000a}
+.upgrade-wheel-center{position:absolute;inset:27%;z-index:2;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(circle,#1d282e,#0b1117 75%);border:2px solid #65707855;box-shadow:0 0 0 5px #ffffff08,inset 0 0 18px #000b}
+.upgrade-wheel-center b{font:900 clamp(25px,4vw,37px) Orbitron,sans-serif;color:#f8cf42;text-shadow:0 0 18px #ffca3c55;line-height:1}
+.upgrade-wheel-center small{margin-top:8px;font-size:8px;font-weight:900;letter-spacing:1.6px;color:#aab5bb}
+.upgrade-wheel-pointer{position:absolute;inset:0;z-index:3;border-radius:50%;transform:rotate(0deg);transform-origin:50% 50%;pointer-events:none}
+.upgrade-wheel-pointer i{position:absolute;left:50%;top:1px;transform:translateX(-50%);width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-top:24px solid #fff3a1;filter:drop-shadow(0 2px 5px #000) drop-shadow(0 0 8px #ffd43b)}
+.wheel-mark{position:absolute;z-index:2;color:#d5d8d9;font-size:8px;font-weight:900;text-shadow:0 1px 4px #000}
+.wheel-mark-top{top:31px;left:50%;transform:translateX(-50%)}
+.wheel-mark-bottom{bottom:31px;left:50%;transform:translateX(-50%)}
+.upgrader-odds{margin:8px 4px 0;font-size:10px}
+.upgrader-odds span:first-child b{color:#ffd43b}.upgrader-odds span:last-child b{color:#e17b7b}
+.upgrader-comparison{margin-bottom:5px}
+.upgrader-item{background:#0b1218;border-color:#353c42}
+.upgrader-art{background:radial-gradient(ellipse,#303a40,#11181e 72%)}
+.upgrade-multipliers button{background:#171e24;border-color:#3b4349}
+.upgrade-multipliers button:hover{border-color:#ffd43b;color:#ffd43b}
+.upgrade-action{background:linear-gradient(180deg,#ffd84d,#e8a900);color:#17130a;border:0;box-shadow:0 5px 18px #e8a90030}
+.upgrade-action:hover{filter:brightness(1.08)}
+@media(max-width:850px){.upgrade-wheel{width:min(78vw,278px)}}
+@media(max-width:560px){.upgrade-wheel{width:min(72vw,250px)}.upgrade-wheel-center b{font-size:28px}.upgrade-wheel-inner{inset:16px}}
