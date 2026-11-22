@@ -61,7 +61,7 @@ function updateUpgradePreview(){
  if(fromPrice)fromPrice.textContent=item?money(item.item_value):"Выбери слева";
  if(toPrice)toPrice.textContent=target?money(target.value):"Выбери справа";
  if(dial){dial.style.transition="none";dial.style.transform="rotate(0deg)"}
- const pointer=$("#upgrade-wheel-pointer");if(pointer){pointer.style.transition="none";pointer.style.transform="rotate(0deg)"}
+ const pointer=$("#upgrade-wheel-pointer");if(pointer){if(pointer.getAnimations)pointer.getAnimations().forEach(a=>a.cancel());pointer.style.transition="none";pointer.style.transform="rotate(0deg)"}
  if(!item||!target||target.value<=item.item_value){
   const msg=!item?"Сначала выбери предмет из инвентаря":!target?"Теперь выбери желаемый скин справа":"Целевой предмет должен стоить дороже";
   box.innerHTML='<span class="muted">'+msg+'</span>';
@@ -97,9 +97,17 @@ window.upgrade=async()=>{
   if(pointer){
    const successArc=chance*3.6;
    const landing=d.success?successArc/2:successArc+(360-successArc)/2;
-   pointer.style.transition="none";pointer.style.transform="rotate(0deg)";void pointer.offsetWidth;
-   pointer.style.transition="transform 5.2s cubic-bezier(.08,.76,.12,1)";
-   pointer.style.transform="rotate("+(360*7+landing)+"deg)";
+   const endAngle=360*7+landing;
+   if(pointer.getAnimations)pointer.getAnimations().forEach(a=>a.cancel());
+   pointer.style.transition="none";
+   pointer.style.transform="rotate(0deg)";
+   void pointer.offsetWidth;
+   if(typeof pointer.animate==="function"){
+    pointer.animate([{transform:"rotate(0deg)"},{transform:"rotate("+endAngle+"deg)"}],{duration:5200,easing:"cubic-bezier(.08,.76,.12,1)",fill:"forwards"});
+   }else{
+    pointer.style.transition="transform 5.2s cubic-bezier(.08,.76,.12,1)";
+    requestAnimationFrame(()=>{pointer.style.transform="rotate("+endAngle+"deg)"});
+   }
   }
   await new Promise(resolve=>setTimeout(resolve,5350));
   openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?(d.targetName||target.name):item.item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(d.targetName||target.name):"Предмет потерян")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p></div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
