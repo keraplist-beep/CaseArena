@@ -5,7 +5,7 @@ const rub=n=>Number(n||0).toLocaleString("ru-RU")+" ₽";
 const ROLE_ORDER=["user","moderator","admin","senior_admin","deputy_head_admin","head_admin","owner"];
 const ROLE_LABELS={user:"Игрок",moderator:"Модератор",admin:"Администратор",senior_admin:"Старший администратор",deputy_head_admin:"ЗГА",head_admin:"Главный администратор",owner:"Владелец"};
 const roleRank=role=>{const n=ROLE_ORDER.indexOf(role);return n<0?0:n};
-const roleBadge=role=>role&&role!=="user"?'<span class="role-tag role-tag-'+role+'">'+(role==="deputy_head_admin"?"ЗГА":role==="head_admin"?"ГЛАВНЫЙ АДМИН":role==="senior_admin"?"СТАРШИЙ АДМИН":role==="moderator"?"МОДЕРАТОР":role==="admin"?"АДМИН":"OWNER")+'</span>':"";
+const roleBadge=role=>role&&role!=="user"?'<span class="role-tag role-tag-'+role+'">'+(role==="deputy_head_admin"?"ЗГА":role==="head_admin"?"ГА":role==="senior_admin"?"СТАРШИЙ АДМИН":role==="moderator"?"МОДЕРАТОР":role==="admin"?"АДМИН":"OWNER")+'</span>':"";
 const api=async(url,opts={})=>{const r=await fetch(url,{...opts,headers:{"Content-Type":"application/json",...(opts.headers||{})}});const d=await r.json();if(!r.ok)throw Error(d.error||"Ошибка запроса");return d};
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function toast(t){const el=$("#toast");el.textContent=t;el.style.display="block";clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.style.display="none",3000)}
