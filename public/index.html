@@ -19,11 +19,13 @@
       <div class="upgrader-arrow"><span>➜</span><small>ЦЕЛЬ</small></div>
       <div class="upgrader-item"><div id="upgrade-to-art" class="upgrader-art"><span>?</span></div><b id="upgrade-to-name">Желаемый скин</b><small id="upgrade-to-price">Выбери справа</small></div>
      </div>
-     <div class="upgrade-wheel-stage"><div class="upgrade-wheel" id="upgrade-wheel" style="--chance:0%">
-      <div class="upgrade-wheel-inner"></div><div class="upgrade-wheel-pointer" id="upgrade-wheel-pointer"><i></i></div>
-      <div class="upgrade-wheel-center"><b id="upgrade-wheel-value">—</b><small>ШАНС УСПЕХА</small></div>
-      <span class="wheel-mark wheel-mark-top">100%</span><span class="wheel-mark wheel-mark-bottom">0%</span>
-     </div></div>
+     <div class="upgrade-wheel-stage" aria-label="Колесо шанса апгрейда">
+      <div class="upgrade-wheel" id="upgrade-wheel" style="--chance:0%">
+       <div class="upgrade-wheel-dial" id="upgrade-wheel-dial"><span class="wheel-sector-label wheel-sector-win">УСПЕХ</span><span class="wheel-sector-label wheel-sector-fail">НЕУДАЧА</span></div>
+       <div class="upgrade-wheel-center"><b id="upgrade-wheel-value">—</b><small>ШАНС УСПЕХА</small></div>
+      </div>
+      <div class="upgrade-wheel-pointer" aria-hidden="true"></div>
+     </div>
      <div class="upgrader-odds"><span>Успех <b id="upgrade-success-percent">—</b></span><span>Неудача <b id="upgrade-fail-percent">—</b></span></div>
      <div class="upgrade-multipliers"><button onclick="setUpgradeMultiplier(2)">X2</button><button onclick="setUpgradeMultiplier(5)">X5</button><button onclick="setUpgradeMultiplier(10)">X10</button><button onclick="setUpgradeMultiplier(20)">X20</button></div>
      <div id="upgrade-spin-status" class="upgrade-spin-status">Выбери исходный и целевой предмет</div>
