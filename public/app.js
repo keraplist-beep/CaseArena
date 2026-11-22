@@ -16,6 +16,7 @@ function nicknameModal(){openModal("Выбери игровой ник",'<p clas
 window.completeGoogleNick=async e=>{e.preventDefault();const username=new FormData(e.target).get("username");try{await api("/api/google/complete-nickname",{method:"POST",body:JSON.stringify({username})});closeModal();history.replaceState({},"",location.pathname);await refresh()}catch(err){toast(err.message)}};
 function renderAccount(){const a=$("#account");if(!a)return;a.innerHTML=me?'<button class="profile-shortcut" onclick="goProfile()"><span class="mini-avatar">'+esc(me.username.slice(0,1).toUpperCase())+'</span><span class="account-name">'+esc(me.username)+(me.role==="owner"?' <b class="owner-tag">OWNER</b>':'')+'<small>'+money(me.balance)+'</small></span></button><button class="btn secondary" onclick="logout()">Выйти</button>':'<button class="btn secondary" onclick="authModal()">Войти</button><button class="btn primary" onclick="authModal()">Регистрация</button>'}
 window.canAccessOwner=()=>me?.role==="owner";
+window.canAccessStaff=()=>!!me&&["owner","admin","moderator"].includes(me.role);
 window.ownerAccessReady=false;
 window.updateOwnerNavigation=()=>{
  const nav=document.querySelector(".bottom-nav");if(!nav)return;
