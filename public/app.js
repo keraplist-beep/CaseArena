@@ -180,7 +180,7 @@ async function loadOwner(search=ownerSearchQuery){
    '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>
     '<div class="user-row" data-user="'+esc(u.username.toLowerCase())+'">'+
      '<div class="user-info"><b>'+esc(u.username)+'</b> '+roleBadge(u.role)+
-     '<small>'+esc(ROLE_LABELS[u.role]||u.role)+' · '+Number(u.item_count||0)+' предметов · инвентарь '+money(u.inventory_value)+'</small></div>'+
+     '<small>'+(Number(u.banned)===1?'ЗАБЛОКИРОВАН · ':'Аккаунт активен · ')+esc(ROLE_LABELS[u.role]||u.role)+' · '+Number(u.item_count||0)+' предметов · инвентарь '+money(u.inventory_value)+'</small></div>'+
      '<div class="owner-field"><small>БАЛАНС · '+money(u.balance)+'</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" placeholder="Сумма" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'></div>'+
      '<div class="owner-actions owner-balance-actions">'+
       '<button class="btn primary" onclick="ownerBalance('+u.id+',\'add\')" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'>Выдать +</button>'+
@@ -188,7 +188,7 @@ async function loadOwner(search=ownerSearchQuery){
      '</div>'+
      '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+(u.role==="owner"?"disabled":"")+'>'+ROLE_ORDER.filter(role=>role!=="owner").map(role=>'<option value="'+role+'" '+(u.role===role?"selected":"")+'>'+ROLE_LABELS[role]+'</option>').join("")+'</select></label>'+
      '<div class="owner-actions"><button class="btn secondary" onclick="ownerRole('+u.id+')" '+(u.role==="owner"?"disabled":"")+'>Сохранить роль</button>'+
-     (u.role==="owner"?'':'<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>')+'</div></div>'
+     (u.role==="owner"?'':(Number(u.banned)===1?'<button class="btn secondary" onclick="ownerUnban('+u.id+')">Разбанить</button>':'<button class="btn danger" onclick="ownerBan('+u.id+')">Заблокировать</button>')+'<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>'))+'</div></div>'
    ).join(""):'<p class="muted">'+(ownerSearchQuery?"По этому нику игроки не найдены.":"Пока нет игроков.")+'</p>')+'</div>'+
    '<div class="owner-activity"><h3>Последние действия</h3>'+
    (activity.length?activity.map(item=>'<p><b>'+esc(item.username||"Система")+'</b><span>'+esc(item.message)+'</span></p>').join(""):'<p class="muted">Действий пока нет.</p>')+
@@ -213,6 +213,8 @@ window.ownerRole=async id=>{
  try{await api("/api/owner/users/"+id+"/role",{method:"POST",body:JSON.stringify({role})});await loadOwner();toast("Роль игрока изменена")}
  catch(e){toast(e.message)}
 };
+window.ownerBan=async id=>{if(!confirm("Заблокировать этого игрока?"))return;try{const d=await api("/api/staff/users/"+id+"/action",{method:"POST",body:JSON.stringify({action:"ban"})});await loadOwner();toast(d.message)}catch(e){toast(e.message)}};
+window.ownerUnban=async id=>{if(!confirm("Снять блокировку с этого игрока?"))return;try{const d=await api("/api/staff/users/"+id+"/action",{method:"POST",body:JSON.stringify({action:"unban"})});await loadOwner();toast(d.message)}catch(e){toast(e.message)}};
 window.deleteUser=async(id,username)=>{
  if(!confirm("Удалить аккаунт "+username+" и весь его инвентарь?"))return;
  try{await api("/api/owner/users/"+id,{method:"DELETE"});await loadOwner();toast("Аккаунт удалён")}catch(e){toast(e.message)}
