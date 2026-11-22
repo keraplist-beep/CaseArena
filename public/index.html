@@ -66,10 +66,21 @@
   pages.forEach(el=>el.classList.toggle('active-page',el.dataset.page===page));
   nav.querySelectorAll('a[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===page));
   document.title='CaseArena — '+({cases:'Кейсы',upgrade:'Апгрейд',battles:'Баттлы',contracts:'Контракты',profile:'Профиль',leaders:'Лидеры',owner:'Панель владельца',staff:'Управление сервером'}[page]||'Арена');
-  window.scrollTo({top:0,behavior:'instant'});
+  window.scrollTo(0,0);
  }
  window.renderCaseArenaPage=render;
+ // Reliable navigation for mobile browsers and in-app webviews.
+ document.addEventListener('click',event=>{
+  const link=event.target.closest('a[href^="#"]');
+  if(!link)return;
+  const target=link.getAttribute('href');
+  if(!target||target==="#")return;
+  event.preventDefault();
+  if(location.hash!==target)history.pushState({},'',target);
+  render();
+ });
  window.addEventListener('hashchange',render);
+ window.addEventListener('popstate',render);
  render();
 })();
 </script>
