@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS users (
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
  google_sub TEXT,
  banned INTEGER NOT NULL DEFAULT 0,
- session_version INTEGER NOT NULL DEFAULT 0
+ session_version INTEGER NOT NULL DEFAULT 0,
+ last_hourly_claim BIGINT NOT NULL DEFAULT 0,
+ lunacy_redeemed INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS inventory (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,6 +44,8 @@ const localUserColumns = localDb.prepare("PRAGMA table_info(users)").all().map(c
 if (!localUserColumns.includes("google_sub")) localDb.exec("ALTER TABLE users ADD COLUMN google_sub TEXT");
 if (!localUserColumns.includes("banned")) localDb.exec("ALTER TABLE users ADD COLUMN banned INTEGER NOT NULL DEFAULT 0");
 if (!localUserColumns.includes("session_version")) localDb.exec("ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0");
+if (!localUserColumns.includes("last_hourly_claim")) localDb.exec("ALTER TABLE users ADD COLUMN last_hourly_claim BIGINT NOT NULL DEFAULT 0");
+if (!localUserColumns.includes("lunacy_redeemed")) localDb.exec("ALTER TABLE users ADD COLUMN lunacy_redeemed INTEGER NOT NULL DEFAULT 0");
 
 const { Pool } = require("pg");
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for persistent CaseArena storage");
@@ -133,6 +137,8 @@ async function initializePersistentDatabase() {
  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS banned INTEGER NOT NULL DEFAULT 0");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_hourly_claim BIGINT NOT NULL DEFAULT 0");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS lunacy_redeemed INTEGER NOT NULL DEFAULT 0");
  const [users, inventory, activity] = await Promise.all([
    pool.query("SELECT * FROM users ORDER BY id"),
    pool.query("SELECT * FROM inventory ORDER BY id"),
@@ -142,8 +148,8 @@ async function initializePersistentDatabase() {
  if (remoteHasData) {
    localDb.exec("DELETE FROM inventory; DELETE FROM activity; DELETE FROM users;");
    for (const u of users.rows) localDb.prepare(
-     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version) VALUES(?,?,?,?,?,?,?,?,?)"
-   ).run(u.id,u.username,u.password_hash,u.role,u.balance,sqlTimestamp(u.created_at),u.google_sub,u.banned||0,u.session_version||0);
+     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version,last_hourly_claim,lunacy_redeemed) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
+   ).run(u.id,u.username,u.password_hash,u.role,u.balance,sqlTimestamp(u.created_at),u.google_sub,u.banned||0,u.session_version||0,u.last_hourly_claim||0,u.lunacy_redeemed||0);
    for (const item of inventory.rows) localDb.prepare(
      "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES(?,?,?,?,?)"
    ).run(item.id,item.user_id,item.item_name,item.item_value,sqlTimestamp(item.created_at));
@@ -155,8 +161,8 @@ async function initializePersistentDatabase() {
    const localInventory = localDb.prepare("SELECT * FROM inventory ORDER BY id").all();
    const localActivity = localDb.prepare("SELECT * FROM activity ORDER BY id").all();
    for (const u of localUsers) await pool.query(
-     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (id) DO NOTHING",
-     [u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub,u.banned||0,u.session_version||0]
+     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version,last_hourly_claim,lunacy_redeemed) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (id) DO NOTHING",
+     [u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub,u.banned||0,u.session_version||0,u.last_hourly_claim||0,u.lunacy_redeemed||0]
    );
    for (const item of localInventory) await pool.query(
      "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING",
@@ -285,8 +291,8 @@ app.post("/api/google/complete-nickname", authLimiter, (req,res) => {
   if (username === OWNER_USERNAME) return res.status(409).json({error:"Этот ник зарезервирован"});
   try {
     const placeholderHash = bcrypt.hashSync(require("crypto").randomBytes(48).toString("hex"), 12);
-    const info = db.prepare("INSERT INTO users(username,password_hash,google_sub,balance) VALUES(?,?,?,?)")
-      .run(username, placeholderHash, pending.googleSub, 1000);
+    const info = db.prepare("INSERT INTO users(username,password_hash,google_sub,balance,last_hourly_claim) VALUES(?,?,?,?,?)")
+      .run(username, placeholderHash, pending.googleSub, 10000, Math.floor(Date.now()/1000));
     req.session = req.session || {};
     req.session = req.session || {};
  req.session.userId = info.lastInsertRowid;
@@ -313,7 +319,7 @@ app.post("/api/register",authLimiter,async(req,res)=>{
   if (username===OWNER_USERNAME) return res.status(409).json({error:"Этот ник зарезервирован"});
   try {
     const hash=await bcrypt.hash(password,12);
-    const info=db.prepare("INSERT INTO users(username,password_hash) VALUES(?,?)").run(username,hash);
+    const info=db.prepare("INSERT INTO users(username,password_hash,balance,last_hourly_claim) VALUES(?,?,?,?)").run(username,hash,10000,Math.floor(Date.now()/1000));
  req.session.userId = info.lastInsertRowid;
     req.session.sessionVersion = 0;
 log(info.lastInsertRowid, "Создан аккаунт");
@@ -334,6 +340,41 @@ app.post("/api/login",authLimiter,async(req,res)=>{
 res.json({user:userView(u)});
 });
 app.post("/api/logout",(req,res)=>{req.session=null;res.json({ok:true});});
+
+app.get("/api/bonus/status",requireAuth,(req,res)=>{
+ const u=db.prepare("SELECT balance,last_hourly_claim,lunacy_redeemed FROM users WHERE id=?").get(current(req).id);
+ const now=Math.floor(Date.now()/1000), readyAt=Number(u.last_hourly_claim||0)+3600;
+ res.json({balance:u.balance,hourlyReady:now>=readyAt,hourlyReadyAt:readyAt,lunacyRedeemed:!!u.lunacy_redeemed});
+});
+app.post("/api/bonus/hourly",requireAuth,(req,res)=>{
+ const u=current(req),now=Math.floor(Date.now()/1000);
+ try{
+  const claim=db.transaction(()=>{
+   const row=db.prepare("SELECT balance,last_hourly_claim FROM users WHERE id=?").get(u.id);
+   if(now<Number(row.last_hourly_claim||0)+3600)throw new Error("Бесплатное пополнение доступно один раз в час");
+   db.prepare("UPDATE users SET balance=balance+10000,last_hourly_claim=? WHERE id=?").run(now,u.id);
+   log(u.id,"Получено бесплатное пополнение +10 000 CR");
+   return db.prepare("SELECT balance FROM users WHERE id=?").get(u.id).balance;
+  });
+  const balance=claim();res.json({ok:true,balance,amount:10000});
+ }catch(e){res.status(400).json({error:e.message})}
+});
+app.post("/api/promo/redeem",requireAuth,(req,res)=>{
+ const code=String(req.body.code||"").trim().toUpperCase();
+ if(code!=="LUNACY")return res.status(400).json({error:"Промокод не найден"});
+ const u=current(req);
+ try{
+  const redeem=db.transaction(()=>{
+   const row=db.prepare("SELECT lunacy_redeemed FROM users WHERE id=?").get(u.id);
+   if(row.lunacy_redeemed)throw new Error("Ты уже активировал этот промокод");
+   db.prepare("UPDATE users SET balance=balance+10000,lunacy_redeemed=1 WHERE id=?").run(u.id);
+   log(u.id,"Активирован промокод LUNACY (+10 000 CR)");
+   return db.prepare("SELECT balance FROM users WHERE id=?").get(u.id).balance;
+  });
+  res.json({ok:true,balance:redeem(),amount:10000});
+ }catch(e){res.status(400).json({error:e.message})}
+});
+
 
 const cases=[
  {id:"starter",name:"РАЗМИНКА",subtitle:"Начни собирать инвентарь",price:79,items:[["Glock-18 | Candy Apple",45,68],["MP9 | Capillary",65,23],["P250 | Sand Dune",85,7],["USP-S | Ticket to Hell",120,1.7],["AK-47 | Elite Build",190,0.3]]},
