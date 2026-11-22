@@ -326,9 +326,28 @@ const cases=[
  {id:"doppler",name:"DOPPLER",subtitle:"Ножи с редкими фазами",price:2999,cover:"★ Karambit | Doppler",items:[["★ Navaja Knife | Fade",7500,55],["★ Huntsman Knife | Doppler",12500,29],["★ Flip Knife | Gamma Doppler",28000,12],["★ Karambit | Doppler",38500,3.5],["★ Karambit | Sapphire",115000,0.5]]},
  {id:"gloves",name:"GLOVE CASE",subtitle:"Перчатки и редкие ножи",price:3499,cover:"★ Sport Gloves | Vice",items:[["★ Driver Gloves | Crimson Weave",14500,57],["★ Specialist Gloves | Fade",22000,28],["★ Sport Gloves | Vice",48000,11],["★ Butterfly Knife | Fade",62000,3.5],["★ Karambit | Sapphire",115000,0.5]]},
  {id:"blackpearl",name:"BLACK PEARL",subtitle:"Максимальная редкость и риск",price:5999,cover:"★ Butterfly Knife | Doppler",items:[["★ Bowie Knife | Doppler",17500,58],["★ Skeleton Knife | Slaughter",33000,27],["★ M9 Bayonet | Crimson Web",41000,11],["★ Butterfly Knife | Doppler",85000,3.5],["★ Karambit | Sapphire",115000,0.5]]}
+,{id:"ice-dragon",name:"ЛЕДЯНОЙ ДРАКОН",subtitle:"Ледяные редкости и холодная сталь",price:129,theme:"ice",cover:"AWP | Gungnir",items:[["AWP | Atheris",220,48],["AK-47 | Ice Coaled",520,30],["AWP | Oni Taiji",6500,15],["AWP | Gungnir",95000,6.5],["★ Karambit | Sapphire",115000,0.5]]}
+,{id:"cyberpunk",name:"КИБЕРПАНК",subtitle:"Неоновые пушки большого города",price:249,theme:"cyber",cover:"AK-47 | Neon Rider",items:[["MP9 | Food Chain",290,45],["AK-47 | Neon Rider",980,32],["M4A4 | Neo-Noir",2250,17],["AK-47 | X-Ray",42000,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
+,{id:"gold-hour",name:"ЗОЛОТОЙ ЧАС",subtitle:"Золото, блеск и дорогие дропы",price:399,theme:"gold",cover:"AK-47 | Gold Arabesque",items:[["Desert Eagle | Bronze Deco",95,45],["Desert Eagle | Blaze",4200,35],["AK-47 | Gold Arabesque",68000,15],["★ Karambit | Tiger Tooth",52000,4.5],["★ Butterfly Knife | Fade",62000,0.5]]}
+,{id:"phoenix",name:"ФЕНИКС",subtitle:"Возвращение легендарных скинов",price:549,theme:"fire",cover:"M4A4 | Howl",items:[["AK-47 | Redline",720,45],["AWP | Wildfire",1250,32],["M4A4 | The Emperor",1750,17],["M4A4 | Howl",125000,5.5],["★ Karambit | Sapphire",115000,0.5]]}
+,{id:"arctic",name:"АРКТИКА",subtitle:"Холодная коллекция для точных",price:699,theme:"arctic",cover:"AWP | Medusa",items:[["AWP | Fever Dream",340,48],["AWP | Hyper Beast",2200,30],["AWP | Medusa",78000,16],["AWP | Gungnir",95000,5.5],["★ M9 Bayonet | Fade",74000,0.5]]}
+,{id:"steel",name:"СТАЛЬНОЙ ХАРАКТЕР",subtitle:"Проверенные автоматы и редкие ножи",price:899,theme:"steel",cover:"AK-47 | Vulcan",items:[["AK-47 | Slate",360,45],["AK-47 | Asiimov",1650,32],["AK-47 | Vulcan",22000,17],["AK-47 | Wild Lotus",110000,5.5],["★ Butterfly Knife | Doppler",85000,0.5]]}
+,{id:"blackout",name:"BLACKOUT",subtitle:"Тёмные скины и дорогие ножи",price:1199,theme:"black",cover:"AWP | Fade",items:[["USP-S | Cortex",260,48],["M4A1-S | Printstream",2350,30],["AWP | Fade",52000,16],["★ Karambit | Doppler",38500,5.5],["★ Karambit | Sapphire",115000,0.5]]}
+,{id:"glitch",name:"ГЛИТЧ",subtitle:"Цифровой хаос и яркие расцветки",price:1499,theme:"glitch",cover:"M4A1-S | Player Two",items:[["MAC-10 | Disco Tech",420,45],["M4A1-S | Player Two",3800,32],["AWP | Oni Taiji",6500,17],["AK-47 | X-Ray",42000,5.5],["★ Butterfly Knife | Marble Fade",72000,0.5]]}
+,{id:"emerald",name:"ИЗУМРУДНЫЙ",subtitle:"Зелёные оттенки и редкие находки",price:1999,theme:"emerald",cover:"AK-47 | Wild Lotus",items:[["AWP | Atheris",220,44],["AK-47 | The Empress",6900,34],["AK-47 | Wild Lotus",110000,16],["★ Karambit | Gamma Doppler",92000,5.5],["★ Karambit | Sapphire",115000,0.5]]}
+,{id:"ruby",name:"РУБИНОВЫЙ",subtitle:"Красная коллекция премиум-класса",price:2499,theme:"ruby",cover:"M4A4 | Howl",items:[["AK-47 | Bloodsport",5100,45],["M4A4 | Howl",125000,15],["AWP | Dragon Lore",25000,30],["★ Butterfly Knife | Crimson Web",54000,9.5],["★ Karambit | Sapphire",115000,0.5]]}
+,{id:"sapphire",name:"САПФИРОВЫЙ",subtitle:"Синие драгоценности и ножи",price:2999,theme:"sapphire",cover:"★ Karambit | Sapphire",items:[["AK-47 | Case Hardened",18000,45],["AWP | Medusa",78000,30],["★ M9 Bayonet | Doppler",68000,19],["★ Karambit | Sapphire",115000,5.5],["★ Butterfly Knife | Doppler",85000,0.5]]}
+,{id:"knife-rush",name:"НОЖЕВОЙ РАШ",subtitle:"Только ножи — от доступных до легенд",price:3499,theme:"knife",cover:"★ Butterfly Knife | Marble Fade",items:[["★ Gut Knife | Doppler",16000,42],["★ Bowie Knife | Doppler",17500,32],["★ Talon Knife | Fade",42000,18],["★ Butterfly Knife | Marble Fade",72000,7.5],["★ Karambit | Sapphire",115000,0.5]]}
+,{id:"glove-boom",name:"ПЕРЧАТОЧНЫЙ БУМ",subtitle:"Перчатки с яркими расцветками",price:3999,theme:"gloves",cover:"★ Sport Gloves | Vice",items:[["★ Driver Gloves | Crimson Weave",14500,48],["★ Specialist Gloves | Fade",22000,32],["★ Sport Gloves | Vice",48000,15],["★ Sport Gloves | Vice",72000,4.5],["★ Karambit | Sapphire",115000,0.5]]}
+,{id:"dragon-vault",name:"ДРАКОНЬЯ СОКРОВИЩНИЦА",subtitle:"Собрание самых желанных предметов",price:6999,theme:"dragon",cover:"AWP | Dragon Lore",items:[["AK-47 | Fire Serpent",9800,40],["AWP | Dragon Lore",25000,35],["AWP | Gungnir",95000,18],["AK-47 | Wild Lotus",110000,6.5],["M4A4 | Howl",125000,0.5]]}
+,{id:"eco-round",name:"ЭКО-РАУНД",subtitle:"Недорогой кейс на каждый день",price:59,theme:"eco",cover:"AK-47 | Elite Build",items:[["Glock-18 | Candy Apple",45,52],["MP9 | Capillary",65,28],["AWP | Atheris",220,15],["AK-47 | Slate",360,4.5],["AK-47 | Neon Rider",980,0.5]]}
+,{id:"starter-plus",name:"ПЕРВЫЙ ДРОП",subtitle:"Небольшая цена — приятные скины",price:99,theme:"starter",cover:"USP-S | Neo-Noir",items:[["P250 | Sand Dune",85,48],["USP-S | Ticket to Hell",120,30],["AWP | Fever Dream",340,17],["USP-S | Neo-Noir",880,4.5],["M4A1-S | Printstream",2350,0.5]]}
+,{id:"midnight",name:"ПОЛУНОЧЬ",subtitle:"Ночная подборка редких расцветок",price:299,theme:"midnight",cover:"USP-S | Kill Confirmed",items:[["AWP | Mortis",330,45],["AK-47 | Phantom Disruptor",390,32],["USP-S | Kill Confirmed",3600,17],["★ Talon Knife | Doppler",36500,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
+,{id:"gradient",name:"ГРАДИЕНТ",subtitle:"Переливы цвета и премиум-скины",price:799,theme:"gradient",cover:"AWP | Fade",items:[["Glock-18 | Vogue",180,45],["M4A1-S | Printstream",2350,32],["AWP | Fade",52000,17],["★ Stiletto Knife | Fade",31000,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
 ];
 cases.forEach(c=>{if(!c.cover)c.cover=c.items[c.items.length-1][0];});
-app.get("/api/cases",async(req,res)=>{const imageIndex=await getSkinImageIndex();res.json(cases.map(({id,name,subtitle,price,cover})=>({id,name,subtitle,price,image:imageIndex.get(cover)||""})));});
+app.get("/api/cases",async(req,res)=>{const imageIndex=await getSkinImageIndex();res.json(cases.map(({id,name,subtitle,price,cover,theme,items})=>({id,name,subtitle,price,theme:theme||"classic",count:items.length,image:imageIndex.get(cover)||""})));});
+app.get("/api/cases/:id",async(req,res)=>{const c=cases.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:"Кейс не найден"});const imageIndex=await getSkinImageIndex();res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,theme:c.theme||"classic",count:c.items.length,image:imageIndex.get(c.cover)||"",items:c.items.map(([name,value,chance])=>({name,value,chance,image:imageIndex.get(name)||""}))});});
 const skinCatalog=[
  ["Glock-18 | Candy Apple",45,65,"Армейское","pistols/glock-18-candy-apple.png"],
  ["MP9 | Capillary",65,95,"Армейское","smgs/mp9-capillary.png"],
@@ -417,6 +436,27 @@ const skinCatalog=[
  ["★ Falchion Knife | Doppler",21000,31500,"Нож",""],
  ["★ Gut Knife | Doppler",16000,24000,"Нож",""],
  ["★ Flip Knife | Gamma Doppler",28000,42000,"Нож",""]
+
+ ,["AK-47 | Vulcan",22000,33000,"Тайное",""]
+ ,["AK-47 | Case Hardened",18000,27000,"Тайное",""]
+ ,["AK-47 | Wild Lotus",110000,165000,"Тайное",""]
+ ,["AK-47 | Gold Arabesque",68000,102000,"Тайное",""]
+ ,["AK-47 | X-Ray",42000,63000,"Тайное",""]
+ ,["AWP | Gungnir",95000,142500,"Тайное",""]
+ ,["AWP | Medusa",78000,117000,"Тайное",""]
+ ,["AWP | Fade",52000,78000,"Тайное",""]
+ ,["AWP | Lightning Strike",12500,18750,"Тайное",""]
+ ,["AWP | Oni Taiji",6500,9750,"Тайное",""]
+ ,["M4A4 | Howl",125000,187500,"Контрабанда",""]
+ ,["M4A4 | Poseidon",32000,48000,"Тайное",""]
+ ,["M4A1-S | Hot Rod",18000,27000,"Тайное",""]
+ ,["M4A1-S | Golden Coil",4200,6300,"Тайное",""]
+ ,["M4A1-S | Player Two",3800,5700,"Тайное",""]
+ ,["Glock-18 | Fade",16000,24000,"Тайное",""]
+ ,["P90 | Death by Kitty",4200,6300,"Тайное",""]
+ ,["★ Karambit | Gamma Doppler",92000,138000,"Нож",""]
+ ,["★ Butterfly Knife | Tiger Tooth",79000,118500,"Нож",""]
+ ,["★ M9 Bayonet | Lore",88000,132000,"Нож",""]
 ].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub,rarity,image:"https://images.konekocode.pl/images/"+image,steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
 let skinImageIndexPromise=null;
 async function getSkinImageIndex(){
