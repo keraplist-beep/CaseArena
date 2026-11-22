@@ -346,8 +346,8 @@ const cases=[
 ,{id:"gradient",name:"ГРАДИЕНТ",subtitle:"Переливы цвета и премиум-скины",price:799,theme:"gradient",cover:"AWP | Fade",items:[["Glock-18 | Vogue",180,45],["M4A1-S | Printstream",2350,32],["AWP | Fade",52000,17],["★ Stiletto Knife | Fade",31000,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
 ];
 cases.forEach(c=>{if(!c.cover)c.cover=c.items[c.items.length-1][0];});
-app.get("/api/cases",async(req,res)=>{const imageIndex=await getSkinImageIndex();res.json(cases.map(({id,name,subtitle,price,cover,theme,items})=>({id,name,subtitle,price,theme:theme||"classic",count:items.length,image:"/case-covers/"+id+".svg"})));});
-app.get("/api/cases/:id",async(req,res)=>{const c=cases.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:"Кейс не найден"});const imageIndex=await getSkinImageIndex();res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,theme:c.theme||"classic",count:c.items.length,image:"/case-covers/"+c.id+".svg",items:c.items.map(([name,value,chance])=>({name,value,chance,image:imageIndex.get(name)||""}))});});
+app.get("/api/cases",async(req,res)=>{const crateImages=await getCrateImageIndex();res.json(cases.map(({id,name,subtitle,price,theme,items})=>({id,name,subtitle,price,theme:theme||"classic",count:items.length,image:crateImages.get((caseImageSource[id]||"").toLowerCase())||""})));});
+app.get("/api/cases/:id",async(req,res)=>{const c=cases.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:"Кейс не найден"});const [crateImages,imageIndex]=await Promise.all([getCrateImageIndex(),getSkinImageIndex()]);res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,theme:c.theme||"classic",count:c.items.length,image:crateImages.get((caseImageSource[c.id]||"").toLowerCase())||"",items:c.items.map(([name,value,chance])=>({name,value,chance,image:imageIndex.get(name)||""}))});});
 const skinCatalog=[
  ["Glock-18 | Candy Apple",45,65,"Армейское","pistols/glock-18-candy-apple.png"],
  ["MP9 | Capillary",65,95,"Армейское","smgs/mp9-capillary.png"],
@@ -459,6 +459,19 @@ const skinCatalog=[
  ,["★ M9 Bayonet | Lore",88000,132000,"Нож",""]
 ].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub,rarity,image:"https://images.konekocode.pl/images/"+image,steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
 let skinImageIndexPromise=null;
+const caseImageSource={
+ starter:"Kilowatt Case",dust:"Prisma 2 Case",neon:"Dreams & Nightmares Case",inferno:"Revolution Case",sniper:"Snakebite Case",royal:"Operation Phoenix Weapon Case",knife:"Huntsman Weapon Case",elite:"Operation Breakout Weapon Case",viper:"Fracture Case",dragon:"Operation Bravo Case",doppler:"Chroma Case",gloves:"Glove Case",blackpearl:"Spectrum Case",
+ "ice-dragon":"Winter Offensive Weapon Case",cyberpunk:"CS20 Case","gold-hour":"Operation Wildfire Case",phoenix:"Operation Phoenix Weapon Case",arctic:"Operation Hydra Case",steel:"Spectrum 2 Case",blackout:"Danger Zone Case",glitch:"Shattered Web Case",emerald:"Gamma 2 Case",ruby:"Chroma 3 Case",sapphire:"Gamma Case","knife-rush":"Falchion Case","glove-boom":"Clutch Case","dragon-vault":"Operation Breakout Weapon Case","eco-round":"eSports 2013 Winter Case","starter-plus":"Recoil Case",midnight:"Horizon Case",gradient:"Prisma Case"
+};
+let crateImageIndexPromise=null;
+async function getCrateImageIndex(){
+ if(!crateImageIndexPromise){
+  crateImageIndexPromise=fetch("https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/crates.json",{signal:AbortSignal.timeout(25000)})
+   .then(async response=>{if(!response.ok)throw new Error("CS2 crate catalogue unavailable");const rows=await response.json();return new Map(rows.filter(item=>item.type==="Case"&&item.name&&item.image).map(item=>[item.name.toLowerCase(),item.image]));})
+   .catch(error=>{console.warn("CS2 crate images unavailable:",error.message);return new Map();});
+ }
+ return crateImageIndexPromise;
+}
 async function getSkinImageIndex(){
  if(!skinImageIndexPromise){
   skinImageIndexPromise=fetch("https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json",{signal:AbortSignal.timeout(12000)})
