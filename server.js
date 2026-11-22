@@ -534,7 +534,7 @@ const skinCatalog=[
  if(dragonLoreFallback){dragonLoreFallback.priceSource="Оценка рынка";dragonLoreFallback.priceUpdatedAt=Date.now()}
  const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
  for(const crate of cases)for(const item of crate.items)if(initialSkinPrices.has(item[0]))item[1]=initialSkinPrices.get(item[0]);
- const STEAM_PRICE_REFRESH_MS=6*60*60*1000;
+ const STEAM_PRICE_REFRESH_MS=60*60*1000;
  let steamPriceRefreshRunning=false,steamPriceLastUpdated=0;
  const parseSteamRubPrice=value=>{if(!value)return 0;const normalized=String(value).replace(/[^0-9,\.]/g,"").replace(/\.(?=.*\.)/g,"").replace(",",".");const n=Number(normalized);return Number.isFinite(n)&&n>0?n:0};
  async function refreshSteamPrices(){
