@@ -520,7 +520,7 @@ app.post("/api/battles/:id/join",requireAuth,(req,res)=>{
  catch(e){res.status(400).json({error:e.message});}
 });
 app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
- const users=db.prepare("SELECT id,username,role,balance,created_at,(SELECT COUNT(*) FROM inventory WHERE user_id=users.id) AS item_count,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users ORDER BY id DESC LIMIT 100").all();
+ const users=db.prepare("SELECT id,username,role,balance,created_at,(SELECT COUNT(*) FROM inventory WHERE user_id=users.id) AS item_count,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users ORDER BY id DESC LIMIT 250").all();
  const activity=db.prepare("SELECT activity.*,users.username FROM activity LEFT JOIN users ON users.id=activity.user_id ORDER BY activity.id DESC LIMIT 30").all();
  const totalUsers=db.prepare("SELECT COUNT(*) n FROM users").get().n;
  const totalItems=db.prepare("SELECT COUNT(*) n FROM inventory").get().n;
@@ -528,16 +528,33 @@ app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
  res.json({users,activity,totalUsers,totalItems,totalBalance});
 });
 app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
- const amount=Number(req.body.amount);
- if(!Number.isInteger(amount)||amount<0||amount>100000000) return res.status(400).json({error:"Некорректный баланс"});
- db.prepare("UPDATE users SET balance=? WHERE id=?").run(amount,Number(req.params.id));
- res.json({ok:true});
+ const id=Number(req.params.id), amount=Number(req.body.amount), mode=req.body.mode==="add"?"add":"set";
+ if(!Number.isInteger(id)||id<1||!Number.isInteger(amount)||amount<(mode==="add"?1:0)||amount>100000000) return res.status(400).json({error:"Проверь сумму"});
+ const target=db.prepare("SELECT id,username,role,balance FROM users WHERE id=?").get(id);
+ if(!target)return res.status(404).json({error:"Игрок не найден"});
+ if(target.role==="owner")return res.status(403).json({error:"Баланс владельца защищён"});
+ const nextBalance=mode==="add"?Number(target.balance)+amount:amount;
+ if(nextBalance>100000000)return res.status(400).json({error:"Слишком большой баланс"});
+ const tx=db.transaction(()=>{
+  db.prepare("UPDATE users SET balance=? WHERE id=?").run(nextBalance,id);
+  log(current(req).id,(mode==="add"?"Выдано ":"Установлен баланс ")+amount+" CR игроку "+target.username);
+ });
+ tx();
+ res.json({ok:true,balance:nextBalance});
 });
 app.post("/api/owner/users/:id/role",requireAuth,requireOwner,(req,res)=>{
- const role=req.body.role;
- if(!["user","admin"].includes(role)) return res.status(400).json({error:"Можно назначить только user или admin"});
- db.prepare("UPDATE users SET role=? WHERE id=? AND role!='owner'").run(role,Number(req.params.id));
- res.json({ok:true});
+ const id=Number(req.params.id), role=String(req.body.role||"");
+ if(!Number.isInteger(id)||id<1)return res.status(400).json({error:"Некорректный игрок"});
+ if(!["user","admin"].includes(role)) return res.status(400).json({error:"Выбери роль игрока или администратора"});
+ const target=db.prepare("SELECT id,username,role FROM users WHERE id=?").get(id);
+ if(!target)return res.status(404).json({error:"Игрок не найден"});
+ if(target.role==="owner")return res.status(403).json({error:"Нельзя менять роль владельца"});
+ const tx=db.transaction(()=>{
+  db.prepare("UPDATE users SET role=? WHERE id=?").run(role,id);
+  log(current(req).id,"Роль игрока "+target.username+" изменена на "+role);
+ });
+ tx();
+ res.json({ok:true,role});
 });
 app.delete("/api/owner/users/:id",requireAuth,requireOwner,(req,res)=>{
  const id=Number(req.params.id);
