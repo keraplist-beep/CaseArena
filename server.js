@@ -12,7 +12,7 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const app = express();
 const localDb = new Database("casearena.db");
 localDb.pragma("journal_mode = WAL");
-localDb.exec(\`
+localDb.exec(`
 CREATE TABLE IF NOT EXISTS users (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  username TEXT UNIQUE NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS activity (
  message TEXT NOT NULL,
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-\`);
+`);
 const localUserColumns = localDb.prepare("PRAGMA table_info(users)").all().map(c => c.name);
 if (!localUserColumns.includes("google_sub")) localDb.exec("ALTER TABLE users ADD COLUMN google_sub TEXT");
 
