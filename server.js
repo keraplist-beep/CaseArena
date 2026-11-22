@@ -180,10 +180,10 @@ req.session.save(err => {
 app.post("/api/logout",(req,res)=>req.session.destroy(()=>res.json({ok:true})));
 
 const cases=[
-  {id:"starter",name:"STARTER",price:50,items:[["Glock-18 | Candy",35],["MP9 | Slide",65],["P250 | Steel",90]]},
-  {id:"neon",name:"NEON",price:180,items:[["USP-S | Neon",100],["AK-47 | Neon Rider",260],["AWP | Electric",420]]},
-  {id:"dragon",name:"DRAGON",price:500,items:[["M4A4 | Dragon",280],["AWP | Red Dragon",700],["AK-47 | Fireborn",1200]]},
-  {id:"royal",name:"ROYAL",price:1200,items:[["★ Knife | Royal",800],["★ Gloves | Crown",1600],["★ Karambit | Gold",3500]]}
+  {id:"starter",name:"STARTER",price:50,items:[["Glock-18 | Candy Apple",35],["MP9 | Slide",65],["P250 | Steel Disruption",90]]},
+  {id:"neon",name:"NEON",price:180,items:[["USP-S | Neo-Noir",100],["AK-47 | Neon Rider",260],["AWP | Electric Hive",420]]},
+  {id:"dragon",name:"DRAGON",price:500,items:[["M4A4 | 龍王 (Dragon King)",280],["AWP | Redline",700],["AK-47 | Bloodsport",1200]]},
+  {id:"royal",name:"ROYAL",price:1200,items:[["★ Huntsman Knife | Doppler",800],["★ Sport Gloves | Vice",1600],["★ Karambit | Doppler",3500]]}
 ];
 app.get("/api/cases",(req,res)=>res.json(cases.map(({id,name,price})=>({id,name,price}))));
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
