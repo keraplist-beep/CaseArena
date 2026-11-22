@@ -540,6 +540,20 @@ const skinCatalog=[
   ["M4A4 | Poseidon",32000,"Тайное"],["M4A1-S | Hot Rod",18000,"Тайное"],["Glock-18 | Fade",16000,"Тайное"]
  ].filter(([name])=>!skinCatalog.some(s=>s.name===name)).map(([name,value,rarity])=>({name,value,steamRub:value,rarity,marketWear:"Field-Tested",image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)})));
  skinCatalog.push(...[
+  ["AK-47 | Hydroponic",55000,"Тайное"],["AK-47 | Panthera onca",45000,"Тайное"],
+  ["AWP | The Prince",65000,"Тайное"],["AWP | Desert Hydra",70000,"Тайное"],["AWP | Pink DDPAT",16000,"Тайное"],
+  ["M4A4 | Eye of Horus",25000,"Тайное"],["M4A1-S | Welcome to the Jungle",50000,"Тайное"],["M4A1-S | Knight",30000,"Тайное"],
+  ["Desert Eagle | Hand Cannon",15000,"Тайное"],["Desert Eagle | Golden Koi",9000,"Тайное"],
+  ["★ Sport Gloves | Superconductor",85000,"Перчатки"],["★ Sport Gloves | Amphibious",48000,"Перчатки"],
+  ["★ Specialist Gloves | Emerald Web",45000,"Перчатки"],["★ Specialist Gloves | Marble Fade",28000,"Перчатки"],
+  ["★ Driver Gloves | Snow Leopard",30000,"Перчатки"],["★ Moto Gloves | Spearmint",80000,"Перчатки"],
+  ["★ Moto Gloves | POW!",25000,"Перчатки"],["★ Hand Wraps | Cobalt Skulls",30000,"Перчатки"],
+  ["★ Karambit | Blue Steel",42000,"Нож"],["★ Karambit | Case Hardened",80000,"Нож"],
+  ["★ Butterfly Knife | Blue Steel",45000,"Нож"],["★ Butterfly Knife | Case Hardened",70000,"Нож"],
+  ["★ M9 Bayonet | Black Laminate",35000,"Нож"],["★ M9 Bayonet | Blue Steel",40000,"Нож"],
+  ["★ Talon Knife | Marble Fade",48000,"Нож"],["★ Skeleton Knife | Slaughter",38000,"Нож"]
+ ].filter(([name])=>!skinCatalog.some(s=>s.name===name)).map(([name,value,rarity])=>({name,value,steamRub:value,rarity,marketWear:"Field-Tested",image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)})));
+ skinCatalog.push(...[
   ["AK-47 | Inheritance",4200,"Тайное"],["AWP | Chromatic Aberration",950,"Тайное"],
   ["M4A4 | Temukau",1800,"Тайное"],["USP-S | Printstream",1250,"Тайное"],
   ["Desert Eagle | Printstream",2100,"Тайное"],["AK-47 | Head Shot",1150,"Засекреченное"],
