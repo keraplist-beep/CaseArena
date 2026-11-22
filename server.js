@@ -313,16 +313,21 @@ res.json({user:userView(u)});
 app.post("/api/logout",(req,res)=>{req.session=null;res.json({ok:true});});
 
 const cases=[
- {id:"starter",name:"РАЗМИНКА",subtitle:"Начни собирать инвентарь",price:79,items:[["Glock-18 | Candy Apple",45],["MP9 | Capillary",65],["P250 | Sand Dune",85],["USP-S | Ticket to Hell",120],["AK-47 | Elite Build",190]]},
- {id:"dust",name:"DUST II",subtitle:"Классика легендарной карты",price:179,items:[["Desert Eagle | Bronze Deco",95],["AWP | Atheris",220],["AK-47 | Slate",360],["M4A4 | Desolate Space",590],["USP-S | Neo-Noir",880]]},
- {id:"neon",name:"НЕОНОВЫЙ",subtitle:"Яркие цвета и контраст",price:349,items:[["Glock-18 | Vogue",180],["MP9 | Food Chain",290],["AK-47 | Neon Rider",980],["AWP | Neo-Noir",1450],["M4A1-S | Printstream",2350]]},
- {id:"inferno",name:"INFERNO",subtitle:"Огненная коллекция",price:599,items:[["AK-47 | Redline",720],["AWP | Wildfire",1250],["M4A4 | The Emperor",1750],["Desert Eagle | Blaze",4200],["AK-47 | Bloodsport",5100]]},
- {id:"sniper",name:"СНАЙПЕРСКИЙ",subtitle:"Только точные попадания",price:899,items:[["SSG 08 | Dragonfire",420],["AWP | Asiimov",1850],["AWP | Hyper Beast",2200],["AWP | Containment Breach",3900],["AWP | Dragon Lore",25000]]},
- {id:"royal",name:"КОРОЛЕВСКИЙ",subtitle:"Редкие и дорогие предметы",price:1499,items:[["M4A1-S | Printstream",2350],["AK-47 | Fire Serpent",9800],["★ Huntsman Knife | Doppler",12500],["★ Karambit | Doppler",38500],["★ Butterfly Knife | Fade",62000]]},
- {id:"knife",name:"ОХОТА ЗА НОЖОМ",subtitle:"Кейс для любителей ножей",price:2499,items:[["★ Navaja Knife | Fade",7500],["★ Shadow Daggers | Doppler",9800],["★ Huntsman Knife | Doppler",12500],["★ Karambit | Fade",55000],["★ Butterfly Knife | Fade",62000]]},
- {id:"elite",name:"ЭЛИТА",subtitle:"Максимальный риск и награда",price:4999,items:[["★ Bayonet | Doppler",32000],["★ M9 Bayonet | Crimson Web",41000],["★ Karambit | Doppler",38500],["★ Butterfly Knife | Fade",62000],["★ Karambit | Sapphire",115000]]}
+ {id:"starter",name:"РАЗМИНКА",subtitle:"Начни собирать инвентарь",price:79,items:[["Glock-18 | Candy Apple",45],["MP9 | Capillary",65,68],["P250 | Sand Dune",85,23],["USP-S | Ticket to Hell",120,7],["AK-47 | Elite Build",190]]},
+ {id:"dust",name:"DUST II",subtitle:"Классика легендарной карты",price:179,items:[["Desert Eagle | Bronze Deco",95],["AWP | Atheris",220,68],["AK-47 | Slate",360,23],["M4A4 | Desolate Space",590,7],["USP-S | Neo-Noir",880]]},
+ {id:"neon",name:"НЕОНОВЫЙ",subtitle:"Яркие цвета и контраст",price:349,items:[["Glock-18 | Vogue",180],["MP9 | Food Chain",290,68],["AK-47 | Neon Rider",980,23],["AWP | Neo-Noir",1450,7],["M4A1-S | Printstream",2350]]},
+ {id:"inferno",name:"INFERNO",subtitle:"Огненная коллекция",price:599,items:[["AK-47 | Redline",720],["AWP | Wildfire",1250,68],["M4A4 | The Emperor",1750,23],["Desert Eagle | Blaze",4200,7],["AK-47 | Bloodsport",5100]]},
+ {id:"sniper",name:"СНАЙПЕРСКИЙ",subtitle:"Только точные попадания",price:899,items:[["SSG 08 | Dragonfire",420],["AWP | Asiimov",1850,68],["AWP | Hyper Beast",2200,23],["AWP | Containment Breach",3900,7],["AWP | Dragon Lore",25000]]},
+ {id:"royal",name:"КОРОЛЕВСКИЙ",subtitle:"Редкие и дорогие предметы",price:1499,items:[["M4A1-S | Printstream",2350],["AK-47 | Fire Serpent",9800,68],["★ Huntsman Knife | Doppler",12500,23],["★ Karambit | Doppler",38500,7],["★ Butterfly Knife | Fade",62000]]},
+ {id:"knife",name:"ОХОТА ЗА НОЖОМ",subtitle:"Кейс для любителей ножей",price:2499,items:[["★ Navaja Knife | Fade",7500],["★ Shadow Daggers | Doppler",9800,68],["★ Huntsman Knife | Doppler",12500,23],["★ Karambit | Fade",55000,7],["★ Butterfly Knife | Fade",62000]]},
+ {id:"elite",name:"ЭЛИТА",subtitle:"Максимальный риск и награда",price:4999,items:[["★ Bayonet | Doppler",32000],["★ M9 Bayonet | Crimson Web",41000,68],["★ Karambit | Doppler",38500,23],["★ Butterfly Knife | Fade",62000,7],["★ Karambit | Sapphire",115000]]}
+ {id:"viper",name:"VIPER",subtitle:"Ядовитая подборка редких скинов",price:799,cover:"AK-47 | The Empress",items:[["AWP | Fever Dream",340,58],["AK-47 | The Empress",6900,29],["★ Bowie Knife | Doppler",17500,10],["★ Talon Knife | Fade",42000,2.5],["★ Butterfly Knife | Fade",62000,0.5]]},
+ {id:"dragon",name:"DRAGON LORE",subtitle:"Охота за легендарным AWP",price:1999,cover:"AWP | Dragon Lore",items:[["AWP | Asiimov",1850,60],["AWP | Hyper Beast",2200,27],["AWP | Containment Breach",3900,10],["AWP | Dragon Lore",25000,2.7],["★ Karambit | Sapphire",115000,0.3]]},
+ {id:"doppler",name:"DOPPLER",subtitle:"Ножи с редкими фазами",price:2999,cover:"★ Karambit | Doppler",items:[["★ Navaja Knife | Fade",7500,55],["★ Huntsman Knife | Doppler",12500,29],["★ Flip Knife | Gamma Doppler",28000,12],["★ Karambit | Doppler",38500,3.5],["★ Karambit | Sapphire",115000,0.5]]},
+ {id:"gloves",name:"GLOVE CASE",subtitle:"Перчатки и редкие ножи",price:3499,cover:"★ Sport Gloves | Vice",items:[["★ Driver Gloves | Crimson Weave",14500,57],["★ Specialist Gloves | Fade",22000,28],["★ Sport Gloves | Vice",48000,11],["★ Butterfly Knife | Fade",62000,3.5],["★ Karambit | Sapphire",115000,0.5]]},
+ {id:"blackpearl",name:"BLACK PEARL",subtitle:"Максимальная редкость и риск",price:5999,cover:"★ Butterfly Knife | Doppler",items:[["★ Bowie Knife | Doppler",17500,58],["★ Skeleton Knife | Slaughter",33000,27],["★ M9 Bayonet | Crimson Web",41000,11],["★ Butterfly Knife | Doppler",85000,3.5],["★ Karambit | Sapphire",115000,0.5]]}
 ];
-app.get("/api/cases",(req,res)=>res.json(cases.map(({id,name,subtitle,price})=>({id,name,subtitle,price}))));
+app.get("/api/cases",async(req,res)=>{const imageIndex=await getSkinImageIndex();res.json(cases.map(({id,name,subtitle,price,cover})=>({id,name,subtitle,price,image:imageIndex.get(cover)||""})));});
 const skinCatalog=[
  ["Glock-18 | Candy Apple",45,65,"Армейское","pistols/glock-18-candy-apple.png"],
  ["MP9 | Capillary",65,95,"Армейское","smgs/mp9-capillary.png"],
@@ -389,7 +394,27 @@ const skinCatalog=[
  ["M4A4 | Neo-Noir",2250,3375,"Тайное",""],
  ["USP-S | Kill Confirmed",3600,5400,"Тайное",""],
  ["Desert Eagle | Kumicho Dragon",980,1470,"Засекреченное",""],
- ["AK-47 | Jaguar",1850,2775,"Тайное",""]
+ ["AK-47 | Jaguar",1850,2775,"Тайное",""],
+ ["★ Butterfly Knife | Doppler",85000,127500,"Нож",""],
+ ["★ Sport Gloves | Vice",48000,72000,"Перчатки",""],
+ ["★ Driver Gloves | Crimson Weave",14500,21750,"Перчатки",""],
+ ["★ Specialist Gloves | Fade",22000,33000,"Перчатки",""],
+ ["★ Talon Knife | Doppler",36500,54750,"Нож",""],
+ ["★ Talon Knife | Marble Fade",39000,58500,"Нож",""],
+ ["★ Butterfly Knife | Marble Fade",72000,108000,"Нож",""],
+ ["★ M9 Bayonet | Doppler",68000,102000,"Нож",""],
+ ["★ M9 Bayonet | Fade",74000,111000,"Нож",""],
+ ["★ Karambit | Tiger Tooth",52000,78000,"Нож",""],
+ ["★ Karambit | Marble Fade",69000,103500,"Нож",""],
+ ["★ Butterfly Knife | Crimson Web",54000,81000,"Нож",""],
+ ["★ Skeleton Knife | Fade",46000,69000,"Нож",""],
+ ["★ Nomad Knife | Fade",26000,39000,"Нож",""],
+ ["★ Classic Knife | Fade",29000,43500,"Нож",""],
+ ["★ Stiletto Knife | Fade",31000,46500,"Нож",""],
+ ["★ Ursus Knife | Doppler",23500,35250,"Нож",""],
+ ["★ Bowie Knife | Doppler",17500,26250,"Нож",""],
+ ["★ Falchion Knife | Doppler",21000,31500,"Нож",""],
+ ["★ Gut Knife | Doppler",16000,24000,"Нож",""]
 ].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub,rarity,image:"https://images.konekocode.pl/images/"+image,steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
 let skinImageIndexPromise=null;
 async function getSkinImageIndex(){
@@ -410,7 +435,7 @@ app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
   const tx=db.transaction(()=>{
     const fresh=db.prepare("SELECT balance FROM users WHERE id=?").get(u.id);
     if(fresh.balance<c.price) throw new Error("Недостаточно средств");
-    const [name,value]=c.items[Math.floor(Math.random()*c.items.length)];
+    const totalWeight=c.items.reduce((sum,item)=>sum+(Number(item[2])||0),0); let roll=Math.random()*totalWeight; let selected=c.items[c.items.length-1]; for(const item of c.items){roll-=Number(item[2])||0;if(roll<=0){selected=item;break;}} const [name,value]=selected;
     db.prepare("UPDATE users SET balance=balance-? WHERE id=?").run(c.price,u.id);
     db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,name,value);
     log(u.id,`Открыт кейс ${c.name}: ${name}`);
