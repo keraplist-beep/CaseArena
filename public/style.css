@@ -535,3 +535,31 @@ body{padding-bottom:100px}
 .case-drop-card small{color:var(--gold);font-weight:800}
 .case-drop-card em{font-style:normal;color:#9fb1c7;font-size:9px}
 @media(max-width:520px){.case-visual.case-visual-photo{height:140px}.case-cover-image{height:116px}.case-art-mark{font-size:15px;left:10px;right:8px}.case-art-sub{font-size:6px;left:9px}.case-detail-hero{height:150px}.case-detail-art{font-size:17px}.case-detail-items{grid-template-columns:repeat(2,minmax(0,1fr))}.case-drop-card{padding:8px 5px}}
+
+/* CaseArena upgrader redesign */
+.upgrade-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+.upgrader-center{padding:20px;border:1px solid #35516d;border-radius:16px;background:radial-gradient(ellipse at 50% 0%,#24455a 0%,#122237 52%,#0d1827 100%);box-shadow:inset 0 1px #ffffff0c,0 14px 40px #0004;min-width:0}
+.upgrader-title{text-align:center;margin-bottom:18px}.upgrader-title span{display:block;font:900 22px Orbitron;letter-spacing:3px;color:#f0f7ff}.upgrader-title small{display:block;margin-top:5px;color:#7f9bb7;font-size:9px;letter-spacing:2px;font-weight:900}
+.upgrader-comparison{display:grid;grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr);gap:8px;align-items:center}
+.upgrader-item{min-width:0;text-align:center;padding:10px 6px;border:1px solid #2e4964;border-radius:12px;background:#091522a8}
+.upgrader-art{height:116px;display:flex;align-items:center;justify-content:center;margin-bottom:9px;border-radius:9px;background:radial-gradient(ellipse,#29445f,#101b2b 70%);overflow:hidden}
+.upgrader-art .skin-art{width:100%;height:100%;background:transparent}.upgrader-art .skin-art img{height:100%;max-height:110px;object-fit:contain}
+.upgrader-art>span{font:900 32px Orbitron;color:#617b97}
+.upgrader-item>b{display:block;min-height:32px;font-size:10px;line-height:1.4;overflow-wrap:anywhere}
+.upgrader-item>small{display:block;margin-top:6px;color:#a4bad0;font-size:11px;font-weight:800}
+.upgrader-arrow{text-align:center;color:#55ddcf}.upgrader-arrow span{font-size:28px}.upgrader-arrow small{display:block;font-size:8px;letter-spacing:1px;color:#7e9ab4}
+.upgrader-chance-head{display:flex;justify-content:space-between;align-items:center;margin:20px 0 9px;color:#a9bfd4;font-size:10px;font-weight:900;letter-spacing:1px}
+.upgrader-chance-head b{font:900 22px Orbitron;color:#54e0ce}
+.upgrader-chance-track{height:12px;border-radius:99px;background:#b84e5d;overflow:hidden;box-shadow:inset 0 1px 4px #0008}
+#upgrade-chance-fill{width:0;height:100%;border-radius:99px;background:linear-gradient(90deg,#20a88e,#58e5c5);box-shadow:0 0 15px #43d6b977;transition:width .6s ease}
+.upgrader-odds{display:flex;justify-content:space-between;margin-top:8px;color:#a9bfd4;font-size:10px}.upgrader-odds span:first-child b{color:#55e0c4}.upgrader-odds span:last-child b{color:#ff8997}
+.upgrade-multipliers{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:17px 0}
+.upgrade-multipliers button{padding:9px 5px;border:1px solid #35516d;border-radius:8px;background:#152b40;color:#dcecff;font-weight:900;cursor:pointer}
+.upgrade-multipliers button:hover{border-color:#4de1d1;color:#4de1d1}
+.upgrade-spin-status{text-align:center;color:#8fa9c2;font-size:10px;margin:10px 0}
+.upgrade-action{min-height:48px;font-weight:900;letter-spacing:1px}
+.upgrader-center .chance-preview{display:none}
+.staff-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}.staff-toolbar>div{display:flex;flex-direction:column;gap:4px}.staff-toolbar input{max-width:260px}
+.staff-list{display:grid;gap:9px}.staff-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #2a435d;border-radius:10px;background:#101e2e}.staff-row>div:first-child{display:flex;flex-direction:column;gap:5px;min-width:0}.staff-row small{font-size:10px;color:#91a9c1}.staff-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.staff-actions .btn{padding:7px 11px;font-size:10px}.owner-shield{font-size:10px;color:#f4d17f;font-weight:900;white-space:nowrap}
+@media(max-width:850px){.upgrade-layout{grid-template-columns:1fr}.upgrader-center{order:0}.upgrade-select-panel{min-width:0}.pick-grid{max-height:290px}}
+@media(max-width:560px){.upgrader-center{padding:14px}.upgrader-art{height:90px}.upgrader-item>b{font-size:9px}.staff-toolbar{align-items:stretch;flex-direction:column}.staff-toolbar input{max-width:none}.staff-row{align-items:flex-start;flex-direction:column}.staff-actions{width:100%}}
