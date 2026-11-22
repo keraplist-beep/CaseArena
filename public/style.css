@@ -192,3 +192,53 @@ footer{max-width:1320px;margin:0 auto;background:transparent;border-top:1px soli
  .user-row{grid-template-columns:1fr 90px}
  footer{padding:28px 20px}
 }
+
+
+/* CaseBattle-like case opening, upgrade picker and profile access */
+#account .profile-shortcut{display:flex;align-items:center;gap:9px;text-align:left;border:1px solid #31506a;background:#12243a;color:#eef8ff;border-radius:10px;padding:6px 11px;cursor:pointer}
+.mini-avatar{width:34px;height:34px;border-radius:9px;background:linear-gradient(145deg,#4de1d1,#1d827e);display:grid;place-items:center;color:#062126;font-weight:900}
+.account-name{font-size:11px;font-weight:800}.account-name small{display:block;color:#4de1d1;font-size:10px;margin-top:2px}
+.case-card{padding:0;text-align:left}
+.case-visual{height:160px;position:relative;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 55%,#286a7040,transparent 65%),linear-gradient(145deg,#1d344c,#0d1828);overflow:hidden}
+.case-glow{position:absolute;width:125px;height:125px;border-radius:50%;background:#4de1d11a;filter:blur(18px)}
+.case-box-art{position:relative;font-size:92px;color:#8ff8e9;text-shadow:0 8px 30px #4de1d166;transform:rotate(-9deg);transition:.3s}
+.case-card:hover .case-box-art{transform:rotate(0) scale(1.12)}
+.case-index{position:absolute;left:13px;top:12px;font:800 9px Orbitron;color:#7e9ab5;letter-spacing:2px}
+.case-info{padding:15px 16px 17px}
+.case-info h3{font-size:13px;letter-spacing:1px;margin:0}
+.case-subtitle{color:#8198b2;font-size:10px;margin:6px 0 14px}
+.case-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.case-bottom .price{margin:0;font-size:12px}.case-bottom .btn{padding:10px 13px;font-size:10px}
+.roulette-wrap{position:relative;margin:22px 0 12px;padding:18px 0;border:1px solid #385574;border-radius:12px;background:#091421;overflow:hidden}
+#roulette-window{width:100%;overflow:hidden}
+.roulette-pointer{position:absolute;z-index:2;left:50%;top:0;bottom:0;width:3px;background:#4de1d1;box-shadow:0 0 15px #4de1d1;transform:translateX(-50%)}
+.roulette-track{display:flex;gap:10px;transform:translateX(0);transition:transform 4s cubic-bezier(.08,.72,.12,1);width:max-content}
+.roulette-item{width:154px;min-height:145px;flex:none;border:1px solid #293e56;border-radius:9px;background:linear-gradient(145deg,#1c3047,#101a29);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px;text-align:center}
+.roulette-item-art{font-size:36px;color:#65dfd3}.roulette-item b{font-size:10px}.roulette-item small{font-size:9px;color:#91a4bc}
+.roulette-winner{border-color:#f5c45e;box-shadow:inset 0 0 25px #f5c45e20}
+.roulette-caption{text-align:center;color:#8ea3ba;font-size:11px}
+.win-result{text-align:center;padding:16px 8px}.win-star{font-size:58px;color:#f7c65e;text-shadow:0 0 35px #f7c65e66}.win-result h3{font-size:17px}.win-result strong{color:#4de1d1;font:800 19px Orbitron}
+.upgrade-machine{padding:22px}
+.upgrade-picks{display:grid;grid-template-columns:1fr 150px 1fr;gap:18px;align-items:center}
+.pick-title{font:800 10px Orbitron;letter-spacing:2px;color:#91a9c2;margin-bottom:12px}
+.pick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.pick-card{min-width:0;min-height:112px;padding:10px 8px;border:1px solid #304762;border-radius:9px;background:linear-gradient(145deg,#1b3048,#101b2a);color:#edf7ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;cursor:pointer;transition:.18s}
+.pick-card:hover,.pick-card.chosen{border-color:#4de1d1;box-shadow:0 0 0 1px #4de1d155,inset 0 0 22px #4de1d111;transform:translateY(-2px)}
+.pick-art{font-size:28px;color:#72e7d9;text-shadow:0 0 18px #4de1d155}
+.pick-card b{font-size:9px;line-height:1.35;overflow-wrap:anywhere}
+.pick-card small{font-size:9px;color:#ffcf75}
+.upgrade-center{display:flex;flex-direction:column;align-items:center;gap:16px}
+.upgrade-wheel{width:118px;height:118px;border-radius:50%;border:5px solid #2e5965;box-shadow:0 0 0 7px #4de1d10d,0 0 35px #4de1d122,inset 0 0 28px #4de1d11c;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#4de1d1;font:800 23px Orbitron}
+.upgrade-wheel small{font:800 8px Manrope;letter-spacing:2px;color:#92a8bd;margin-top:4px}
+.upgrade-arrow{font-size:28px;color:#4de1d1}
+.upgrade-machine .chance-preview{margin:20px 0 14px}
+.upgrade-machine .upgrade-action{width:100%;padding:15px;font:800 12px Orbitron;letter-spacing:1.5px}
+.profile-edit-shortcut{margin-top:18px}
+@media(max-width:760px){
+ .upgrade-picks{grid-template-columns:1fr;gap:14px}
+ .upgrade-center{flex-direction:row;justify-content:center}
+ .upgrade-wheel{width:88px;height:88px;font-size:17px}
+ .pick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .case-visual{height:125px}.case-box-art{font-size:70px}
+ #account .profile-shortcut{padding:5px 7px}.account-name{max-width:90px;overflow:hidden}
+}
