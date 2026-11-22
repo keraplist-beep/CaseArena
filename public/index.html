@@ -13,5 +13,16 @@
 <section id="leaders" class="section"><div class="section-head"><div><p class="eyebrow">ЛУЧШИЕ ИЗ ЛУЧШИХ</p><h2>Таблица лидеров</h2></div></div><div id="leader-list" class="panel"></div></section>
 <section id="owner" class="section hidden"><div class="section-head"><div><p class="eyebrow">CONTROL ROOM</p><h2>Панель владельца <span class="owner-tag">OWNER</span></h2></div></div><div id="owner-content" class="panel"></div></section>
 </main><footer><a class="logo" href="#"><span>CASE</span>ARENA</a><p>Демо-платформа. Баланс и предметы виртуальные, реальные деньги и выплаты не поддерживаются.</p></footer>
+<nav class="bottom-nav" aria-label="Основная навигация">
+<a href="#cases" class="active"><span class="bottom-nav-icon">▦</span><span>Кейсы</span></a>
+<a href="#upgrade"><span class="bottom-nav-icon">↗</span><span>Апгрейд</span></a>
+<a href="#battles"><span class="bottom-nav-icon">⚔</span><span>Баттлы</span></a>
+<a href="#contracts"><span class="bottom-nav-icon">⇄</span><span>Контракты</span></a>
+<a href="#profile"><span class="bottom-nav-icon">◉</span><span>Профиль</span></a>
+</nav>
 <div id="modal" class="modal hidden"><div class="modal-box"><button class="close" onclick="closeModal()">×</button><h2 id="modal-title">Аккаунт</h2><div id="modal-body"></div></div></div><div id="toast" class="toast"></div>
-<script src="/app.js"></script></body></html>
+<script src="/app.js"></script>
+<script>
+(()=>{const links=[...document.querySelectorAll('.bottom-nav a')];function mark(){const hash=location.hash||'#cases';links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')===hash))}links.forEach(a=>a.addEventListener('click',()=>{links.forEach(x=>x.classList.remove('active'));a.classList.add('active')}));window.addEventListener('hashchange',mark);mark()})();
+</script>
+</body></html>
