@@ -346,8 +346,8 @@ const cases=[
 ,{id:"gradient",name:"ГРАДИЕНТ",subtitle:"Переливы цвета и премиум-скины",price:799,theme:"gradient",cover:"AWP | Fade",items:[["Glock-18 | Vogue",180,45],["M4A1-S | Printstream",2350,32],["AWP | Fade",52000,17],["★ Stiletto Knife | Fade",31000,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
 ];
 cases.forEach(c=>{if(!c.cover)c.cover=c.items[c.items.length-1][0];});
-app.get("/api/cases",async(req,res)=>{const imageIndex=await getSkinImageIndex();res.json(cases.map(({id,name,subtitle,price,cover,theme,items})=>({id,name,subtitle,price,theme:theme||"classic",count:items.length,image:imageIndex.get(cover)||""})));});
-app.get("/api/cases/:id",async(req,res)=>{const c=cases.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:"Кейс не найден"});const imageIndex=await getSkinImageIndex();res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,theme:c.theme||"classic",count:c.items.length,image:imageIndex.get(c.cover)||"",items:c.items.map(([name,value,chance])=>({name,value,chance,image:imageIndex.get(name)||""}))});});
+app.get("/api/cases",async(req,res)=>{const imageIndex=await getSkinImageIndex();res.json(cases.map(({id,name,subtitle,price,cover,theme,items})=>({id,name,subtitle,price,theme:theme||"classic",count:items.length,image:"/case-covers/"+id+".svg"})));});
+app.get("/api/cases/:id",async(req,res)=>{const c=cases.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:"Кейс не найден"});const imageIndex=await getSkinImageIndex();res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,theme:c.theme||"classic",count:c.items.length,image:"/case-covers/"+c.id+".svg",items:c.items.map(([name,value,chance])=>({name,value,chance,image:imageIndex.get(name)||""}))});});
 const skinCatalog=[
  ["Glock-18 | Candy Apple",45,65,"Армейское","pistols/glock-18-candy-apple.png"],
  ["MP9 | Capillary",65,95,"Армейское","smgs/mp9-capillary.png"],
@@ -560,20 +560,24 @@ app.post("/api/battles/:id/join",requireAuth,(req,res)=>{
  catch(e){res.status(400).json({error:e.message});}
 });
 app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
- const users=db.prepare("SELECT id,username,role,balance,created_at,(SELECT COUNT(*) FROM inventory WHERE user_id=users.id) AS item_count,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users ORDER BY id DESC LIMIT 250").all();
+ const search=String(req.query.search||"").trim().slice(0,40).replace(/[%_]/g,"");
+ const userFields="SELECT id,username,role,balance,created_at,(SELECT COUNT(*) FROM inventory WHERE user_id=users.id) AS item_count,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users";
+ const users=search
+  ? db.prepare(userFields+" WHERE username LIKE ? COLLATE NOCASE ORDER BY id DESC LIMIT 100").all("%"+search+"%")
+  : db.prepare(userFields+" ORDER BY id DESC LIMIT 250").all();
  const activity=db.prepare("SELECT activity.*,users.username FROM activity LEFT JOIN users ON users.id=activity.user_id ORDER BY activity.id DESC LIMIT 30").all();
  const totalUsers=db.prepare("SELECT COUNT(*) n FROM users").get().n;
  const totalItems=db.prepare("SELECT COUNT(*) n FROM inventory").get().n;
  const totalBalance=db.prepare("SELECT COALESCE(SUM(balance),0) n FROM users").get().n;
  const totalInventoryValue=db.prepare("SELECT COALESCE(SUM(item_value),0) n FROM inventory").get().n;
- res.json({users,activity,totalUsers,totalItems,totalBalance,totalInventoryValue});
+ res.json({users,activity,totalUsers,totalItems,totalBalance,totalInventoryValue,search});
 });
 app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
  const id=Number(req.params.id), amount=Number(req.body.amount), mode=req.body.mode==="add"?"add":"set";
  if(!Number.isInteger(id)||id<1||!Number.isInteger(amount)||amount<(mode==="add"?1:0)||amount>100000000) return res.status(400).json({error:"Проверь сумму"});
  const target=db.prepare("SELECT id,username,role,balance FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(target.role==="owner")return res.status(403).json({error:"Баланс владельца защищён"});
+ if(target.role==="owner"&&target.id!==current(req).id)return res.status(403).json({error:"Нельзя менять баланс другого владельца"});
  const nextBalance=mode==="add"?Number(target.balance)+amount:amount;
  if(nextBalance>100000000)return res.status(400).json({error:"Слишком большой баланс"});
  const tx=db.transaction(()=>{
