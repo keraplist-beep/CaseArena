@@ -410,3 +410,10 @@ body{padding-bottom:100px}
 .bottom-nav a{font-size:9px}
 .bottom-nav a[data-nav="owner"]{color:#f5b942}
 @media(max-width:430px){.bottom-nav{grid-template-columns:repeat(6,minmax(0,1fr))}.bottom-nav a{font-size:8px;gap:3px}}
+
+.owner-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.owner-toolbar-actions{display:flex;align-items:center;gap:8px}
+.owner-toolbar-actions input{max-width:240px}
+.bottom-nav.owner-mode{grid-template-columns:repeat(7,minmax(0,1fr))}
+@media(max-width:700px){.owner-stats{grid-template-columns:1fr 1fr}.owner-stat:last-child{grid-column:auto}}
+@media(max-width:430px){.bottom-nav.owner-mode{grid-template-columns:repeat(7,minmax(0,1fr))}.bottom-nav.owner-mode a{font-size:7px}}
