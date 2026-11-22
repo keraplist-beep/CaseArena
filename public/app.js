@@ -61,6 +61,7 @@ function updateUpgradePreview(){
  if(fromPrice)fromPrice.textContent=item?money(item.item_value):"Выбери слева";
  if(toPrice)toPrice.textContent=target?money(target.value):"Выбери справа";
  if(dial){dial.style.transition="none";dial.style.transform="rotate(0deg)"}
+ const pointer=$("#upgrade-wheel-pointer");if(pointer){pointer.style.transition="none";pointer.style.transform="rotate(0deg)"}
  if(!item||!target||target.value<=item.item_value){
   const msg=!item?"Сначала выбери предмет из инвентаря":!target?"Теперь выбери желаемый скин справа":"Целевой предмет должен стоить дороже";
   box.innerHTML='<span class="muted">'+msg+'</span>';
