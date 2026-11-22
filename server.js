@@ -358,7 +358,7 @@ const skinCatalog=[
  ["AWP | Containment Breach",3900,5850,"Тайное","rifles/awp-containment-breach.png"],
  ["AK-47 | Fire Serpent",9800,14700,"Тайное","rifles/ak-47-fire-serpent.png"],
  ["★ M9 Bayonet | Crimson Web",41000,61500,"Нож","knives/m9-bayonet-crimson-web.png"],
- ["★ Karambit | Sapphire",115000,172500,"Нож","knives/karambit-sapphire.png"]
+ ["★ Karambit | Sapphire",115000,172500,"Нож","knives/karambit-sapphire.png"],
 
  ["M4A1-S | Decimator",650,975,"Засекреченное",""],
  ["AK-47 | Ice Coaled",520,780,"Засекреченное",""],
