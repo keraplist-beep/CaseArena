@@ -47,15 +47,12 @@ window.chooseUpgradeTarget=name=>{upgradeTarget=name;renderUpgrade()};
 function updateUpgradePreview(){const box=$("#upgrade-preview"),chanceText=$("#upgrade-wheel-value"),fill=$("#upgrade-chance-fill"),status=$("#upgrade-spin-status"),win=$("#upgrade-success-percent"),fail=$("#upgrade-fail-percent");if(!box)return;const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);const fromArt=$("#upgrade-from-art"),toArt=$("#upgrade-to-art"),fromName=$("#upgrade-from-name"),toName=$("#upgrade-to-name"),fromPrice=$("#upgrade-from-price"),toPrice=$("#upgrade-to-price");if(fromArt)fromArt.innerHTML=item?skinArt(item.item_name):"<span>?</span>";if(toArt)toArt.innerHTML=target?skinArt(target.name):"<span>?</span>";if(fromName)fromName.textContent=item?item.item_name:"Твой предмет";if(toName)toName.textContent=target?target.name:"Желаемый скин";if(fromPrice)fromPrice.textContent=item?money(item.item_value):"Выбери слева";if(toPrice)toPrice.textContent=target?money(target.value):"Выбери справа";if(!item||!target||target.value<=item.item_value){const msg=!item?"Сначала выбери предмет из инвентаря":!target?"Теперь выбери желаемый скин справа":"Целевой предмет должен стоить дороже";box.innerHTML='<span class="muted">'+msg+'</span>';if(chanceText)chanceText.textContent="—";if(fill)fill.style.width="0%";if(status)status.textContent=msg;if(win)win.textContent="—";if(fail)fail.textContent="—";return}const chance=Math.min(75,item.item_value/target.value*75),pct=Math.round(chance);if(chanceText)chanceText.textContent=pct+"%";if(fill)fill.style.width=pct+"%";if(status)status.textContent="Шанс рассчитан. Готов к апгрейду";if(win)win.textContent=pct+"%";if(fail)fail.textContent=(100-pct)+"%";box.innerHTML='<div><b>'+esc(item.item_name)+'</b><div class="muted small">'+money(item.item_value)+' → '+esc(target.name)+' · '+money(target.value)+'</div></div><div class="chance-number">'+pct+'%</div>'}
 window.upgrade=async()=>{if(!me)return authModal();if(rolling)return;const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);if(!item)return toast("Выбери предмет из инвентаря");if(!target)return toast("Выбери целевой скин");if(target.value<=item.item_value)return toast("Целевой скин должен быть дороже");rolling=true;try{
  const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemId:item.id,targetValue:target.value,targetName:target.name})});
- const dial=$("#upgrade-wheel-dial"),pointer=$("#upgrade-wheel-pointer"),status=$("#upgrade-spin-status");
- const chance=Math.max(0,Math.min(100,Number(d.chance)||0));
- const stopAngle=d.success?chance*3.6/2:chance*3.6+(360-chance*3.6)/2;
- if(dial)dial.style.setProperty("--chance",chance+"%");
- if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance+"%";
- if($("#upgrade-wheel-caption"))$("#upgrade-wheel-caption").textContent=chance+"%";if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance+"%";if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance)+"%";
- if(status)status.textContent="Стрелка вращается…";
- if(pointer){pointer.style.transition="transform 4.6s cubic-bezier(.08,.76,.12,1)";requestAnimationFrame(()=>{pointer.style.transform="rotate("+(360*6+stopAngle)+"deg)"})}
- await new Promise(resolve=>setTimeout(resolve,4700));
+ const chance=Math.max(0,Math.min(100,Number(d.chance)||0)),fill=$("#upgrade-chance-fill"),status=$("#upgrade-spin-status");
+  if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance+"%";
+  if(fill){fill.style.transition="width 2.1s ease";fill.style.width=(d.success?chance:0)+"%"}
+  if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance+"%";if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance)+"%";
+  if(status)status.textContent="Проверяем результат апгрейда…";
+  await new Promise(resolve=>setTimeout(resolve,2200));
  openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?target.name:item.item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(target.name):"Предмет потерян")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p></div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
  selected.clear();await refresh()
  }catch(e){toast(e.message)}finally{rolling=false}};
@@ -86,9 +83,9 @@ async function loadStaff(search=""){
    const actions=[];
    if(protectedOwner) actions.push('<span class="owner-shield">🛡 Защищён</span>');
    else {
-    if(me.role!=="moderator" && canAct) actions.push('<button class="btn danger" onclick="staffAction('+u.id+',\\'ban\\')">Бан</button>');
-    if(canAct) actions.push('<button class="btn secondary" onclick="staffAction('+u.id+',\\'kick\\')">Кик</button>');
-    if(me.role==="owner" && u.banned) actions.push('<button class="btn secondary" onclick="staffAction('+u.id+',\\'unban\\')">Разбан</button>');
+    if(me.role!=="moderator" && canAct) actions.push('<button class="btn danger" onclick="staffAction('+u.id+',\'ban\')">Бан</button>');
+    if(canAct) actions.push('<button class="btn secondary" onclick="staffAction('+u.id+',\'kick\')">Кик</button>');
+    if(me.role==="owner" && u.banned) actions.push('<button class="btn secondary" onclick="staffAction('+u.id+',\'unban\')">Разбан</button>');
    }
    return '<div class="staff-row"><div><b>'+esc(u.username)+'</b><small>'+(protectedOwner?"🛡 OWNER":u.role==="admin"?"ADMIN":u.role==="moderator"?"MODERATOR":"Игрок")+(u.banned?" · ЗАБЛОКИРОВАН":"")+'</small></div><div class="staff-actions">'+actions.join("")+'</div></div>';
   });
