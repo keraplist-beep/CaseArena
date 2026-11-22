@@ -75,15 +75,16 @@ async function loadLeaders(){const rows=await api("/api/leaderboard");$("#leader
 window.viewPlayer=async username=>{try{const d=await api("/api/users/"+encodeURIComponent(username));const u=d.user;openModal("ПРОФИЛЬ ИГРОКА",'<div class="profile-head"><div class="avatar">'+esc(u.username.slice(0,2).toUpperCase())+'</div><div><h3>'+esc(u.username)+(u.role==="owner"?' <span class="owner-tag">OWNER</span>':'')+'</h3><p class="muted small">В инвентаре '+d.inventory.length+' предметов · стоимость '+money(d.inventoryValue)+'</p></div></div><div class="public-inventory">'+(d.inventory.length?d.inventory.map(x=>skinCard(x.item_name,x.item_value,{market:true})).join(""):'<p class="muted">Инвентарь пуст</p>')+'</div>')}catch(e){toast(e.message)}};
 async function loadBattles(){const bs=await api("/api/battles");$("#battle-list").innerHTML=bs.map(b=>'<div class="battle"><div><strong>'+esc(b.name)+'</strong><p class="muted small">'+b.players+' игрока · '+b.rounds+' раунда · '+esc(b.status)+'</p></div><div><b class="battle-price">'+money(b.entry)+'</b> <button class="btn primary" onclick="joinBattle('+b.id+','+b.entry+')">Участвовать</button></div></div>').join("")}
 window.joinBattle=async(id,entry)=>{try{const d=await api("/api/battles/"+id+"/join",{method:"POST",body:JSON.stringify({entry})});await refresh();toast(d.message)}catch(e){toast(e.message)}};
-async function loadOwner(){
+async function loadOwner(search=ownerSearchQuery){
+ ownerSearchQuery=String(search||'');
  const box=$("#owner-content");
  if(!me||me.role!=="owner"){box.innerHTML='<p class="muted">Доступ запрещён.</p>';return}
  box.innerHTML='<p class="muted">Загружаю данные панели…</p>';
  try{
-  const d=await api("/api/owner/overview");
+  const d=await api("/api/owner/overview"+(ownerSearchQuery?"?search="+encodeURIComponent(ownerSearchQuery):""));
   const users=Array.isArray(d.users)?d.users:[];
   const activity=Array.isArray(d.activity)?d.activity:[];
-  const inventoryValue=users.reduce((sum,u)=>sum+Number(u.inventory_value||0),0);
+  const inventoryValue=Number(d.totalInventoryValue||0);
   box.innerHTML=
    '<div class="owner-stats">'+
     '<div class="owner-stat"><small>АККАУНТОВ</small><b>'+Number(d.totalUsers||0)+'</b></div>'+
@@ -91,20 +92,20 @@ async function loadOwner(){
     '<div class="owner-stat"><small>БАЛАНСЫ ИГРОКОВ</small><b>'+money(d.totalBalance)+'</b></div>'+
     '<div class="owner-stat"><small>СТОИМОСТЬ ИНВЕНТАРЯ</small><b>'+money(inventoryValue)+'</b></div>'+
    '</div>'+
-   '<div class="owner-toolbar"><div><h3>Управление игроками</h3><small class="muted">Выдача баланса и смена роли — отдельными действиями</small></div><div class="owner-toolbar-actions"><input id="owner-search" placeholder="Поиск по нику…" oninput="filterOwnerUsers()"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
+   '<div class="owner-toolbar"><div><h3>Управление игроками</h3><small class="muted">Выдача баланса и смена роли — отдельными действиями</small></div><div class="owner-toolbar-actions"><input id="owner-search" value="'+esc(ownerSearchQuery)+'" placeholder="Поиск по нику…" oninput="searchOwnerUsers(this.value)"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
    '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>
     '<div class="user-row" data-user="'+esc(u.username.toLowerCase())+'">'+
      '<div class="user-info"><b>'+esc(u.username)+'</b> '+(u.role==="owner"?'<span class="owner-tag">OWNER</span>':'')+
      '<small>'+esc(u.role==="admin"?"Администратор":u.role==="owner"?"Владелец":"Игрок")+' · '+Number(u.item_count||0)+' предметов · инвентарь '+money(u.inventory_value)+'</small></div>'+
-     '<div class="owner-field"><small>БАЛАНС · '+money(u.balance)+'</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" placeholder="Сумма" '+(u.role==="owner"?"disabled":"")+'></div>'+
+     '<div class="owner-field"><small>БАЛАНС · '+money(u.balance)+'</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" placeholder="Сумма" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'></div>'+
      '<div class="owner-actions owner-balance-actions">'+
-      '<button class="btn primary" onclick="ownerBalance('+u.id+',\'add\')" '+(u.role==="owner"?"disabled":"")+'>Выдать +</button>'+
-      '<button class="btn secondary" onclick="ownerBalance('+u.id+',\'set\')" '+(u.role==="owner"?"disabled":"")+'>Задать</button>'+
+      '<button class="btn primary" onclick="ownerBalance('+u.id+',\'add\')" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'>Выдать +</button>'+
+      '<button class="btn secondary" onclick="ownerBalance('+u.id+',\'set\')" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'>Задать</button>'+
      '</div>'+
-     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+(u.role==="owner"?"disabled":"")+'><option value="user" '+(u.role==="user"?"selected":"")+'>Игрок</option><option value="admin" '+(u.role==="admin"?"selected":"")+'>Администратор</option></select></label>'+
-     '<div class="owner-actions"><button class="btn secondary" onclick="ownerRole('+u.id+')" '+(u.role==="owner"?"disabled":"")+'>Сохранить роль</button>'+
+     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'><option value="user" '+(u.role==="user"?"selected":"")+'>Игрок</option><option value="admin" '+(u.role==="admin"?"selected":"")+'>Администратор</option></select></label>'+
+     '<div class="owner-actions"><button class="btn secondary" onclick="ownerRole('+u.id+')" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'>Сохранить роль</button>'+
      (u.role==="owner"?'':'<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>')+'</div></div>'
-   ).join(""):'<p class="muted">Пока нет игроков.</p>')+'</div>'+
+   ).join(""):'<p class="muted">'+(ownerSearchQuery?"По этому нику игроки не найдены.":"Пока нет игроков.")+'</p>')+'</div>'+
    '<div class="owner-activity"><h3>Последние действия</h3>'+
    (activity.length?activity.map(item=>'<p><b>'+esc(item.username||"Система")+'</b><span>'+esc(item.message)+'</span></p>').join(""):'<p class="muted">Действий пока нет.</p>')+
    '</div>';
@@ -113,7 +114,9 @@ async function loadOwner(){
  }
 }
 window.loadOwner=loadOwner;
-window.filterOwnerUsers=()=>{const q=($("#owner-search")?.value||"").trim().toLowerCase();document.querySelectorAll("#owner-users .user-row").forEach(row=>row.style.display=row.dataset.user.includes(q)?"":"none")};
+let ownerSearchQuery="";
+let ownerSearchTimer=null;
+window.searchOwnerUsers=value=>{ownerSearchQuery=String(value||"").trim();clearTimeout(ownerSearchTimer);ownerSearchTimer=setTimeout(()=>loadOwner(ownerSearchQuery),280)};
 window.ownerBalance=async(id,mode)=>{
  const field=$("#bal-"+id),amount=Number(field?.value);
  if(!Number.isInteger(amount)||amount<(mode==="add"?1:0)){toast("Укажи корректную сумму");return}
