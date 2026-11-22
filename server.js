@@ -723,7 +723,7 @@ app.post("/api/battles/:id/join",requireAuth,(req,res)=>{
 });
 app.get("/api/staff/users",requireAuth,requireStaff,(req,res)=>{
  const q=String(req.query.search||"").trim().slice(0,40).replace(/[%_]/g,"");
- const rows=db.prepare("SELECT id,username,role,banned FROM users WHERE username LIKE ? COLLATE NOCASE ORDER BY id DESC LIMIT 100").all("%"+q+"%");
+ const rows=db.prepare("SELECT id,username,role,banned FROM users WHERE username LIKE ? COLLATE NOCASE ORDER BY banned DESC,id DESC LIMIT 250").all("%"+q+"%");
  res.json({users:rows});
 });
 app.post("/api/staff/users/:id/action",requireAuth,requireStaff,(req,res)=>{
@@ -748,7 +748,7 @@ app.post("/api/staff/users/:id/action",requireAuth,requireStaff,(req,res)=>{
  if(actorRank===1&&action!=="kick")return res.status(403).json({error:"Банить и разбанивать может администратор и выше"});
  if(actorRank===1&&target.role!=="user")return res.status(403).json({error:"Модератор может кикать только игроков"});
  if(action==="ban"&&target.banned)return res.status(400).json({error:"Игрок уже заблокирован"});
- if(action==="unban"&&!target.banned)return res.status(400).json({error:"Игрок не заблокирован"});
+ if(action==="unban"&&!target.banned)return res.json({ok:true,message:"Игрок уже разблокирован"});
  if(action==="unban")db.prepare("UPDATE users SET banned=0,session_version=session_version+1 WHERE id=?").run(id);
  else db.prepare("UPDATE users SET "+(action==="ban"?"banned=1,":"")+"session_version=session_version+1 WHERE id=?").run(id);
  const messages={kick:"Игрок отключён",ban:"Игрок заблокирован",unban:"Блокировка снята"};
@@ -758,10 +758,10 @@ app.post("/api/staff/users/:id/action",requireAuth,requireStaff,(req,res)=>{
 
 app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
  const search=String(req.query.search||"").trim().slice(0,40).replace(/[%_]/g,"");
- const userFields="SELECT id,username,role,balance,created_at,(SELECT COUNT(*) FROM inventory WHERE user_id=users.id) AS item_count,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users";
+ const userFields="SELECT id,username,role,balance,banned,created_at,(SELECT COUNT(*) FROM inventory WHERE user_id=users.id) AS item_count,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users";
  const users=search
-  ? db.prepare(userFields+" WHERE username LIKE ? COLLATE NOCASE ORDER BY id DESC LIMIT 100").all("%"+search+"%")
-  : db.prepare(userFields+" ORDER BY id DESC LIMIT 250").all();
+  ? db.prepare(userFields+" WHERE username LIKE ? COLLATE NOCASE ORDER BY banned DESC,id DESC LIMIT 250").all("%"+search+"%")
+  : db.prepare(userFields+" ORDER BY banned DESC,id DESC LIMIT 250").all();
  const activity=db.prepare("SELECT activity.*,users.username FROM activity LEFT JOIN users ON users.id=activity.user_id ORDER BY activity.id DESC LIMIT 30").all();
  const totalUsers=db.prepare("SELECT COUNT(*) n FROM users").get().n;
  const totalItems=db.prepare("SELECT COUNT(*) n FROM inventory").get().n;
