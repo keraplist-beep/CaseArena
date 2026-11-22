@@ -460,9 +460,9 @@ const skinCatalog=[
 ].map(([name,value,steamRub,rarity,image])=>({name,value,steamRub,rarity,image:"https://images.konekocode.pl/images/"+image,steamUrl:"https://steamcommunity.com/market/listings/730/"+encodeURIComponent(name+" (Field-Tested)")}));
 let skinImageIndexPromise=null;
 const caseImageSource={
- starter:"Kilowatt Case",dust:"Prisma 2 Case",neon:"Dreams & Nightmares Case",inferno:"Revolution Case",sniper:"Snakebite Case",royal:"Operation Phoenix Weapon Case",knife:"Huntsman Weapon Case",elite:"Operation Breakout Weapon Case",viper:"Fracture Case",dragon:"Operation Bravo Case",doppler:"Chroma Case",gloves:"Glove Case",blackpearl:"Spectrum Case",
- "ice-dragon":"Winter Offensive Weapon Case",cyberpunk:"CS20 Case","gold-hour":"Operation Wildfire Case",phoenix:"Operation Phoenix Weapon Case",arctic:"Operation Hydra Case",steel:"Spectrum 2 Case",blackout:"Danger Zone Case",glitch:"Shattered Web Case",emerald:"Gamma 2 Case",ruby:"Chroma 3 Case",sapphire:"Gamma Case","knife-rush":"Falchion Case","glove-boom":"Clutch Case","dragon-vault":"Operation Breakout Weapon Case","eco-round":"eSports 2013 Winter Case","starter-plus":"Recoil Case",midnight:"Horizon Case",gradient:"Prisma Case"
-};
+ starter:"Kilowatt Case",dust:"Prisma 2 Case",neon:"Dreams & Nightmares Case",inferno:"Revolution Case",sniper:"Snakebite Case",royal:"Operation Bravo Case",knife:"Huntsman Weapon Case",elite:"Operation Breakout Weapon Case",viper:"Fracture Case",dragon:"Operation Phoenix Weapon Case",doppler:"Chroma Case",gloves:"Glove Case",blackpearl:"Spectrum Case",
+ "ice-dragon":"Winter Offensive Weapon Case",cyberpunk:"CS20 Case","gold-hour":"Operation Wildfire Case",phoenix:"Operation Hydra Case",arctic:"Operation Vanguard Weapon Case",steel:"Spectrum 2 Case",blackout:"Danger Zone Case",glitch:"Shattered Web Case",emerald:"Gamma 2 Case",ruby:"Chroma 3 Case",sapphire:"Gamma Case","knife-rush":"Falchion Case","glove-boom":"Clutch Case","dragon-vault":"eSports 2013 Winter Case","eco-round":"eSports 2013 Case","starter-plus":"Recoil Case",midnight:"Horizon Case",gradient:"Prisma Case"
+};;
 let crateImageIndexPromise=null;
 async function getCrateImageIndex(){
  if(!crateImageIndexPromise){
