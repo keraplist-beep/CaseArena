@@ -20,7 +20,9 @@ CREATE TABLE IF NOT EXISTS users (
  role TEXT NOT NULL DEFAULT 'user',
  balance INTEGER NOT NULL DEFAULT 1000,
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
- google_sub TEXT
+ google_sub TEXT,
+ banned INTEGER NOT NULL DEFAULT 0,
+ session_version INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS inventory (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,6 +40,8 @@ CREATE TABLE IF NOT EXISTS activity (
 `);
 const localUserColumns = localDb.prepare("PRAGMA table_info(users)").all().map(c => c.name);
 if (!localUserColumns.includes("google_sub")) localDb.exec("ALTER TABLE users ADD COLUMN google_sub TEXT");
+if (!localUserColumns.includes("banned")) localDb.exec("ALTER TABLE users ADD COLUMN banned INTEGER NOT NULL DEFAULT 0");
+if (!localUserColumns.includes("session_version")) localDb.exec("ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0");
 
 const { Pool } = require("pg");
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for persistent CaseArena storage");
@@ -127,6 +131,8 @@ const db = {
 async function initializePersistentDatabase() {
  const sqlTimestamp = value => value instanceof Date ? value.toISOString() : value;
  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS banned INTEGER NOT NULL DEFAULT 0");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0");
  const [users, inventory, activity] = await Promise.all([
    pool.query("SELECT * FROM users ORDER BY id"),
    pool.query("SELECT * FROM inventory ORDER BY id"),
@@ -136,8 +142,8 @@ async function initializePersistentDatabase() {
  if (remoteHasData) {
    localDb.exec("DELETE FROM inventory; DELETE FROM activity; DELETE FROM users;");
    for (const u of users.rows) localDb.prepare(
-     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub) VALUES(?,?,?,?,?,?,?)"
-   ).run(u.id,u.username,u.password_hash,u.role,u.balance,sqlTimestamp(u.created_at),u.google_sub);
+     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version) VALUES(?,?,?,?,?,?,?,?,?)"
+   ).run(u.id,u.username,u.password_hash,u.role,u.balance,sqlTimestamp(u.created_at),u.google_sub,u.banned||0,u.session_version||0);
    for (const item of inventory.rows) localDb.prepare(
      "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES(?,?,?,?,?)"
    ).run(item.id,item.user_id,item.item_name,item.item_value,sqlTimestamp(item.created_at));
@@ -149,8 +155,8 @@ async function initializePersistentDatabase() {
    const localInventory = localDb.prepare("SELECT * FROM inventory ORDER BY id").all();
    const localActivity = localDb.prepare("SELECT * FROM activity ORDER BY id").all();
    for (const u of localUsers) await pool.query(
-     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING",
-     [u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub]
+     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (id) DO NOTHING",
+     [u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub,u.banned||0,u.session_version||0]
    );
    for (const item of localInventory) await pool.query(
      "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING",
@@ -223,16 +229,29 @@ app.use(express.static(path.join(__dirname, "public")));
 const userView = u => ({id:u.id, username:u.username, role:u.role, balance:u.balance});
 function current(req) {
   if (!req.session || !req.session.userId) return null;
-  return db.prepare("SELECT id,username,role,balance FROM users WHERE id=?").get(req.session.userId) || null;
+  const u=db.prepare("SELECT id,username,role,balance,banned,session_version FROM users WHERE id=?").get(req.session.userId);
+  if (!u || u.banned) return null;
+  if (req.session.sessionVersion === undefined) req.session.sessionVersion=u.session_version;
+  if (Number(req.session.sessionVersion)!==Number(u.session_version)) return null;
+  if (OWNER_USERNAME && u.username.toLowerCase()===OWNER_USERNAME) u.role="owner";
+  return u;
 }
 function requireAuth(req,res,next) {
-  if (!current(req)) return res.status(401).json({error:"Сначала войдите в аккаунт"});
+  if (!current(req)) return res.status(401).json({error:"Сессия завершена. Войдите снова."});
   next();
 }
 function requireOwner(req,res,next) {
   const u=current(req);
-  if (!u || u.role !== "owner") return res.status(403).json({error:"Только OWNER может выполнить это действие"});
+  if (!u || u.role !== "owner" || (OWNER_USERNAME && u.username.toLowerCase()!==OWNER_USERNAME)) return res.status(403).json({error:"Только владелец может выполнить это действие"});
   next();
+}
+function requireStaff(req,res,next) {
+  const u=current(req);
+  if (!u || !["owner","admin","moderator"].includes(u.role)) return res.status(403).json({error:"Недостаточно прав"});
+  next();
+}
+function ownerShield(target) {
+  return target && (target.role==="owner" || (OWNER_USERNAME && target.username.toLowerCase()===OWNER_USERNAME));
 }
 function log(userId,message) {
   db.prepare("INSERT INTO activity(user_id,message) VALUES(?,?)").run(userId,message);
@@ -271,6 +290,7 @@ app.post("/api/google/complete-nickname", authLimiter, (req,res) => {
     req.session = req.session || {};
     req.session = req.session || {};
  req.session.userId = info.lastInsertRowid;
+    req.session.sessionVersion = 0;
     delete req.session.pendingGoogle;
     log(info.lastInsertRowid, "Аккаунт создан через Google");
     res.json({user:userView(current(req))});
@@ -295,6 +315,7 @@ app.post("/api/register",authLimiter,async(req,res)=>{
     const hash=await bcrypt.hash(password,12);
     const info=db.prepare("INSERT INTO users(username,password_hash) VALUES(?,?)").run(username,hash);
  req.session.userId = info.lastInsertRowid;
+    req.session.sessionVersion = 0;
 log(info.lastInsertRowid, "Создан аккаунт");
 
 res.json({user:userView(current(req))});
@@ -305,8 +326,10 @@ app.post("/api/login",authLimiter,async(req,res)=>{
   const password=String(req.body.password||"");
   const u=db.prepare("SELECT * FROM users WHERE username=?").get(username);
   if (!u || !(await bcrypt.compare(password,u.password_hash))) return res.status(401).json({error:"Неверный ник или пароль"});
+  if (u.banned) return res.status(403).json({error:"Ваш аккаунт заблокирован администрацией"});
   req.session = req.session || {};
   req.session.userId = u.id;
+  req.session.sessionVersion = u.session_version || 0;
 
 res.json({user:userView(u)});
 });
@@ -322,13 +345,13 @@ const cases=[
  {id:"knife",name:"ОХОТА ЗА НОЖОМ",subtitle:"Кейс для любителей ножей",price:2499,items:[["★ Navaja Knife | Fade",7500,68],["★ Shadow Daggers | Doppler",9800,23],["★ Huntsman Knife | Doppler",12500,7],["★ Karambit | Fade",55000,1.7],["★ Butterfly Knife | Fade",62000,0.3]]},
  {id:"elite",name:"ЭЛИТА",subtitle:"Максимальный риск и награда",price:4999,items:[["★ Bayonet | Doppler",32000,68],["★ M9 Bayonet | Crimson Web",41000,23],["★ Karambit | Doppler",38500,7],["★ Butterfly Knife | Fade",62000,1.7],["★ Karambit | Sapphire",115000,0.3]]}
  ,{id:"viper",name:"VIPER",subtitle:"Ядовитая подборка редких скинов",price:799,cover:"AK-47 | The Empress",items:[["AWP | Fever Dream",340,58],["AK-47 | The Empress",6900,29],["★ Bowie Knife | Doppler",17500,10],["★ Talon Knife | Fade",42000,2.5],["★ Butterfly Knife | Fade",62000,0.5]]},
- {id:"dragon",name:"DRAGON LORE",subtitle:"Охота за легендарным AWP",price:1999,cover:"AWP | Dragon Lore",items:[["AWP | Asiimov",1850,60],["AWP | Hyper Beast",2200,27],["AWP | Containment Breach",3900,10],["AWP | Dragon Lore",25000,2.7],["★ Karambit | Sapphire",115000,0.3]]},
- {id:"doppler",name:"DOPPLER",subtitle:"Ножи с редкими фазами",price:2999,cover:"★ Karambit | Doppler",items:[["★ Navaja Knife | Fade",7500,55],["★ Huntsman Knife | Doppler",12500,29],["★ Flip Knife | Gamma Doppler",28000,12],["★ Karambit | Doppler",38500,3.5],["★ Karambit | Sapphire",115000,0.5]]},
+ {id:"dragon",name:"DRAGON LORE",subtitle:"Охота за легендарным AWP",price:2799,cover:"AWP | Dragon Lore",items:[["AWP | Asiimov",1850,60],["AWP | Hyper Beast",2200,27],["AWP | Containment Breach",3900,10],["AWP | Dragon Lore",25000,2.7],["★ Karambit | Sapphire",115000,0.3]]},
+ {id:"doppler",name:"DOPPLER",subtitle:"Ножи с редкими фазами",price:4499,cover:"★ Karambit | Doppler",items:[["★ Navaja Knife | Fade",7500,55],["★ Huntsman Knife | Doppler",12500,29],["★ Flip Knife | Gamma Doppler",28000,12],["★ Karambit | Doppler",38500,3.5],["★ Karambit | Sapphire",115000,0.5]]},
  {id:"gloves",name:"GLOVE CASE",subtitle:"Перчатки и редкие ножи",price:3499,cover:"★ Sport Gloves | Vice",items:[["★ Driver Gloves | Crimson Weave",14500,57],["★ Specialist Gloves | Fade",22000,28],["★ Sport Gloves | Vice",48000,11],["★ Butterfly Knife | Fade",62000,3.5],["★ Karambit | Sapphire",115000,0.5]]},
- {id:"blackpearl",name:"BLACK PEARL",subtitle:"Максимальная редкость и риск",price:5999,cover:"★ Butterfly Knife | Doppler",items:[["★ Bowie Knife | Doppler",17500,58],["★ Skeleton Knife | Slaughter",33000,27],["★ M9 Bayonet | Crimson Web",41000,11],["★ Butterfly Knife | Doppler",85000,3.5],["★ Karambit | Sapphire",115000,0.5]]}
+ {id:"blackpearl",name:"BLACK PEARL",subtitle:"Максимальная редкость и риск",price:7999,cover:"★ Butterfly Knife | Doppler",items:[["★ Bowie Knife | Doppler",17500,58],["★ Skeleton Knife | Slaughter",33000,27],["★ M9 Bayonet | Crimson Web",41000,11],["★ Butterfly Knife | Doppler",85000,3.5],["★ Karambit | Sapphire",115000,0.5]]}
 ,{id:"ice-dragon",name:"ЛЕДЯНОЙ ДРАКОН",subtitle:"Ледяные редкости и холодная сталь",price:129,theme:"ice",cover:"AWP | Gungnir",items:[["AWP | Atheris",220,48],["AK-47 | Ice Coaled",520,30],["AWP | Oni Taiji",6500,15],["AWP | Gungnir",95000,6.5],["★ Karambit | Sapphire",115000,0.5]]}
 ,{id:"cyberpunk",name:"КИБЕРПАНК",subtitle:"Неоновые пушки большого города",price:249,theme:"cyber",cover:"AK-47 | Neon Rider",items:[["MP9 | Food Chain",290,45],["AK-47 | Neon Rider",980,32],["M4A4 | Neo-Noir",2250,17],["AK-47 | X-Ray",42000,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
-,{id:"gold-hour",name:"ЗОЛОТОЙ ЧАС",subtitle:"Золото, блеск и дорогие дропы",price:399,theme:"gold",cover:"AK-47 | Gold Arabesque",items:[["Desert Eagle | Bronze Deco",95,45],["Desert Eagle | Blaze",4200,35],["AK-47 | Gold Arabesque",68000,15],["★ Karambit | Tiger Tooth",52000,4.5],["★ Butterfly Knife | Fade",62000,0.5]]}
+,{id:"gold-hour",name:"ЗОЛОТОЙ ЧАС",subtitle:"Золото, блеск и дорогие дропы",price:699,theme:"gold",cover:"AK-47 | Gold Arabesque",items:[["Desert Eagle | Bronze Deco",95,45],["Desert Eagle | Blaze",4200,35],["AK-47 | Gold Arabesque",68000,15],["★ Karambit | Tiger Tooth",52000,4.5],["★ Butterfly Knife | Fade",62000,0.5]]}
 ,{id:"phoenix",name:"ФЕНИКС",subtitle:"Возвращение легендарных скинов",price:549,theme:"fire",cover:"M4A4 | Howl",items:[["AK-47 | Redline",720,45],["AWP | Wildfire",1250,32],["M4A4 | The Emperor",1750,17],["M4A4 | Howl",125000,5.5],["★ Karambit | Sapphire",115000,0.5]]}
 ,{id:"arctic",name:"АРКТИКА",subtitle:"Холодная коллекция для точных",price:699,theme:"arctic",cover:"AWP | Medusa",items:[["AWP | Fever Dream",340,48],["AWP | Hyper Beast",2200,30],["AWP | Medusa",78000,16],["AWP | Gungnir",95000,5.5],["★ M9 Bayonet | Fade",74000,0.5]]}
 ,{id:"steel",name:"СТАЛЬНОЙ ХАРАКТЕР",subtitle:"Проверенные автоматы и редкие ножи",price:899,theme:"steel",cover:"AK-47 | Vulcan",items:[["AK-47 | Slate",360,45],["AK-47 | Asiimov",1650,32],["AK-47 | Vulcan",22000,17],["AK-47 | Wild Lotus",110000,5.5],["★ Butterfly Knife | Doppler",85000,0.5]]}
@@ -336,10 +359,10 @@ const cases=[
 ,{id:"glitch",name:"ГЛИТЧ",subtitle:"Цифровой хаос и яркие расцветки",price:1499,theme:"glitch",cover:"M4A1-S | Player Two",items:[["MAC-10 | Disco Tech",420,45],["M4A1-S | Player Two",3800,32],["AWP | Oni Taiji",6500,17],["AK-47 | X-Ray",42000,5.5],["★ Butterfly Knife | Marble Fade",72000,0.5]]}
 ,{id:"emerald",name:"ИЗУМРУДНЫЙ",subtitle:"Зелёные оттенки и редкие находки",price:1999,theme:"emerald",cover:"AK-47 | Wild Lotus",items:[["AWP | Atheris",220,44],["AK-47 | The Empress",6900,34],["AK-47 | Wild Lotus",110000,16],["★ Karambit | Gamma Doppler",92000,5.5],["★ Karambit | Sapphire",115000,0.5]]}
 ,{id:"ruby",name:"РУБИНОВЫЙ",subtitle:"Красная коллекция премиум-класса",price:2499,theme:"ruby",cover:"M4A4 | Howl",items:[["AK-47 | Bloodsport",5100,45],["M4A4 | Howl",125000,15],["AWP | Dragon Lore",25000,30],["★ Butterfly Knife | Crimson Web",54000,9.5],["★ Karambit | Sapphire",115000,0.5]]}
-,{id:"sapphire",name:"САПФИРОВЫЙ",subtitle:"Синие драгоценности и ножи",price:2999,theme:"sapphire",cover:"★ Karambit | Sapphire",items:[["AK-47 | Case Hardened",18000,45],["AWP | Medusa",78000,30],["★ M9 Bayonet | Doppler",68000,19],["★ Karambit | Sapphire",115000,5.5],["★ Butterfly Knife | Doppler",85000,0.5]]}
-,{id:"knife-rush",name:"НОЖЕВОЙ РАШ",subtitle:"Только ножи — от доступных до легенд",price:3499,theme:"knife",cover:"★ Butterfly Knife | Marble Fade",items:[["★ Gut Knife | Doppler",16000,42],["★ Bowie Knife | Doppler",17500,32],["★ Talon Knife | Fade",42000,18],["★ Butterfly Knife | Marble Fade",72000,7.5],["★ Karambit | Sapphire",115000,0.5]]}
-,{id:"glove-boom",name:"ПЕРЧАТОЧНЫЙ БУМ",subtitle:"Перчатки с яркими расцветками",price:3999,theme:"gloves",cover:"★ Sport Gloves | Vice",items:[["★ Driver Gloves | Crimson Weave",14500,48],["★ Specialist Gloves | Fade",22000,32],["★ Sport Gloves | Vice",48000,15],["★ Sport Gloves | Vice",72000,4.5],["★ Karambit | Sapphire",115000,0.5]]}
-,{id:"dragon-vault",name:"ДРАКОНЬЯ СОКРОВИЩНИЦА",subtitle:"Собрание самых желанных предметов",price:6999,theme:"dragon",cover:"AWP | Dragon Lore",items:[["AK-47 | Fire Serpent",9800,40],["AWP | Dragon Lore",25000,35],["AWP | Gungnir",95000,18],["AK-47 | Wild Lotus",110000,6.5],["M4A4 | Howl",125000,0.5]]}
+,{id:"sapphire",name:"САПФИРОВЫЙ",subtitle:"Синие драгоценности и ножи",price:4499,theme:"sapphire",cover:"★ Karambit | Sapphire",items:[["AK-47 | Case Hardened",18000,45],["AWP | Medusa",78000,30],["★ M9 Bayonet | Doppler",68000,19],["★ Karambit | Sapphire",115000,5.5],["★ Butterfly Knife | Doppler",85000,0.5]]}
+,{id:"knife-rush",name:"НОЖЕВОЙ РАШ",subtitle:"Только ножи — от доступных до легенд",price:4999,theme:"knife",cover:"★ Butterfly Knife | Marble Fade",items:[["★ Gut Knife | Doppler",16000,42],["★ Bowie Knife | Doppler",17500,32],["★ Talon Knife | Fade",42000,18],["★ Butterfly Knife | Marble Fade",72000,7.5],["★ Karambit | Sapphire",115000,0.5]]}
+,{id:"glove-boom",name:"ПЕРЧАТОЧНЫЙ БУМ",subtitle:"Перчатки с яркими расцветками",price:5499,theme:"gloves",cover:"★ Sport Gloves | Vice",items:[["★ Driver Gloves | Crimson Weave",14500,48],["★ Specialist Gloves | Fade",22000,32],["★ Sport Gloves | Vice",48000,15],["★ Sport Gloves | Vice",72000,4.5],["★ Karambit | Sapphire",115000,0.5]]}
+,{id:"dragon-vault",name:"ДРАКОНЬЯ СОКРОВИЩНИЦА",subtitle:"Собрание самых желанных предметов",price:9999,theme:"dragon",cover:"AWP | Dragon Lore",items:[["AK-47 | Fire Serpent",9800,40],["AWP | Dragon Lore",25000,35],["AWP | Gungnir",95000,18],["AK-47 | Wild Lotus",110000,6.5],["M4A4 | Howl",125000,0.5]]}
 ,{id:"eco-round",name:"ЭКО-РАУНД",subtitle:"Недорогой кейс на каждый день",price:59,theme:"eco",cover:"AK-47 | Elite Build",items:[["Glock-18 | Candy Apple",45,52],["MP9 | Capillary",65,28],["AWP | Atheris",220,15],["AK-47 | Slate",360,4.5],["AK-47 | Neon Rider",980,0.5]]}
 ,{id:"starter-plus",name:"ПЕРВЫЙ ДРОП",subtitle:"Небольшая цена — приятные скины",price:99,theme:"starter",cover:"USP-S | Neo-Noir",items:[["P250 | Sand Dune",85,48],["USP-S | Ticket to Hell",120,30],["AWP | Fever Dream",340,17],["USP-S | Neo-Noir",880,4.5],["M4A1-S | Printstream",2350,0.5]]}
 ,{id:"midnight",name:"ПОЛУНОЧЬ",subtitle:"Ночная подборка редких расцветок",price:299,theme:"midnight",cover:"USP-S | Kill Confirmed",items:[["AWP | Mortis",330,45],["AK-47 | Phantom Disruptor",390,32],["USP-S | Kill Confirmed",3600,17],["★ Talon Knife | Doppler",36500,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
@@ -572,6 +595,32 @@ app.post("/api/battles/:id/join",requireAuth,(req,res)=>{
  try{tx();res.json({message:"Вы присоединились к демо-баттлу",user:userView(current(req))});}
  catch(e){res.status(400).json({error:e.message});}
 });
+app.get("/api/staff/users",requireAuth,requireStaff,(req,res)=>{
+ const q=String(req.query.search||"").trim().slice(0,40).replace(/[%_]/g,"");
+ const rows=db.prepare("SELECT id,username,role,banned FROM users WHERE username LIKE ? COLLATE NOCASE ORDER BY id DESC LIMIT 100").all("%"+q+"%");
+ res.json({users:rows});
+});
+app.post("/api/staff/users/:id/action",requireAuth,requireStaff,(req,res)=>{
+ const actor=current(req), id=Number(req.params.id), action=String(req.body.action||"");
+ if(!Number.isInteger(id)||id<1)return res.status(400).json({error:"Некорректный игрок"});
+ if(!["kick","ban","unban"].includes(action))return res.status(400).json({error:"Неизвестное действие"});
+ if(action==="ban" && !["owner","admin"].includes(actor.role))return res.status(403).json({error:"Банить может только администратор"});
+ if(action==="unban" && actor.role!=="owner")return res.status(403).json({error:"Снимать бан может только владелец"});
+ const target=db.prepare("SELECT id,username,role,banned FROM users WHERE id=?").get(id);
+ if(!target)return res.status(404).json({error:"Игрок не найден"});
+ if(ownerShield(target))return res.status(403).json({error:"Этот игрок является владельцем CaseArena. Его нельзя кикнуть или забанить."});
+ if(target.role==="admin" && actor.role!=="owner")return res.status(403).json({error:"Администратор может управлять только обычными игроками и модераторами"});
+ if(target.role==="moderator" && actor.role==="admin")return res.status(403).json({error:"Администратор не может наказывать модератора"});
+ if(action==="unban"){
+  db.prepare("UPDATE users SET banned=0,session_version=session_version+1 WHERE id=?").run(id);
+  log(actor.id,"Снят бан с игрока "+target.username);
+  return res.json({ok:true,message:"Блокировка снята"});
+ }
+ db.prepare("UPDATE users SET "+(action==="ban"?"banned=1,":"")+"session_version=session_version+1 WHERE id=?").run(id);
+ log(actor.id,(action==="ban"?"Заблокирован ":"Кикнут ")+target.username);
+ res.json({ok:true,message:action==="ban"?"Игрок заблокирован":"Игрок отключён от сервера"});
+});
+
 app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
  const search=String(req.query.search||"").trim().slice(0,40).replace(/[%_]/g,"");
  const userFields="SELECT id,username,role,balance,created_at,(SELECT COUNT(*) FROM inventory WHERE user_id=users.id) AS item_count,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users";
@@ -603,10 +652,10 @@ app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
 app.post("/api/owner/users/:id/role",requireAuth,requireOwner,(req,res)=>{
  const id=Number(req.params.id), role=String(req.body.role||"");
  if(!Number.isInteger(id)||id<1)return res.status(400).json({error:"Некорректный игрок"});
- if(!["user","admin"].includes(role)) return res.status(400).json({error:"Выбери роль игрока или администратора"});
+ if(!["user","admin","moderator"].includes(role)) return res.status(400).json({error:"Выбери роль игрока, модератора или администратора"});
  const target=db.prepare("SELECT id,username,role FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(target.role==="owner")return res.status(403).json({error:"Нельзя менять роль владельца"});
+ if(ownerShield(target))return res.status(403).json({error:"Владелец защищён от любых изменений роли"});
  const tx=db.transaction(()=>{
   db.prepare("UPDATE users SET role=? WHERE id=?").run(role,id);
   log(current(req).id,"Роль игрока "+target.username+" изменена на "+role);
