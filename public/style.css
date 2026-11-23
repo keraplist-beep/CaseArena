@@ -1307,3 +1307,27 @@ input,select{border-radius:9px}
 
 /* Upgrade quick selectors */
 .quick-choice{display:flex;flex-direction:column;gap:5px}.quick-buttons-label{font-size:10px;color:#6f7a8f;letter-spacing:1.2px;margin-top:4px}.quick-buttons button.active{border-color:#3d7dff;background:#1a2332;color:#fff;box-shadow:inset 0 0 0 1px #3d7dff55}.upgrade-header .fast-toggle{white-space:nowrap}@media(max-width:520px){.upgrade-header{align-items:flex-start;flex-direction:column}.quick-buttons-label{font-size:9px}}
+
+
+/* Case cards — CaseBattle-inspired compact layout */
+#case-grid.cases-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:24px!important;padding:20px 0!important}
+#case-grid .cb-card{display:flex;flex-direction:column;position:relative;min-width:0;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;text-align:left!important;box-shadow:none!important;overflow:visible;transition:transform .2s}
+#case-grid .cb-card:hover{transform:translateY(-4px)!important;border:0!important;box-shadow:none!important}
+.cb-card-header{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;min-height:43px}
+.cb-card-title{font:800 15px Manrope,sans-serif;color:#f6f7fb;text-transform:uppercase;letter-spacing:.5px;line-height:1.3;overflow-wrap:anywhere}
+.cb-card-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:#8995a7}
+.cb-badge-new{display:inline-block;padding:2px 5px;background:#f4f5f7;color:#111;font:900 9px Manrope,sans-serif;transform:skewX(-10deg);border-radius:2px}
+.cb-badge-top{background:#ffbd45;color:#241606}
+.cb-card-image-wrap{position:relative;width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;margin-bottom:12px;overflow:visible;isolation:isolate}
+.cb-glow-bg{position:absolute;z-index:-1;left:50%;top:50%;width:84%;height:84%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,var(--case-glow,rgba(61,125,255,.24)) 0%,transparent 72%);filter:blur(8px);pointer-events:none}
+.cb-case-img{position:relative;z-index:1;width:112%;height:112%;max-width:none;max-height:none;object-fit:contain;filter:drop-shadow(0 10px 15px rgba(0,0,0,.75));transition:transform .3s ease}
+.cb-card:hover .cb-case-img{transform:scale(1.05)}
+.cb-card-image-wrap .ca-fallback{width:76%;height:76%;display:grid;place-items:center;border:1px solid #34465e;border-radius:14px;background:linear-gradient(145deg,#25364b,#101722);font:800 54px Orbitron;color:#b7c7da;box-shadow:0 12px 30px #0008}
+.cb-card-footer{display:flex;justify-content:center}
+.cb-price-btn{min-width:112px;padding:9px 20px;border:1px solid #354052;border-radius:3px;background:rgba(0,0,0,.38);color:#f0f1f4;font:500 13px Manrope,sans-serif;cursor:pointer;transition:all .2s}
+.cb-price-btn:hover{background:#202d40;border-color:#4de1d1;color:#fff}
+.cb-card-quick{margin-top:8px;text-align:center}
+.cb-card-quick .case-quick-btn{padding:6px 10px;font-size:10px;background:transparent;border:1px solid #29384c;color:#8fa1b7;border-radius:4px}
+.cb-card-quick .case-quick-btn:hover{border-color:#4de1d1;color:#4de1d1}
+@media(max-width:900px){#case-grid.cases-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:20px!important}}
+@media(max-width:620px){#case-grid.cases-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:22px 18px!important;padding:14px 0!important}.cb-card-header{min-height:40px}.cb-card-title{font-size:13px}.cb-card-meta{font-size:10px}.cb-card-image-wrap{margin-bottom:8px}.cb-price-btn{min-width:94px;padding:8px 12px;font-size:12px}.cb-card-quick .case-quick-btn{font-size:9px}}
