@@ -190,7 +190,7 @@ async function flushWrites() {
  if (writeError) throw writeError;
 }
 const ROLE_ORDER = ["user","moderator","admin","senior_admin","deputy_head_admin","head_admin","co_owner","owner"];
-const ROLE_LABELS = {user:"Игрок",moderator:"Модератор",admin:"Администратор",senior_admin:"Старший администратор",deputy_head_admin:"ЗГА",head_admin:"Главный администратор",co_owner:"Совладелец",owner:"Владелец"};
+const ROLE_LABELS = {user:"Игрок",moderator:"Модератор",admin:"Администратор",senior_admin:"Старший администратор",deputy_head_admin:"ЗГА",head_admin:"Главный администратор",co_owner:"Dep.Owner",owner:"Владелец"};
 const roleRank = role => { const rank=ROLE_ORDER.indexOf(role); return rank<0?0:rank; };
 const OWNER_USERNAME = (process.env.OWNER_USERNAME || "").trim().toLowerCase();
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD || "";
