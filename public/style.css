@@ -1304,3 +1304,6 @@ input,select{border-radius:9px}
 .role-tag-co_owner{background:#563d77;color:#e4c6ff;border:1px solid #9d6bd4}
 @media(max-width:900px){.top-drops-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.battle-list{grid-template-columns:1fr}}
 @media(max-width:560px){.live-stats{display:grid;grid-template-columns:1fr 1fr;gap:7px}.live-stat{min-width:0;padding:9px}.live-stat b{font-size:16px}.live-stat small{font-size:7px}.top-drops-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.top-drop-card{padding:9px 7px}.top-drop-art{height:80px}.top-drop-info b{font-size:10px}.top-drop-info strong{font-size:14px}.case-quick-btn{font-size:9px;padding:7px 3px}.battle.battle-card{padding:12px}.battle-card-footer{align-items:flex-end}.battle-card-footer .btn{white-space:nowrap}}
+
+/* Upgrade quick selectors */
+.quick-choice{display:flex;flex-direction:column;gap:5px}.quick-buttons-label{font-size:10px;color:#6f7a8f;letter-spacing:1.2px;margin-top:4px}.quick-buttons button.active{border-color:#3d7dff;background:#1a2332;color:#fff;box-shadow:inset 0 0 0 1px #3d7dff55}.upgrade-header .fast-toggle{white-space:nowrap}@media(max-width:520px){.upgrade-header{align-items:flex-start;flex-direction:column}.quick-buttons-label{font-size:9px}}
