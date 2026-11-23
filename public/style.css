@@ -1434,3 +1434,56 @@ input,select{border-radius:9px}
 .upgrade-reference .upgrade-wheel-ticks span:nth-child(4){left:0!important}
 .upgrade-reference .upgrade-reference-chance{display:none!important}
 @media(max-width:760px){.upgrade-reference .upgrade-wheel-stage{width:min(78vw,310px)!important;margin:20px auto 12px!important}.upgrade-reference .upgrade-wheel-dial{inset:8%!important}}
+
+/* FIX: single, centered circular upgrader gauge — override legacy wheel layouts */
+.upgrade-reference .upgrade-wheel-stage{
+  position:relative!important;display:block!important;
+  width:min(78vw,320px)!important;height:auto!important;aspect-ratio:1!important;
+  margin:24px auto 22px!important;padding:0!important;transform:none!important;
+  isolation:isolate!important;overflow:visible!important;filter:none!important;
+}
+.upgrade-reference .upgrade-wheel-stage:before,
+.upgrade-reference .upgrade-wheel-stage:after{content:none!important;display:none!important}
+.upgrade-reference #upgrade-wheel{
+  position:absolute!important;inset:0!important;display:block!important;
+  width:100%!important;height:100%!important;min-width:0!important;
+  aspect-ratio:1!important;padding:0!important;margin:0!important;
+  border:0!important;border-radius:50%!important;background:transparent!important;
+  box-shadow:none!important;filter:none!important;transform:none!important;
+}
+.upgrade-reference #upgrade-wheel-dial{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;
+  background:conic-gradient(from -90deg,#f04432 0deg,#ff9d27 var(--mid-deg,0deg),#a6e83d var(--arc-deg,0deg),#273445 var(--arc-deg,0deg) 360deg)!important;
+  box-shadow:inset 0 0 0 1px #63748b,0 0 0 5px #263342,0 0 0 8px #101722,0 10px 28px #0008!important;
+  -webkit-mask:radial-gradient(circle,transparent 0 77%,#000 78% 100%)!important;
+  mask:radial-gradient(circle,transparent 0 77%,#000 78% 100%)!important;
+  overflow:visible!important;transform:none!important;transition:background .25s ease!important;
+}
+.upgrade-reference #upgrade-wheel-dial:before,
+.upgrade-reference #upgrade-wheel-dial:after{content:none!important;display:none!important}
+.upgrade-reference #upgrade-wheel .upgrade-wheel-center{
+  position:absolute!important;left:50%!important;top:50%!important;
+  right:auto!important;bottom:auto!important;inset:auto!important;
+  transform:translate(-50%,-50%)!important;width:60%!important;height:60%!important;
+  min-width:0!important;max-width:none!important;border:2px solid #34465d!important;
+  border-radius:50%!important;background:radial-gradient(circle at 45% 35%,#202d3e,#111925 78%)!important;
+  box-shadow:inset 0 0 24px #0009,0 0 0 5px #172231!important;z-index:3!important;
+}
+.upgrade-reference #upgrade-wheel .upgrade-wheel-center b{font-size:clamp(28px,7vw,42px)!important;color:#b7f24a!important}
+.upgrade-reference #upgrade-wheel .upgrade-wheel-center small{font-size:9px!important;color:#a5b1c4!important}
+.upgrade-reference .upgrade-wheel-pointer{display:none!important}
+.upgrade-reference .upgrade-wheel-ticks{
+  position:absolute!important;inset:0!important;display:block!important;
+  width:100%!important;height:100%!important;pointer-events:none!important;
+  z-index:4!important;font-size:11px!important;color:#7889a2!important;
+}
+.upgrade-reference .upgrade-wheel-ticks span{position:absolute!important}
+.upgrade-reference .upgrade-wheel-ticks span:nth-child(1){top:3%!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translateX(-50%)!important}
+.upgrade-reference .upgrade-wheel-ticks span:nth-child(2){top:50%!important;right:1%!important;left:auto!important;bottom:auto!important;transform:translateY(-50%)!important}
+.upgrade-reference .upgrade-wheel-ticks span:nth-child(3){bottom:3%!important;left:50%!important;right:auto!important;top:auto!important;transform:translateX(-50%)!important}
+.upgrade-reference .upgrade-wheel-ticks span:nth-child(4){top:50%!important;left:1%!important;right:auto!important;bottom:auto!important;transform:translateY(-50%)!important}
+.upgrade-reference .upgrade-reference-chance{display:none!important}
+@media(max-width:560px){
+ .upgrade-reference .upgrade-wheel-stage{width:min(78vw,310px)!important;margin:22px auto 18px!important}
+}
