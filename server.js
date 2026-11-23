@@ -265,10 +265,7 @@ function requireStaff(req,res,next) {
   if (!u || roleRank(u.role)<1) return res.status(403).json({error:"Недостаточно прав"});
   next();
 }
-function ownerShield(target) {
-  return target && (target.role==="owner" || target.role==="co_owner" || (OWNER_USERNAME && target.username.toLowerCase()===OWNER_USERNAME));
-}
-function log(userId,message) {
+ function log(userId,message) {
   db.prepare("INSERT INTO activity(user_id,message) VALUES(?,?)").run(userId,message);
 }
 
@@ -987,7 +984,6 @@ app.post("/api/staff/users/:id/action",requireAuth,requireStaff,(req,res)=>{
  if(!["kick","ban","unban","set_role"].includes(action))return res.status(400).json({error:"Неизвестное действие"});
  const target=db.prepare("SELECT id,username,role,banned FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(ownerShield(target))return res.status(403).json({error:"Аккаунт владельца защищён"});
  const actorRank=roleRank(actor.role), targetRank=roleRank(target.role);
  if(Number(target.id)===Number(actor.id))return res.status(403).json({error:"Нельзя управлять собственной ролью или аккаунтом"});
  if(actorRank<=targetRank)return res.status(403).json({error:"Можно управлять только сотрудниками ниже по иерархии"});
@@ -1025,21 +1021,21 @@ app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
  res.json({users,activity,totalUsers,totalItems,totalBalance,totalInventoryValue,search});
 });
 app.post("/api/owner/users/:id/forced-drop",requireAuth,requireOwner,(req,res)=>{
- const id=Number(req.params.id),enabled=req.body.enabled===true;
+ const actor=current(req),id=Number(req.params.id),enabled=req.body.enabled===true;
  if(!Number.isInteger(id)||id<1)return res.status(400).json({error:"Некорректный игрок"});
  const target=db.prepare("SELECT id,username,role FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(ownerShield(target))return res.status(403).json({error:"Нельзя назначить дроп самому владельцу"});
+ if(Number(target.id)===Number(actor.id)||roleRank(actor.role)<=roleRank(target.role))return res.status(403).json({error:"Можно управлять только аккаунтами ниже по иерархии"});
  db.prepare("UPDATE users SET forced_drop=? WHERE id=?").run(enabled?1:0,id);
  log(current(req).id,(enabled?"Включён гарантированный самый дорогой дроп для ":"Отключён гарантированный дроп для ")+target.username);
  res.json({ok:true,enabled,username:target.username});
 });
 app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
- const id=Number(req.params.id), amount=Number(req.body.amount), mode=req.body.mode==="add"?"add":"set";
+ const actor=current(req),id=Number(req.params.id), amount=Number(req.body.amount), mode=req.body.mode==="add"?"add":"set";
  if(!Number.isInteger(id)||id<1||!Number.isInteger(amount)||amount<(mode==="add"?1:0)||amount>100000000) return res.status(400).json({error:"Проверь сумму"});
  const target=db.prepare("SELECT id,username,role,balance FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(["owner","co_owner"].includes(target.role)&&target.id!==current(req).id)return res.status(403).json({error:"Нельзя менять баланс другого владельца или совладельца"});
+ if(Number(target.id)===Number(actor.id)||roleRank(actor.role)<=roleRank(target.role))return res.status(403).json({error:"Можно менять баланс только аккаунтам ниже по иерархии"});
  const nextBalance=mode==="add"?Number(target.balance)+amount:amount;
  if(nextBalance>100000000)return res.status(400).json({error:"Слишком большой баланс"});
  const tx=db.transaction(()=>{
@@ -1050,12 +1046,12 @@ app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
  res.json({ok:true,balance:nextBalance});
 });
 app.post("/api/owner/users/:id/role",requireAuth,requireOwner,(req,res)=>{
- const id=Number(req.params.id), role=String(req.body.role||"");
+ const actor=current(req),id=Number(req.params.id), role=String(req.body.role||"");
  if(!Number.isInteger(id)||id<1)return res.status(400).json({error:"Некорректный игрок"});
- if(!ROLE_ORDER.includes(role)||role==="owner") return res.status(400).json({error:"Недопустимая роль"});
+ if(!ROLE_ORDER.includes(role)||role==="owner"||roleRank(role)>=roleRank(actor.role)) return res.status(400).json({error:"Нельзя назначить равную или более высокую роль"});
  const target=db.prepare("SELECT id,username,role FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(ownerShield(target))return res.status(403).json({error:"Владелец защищён от любых изменений роли"});
+ if(Number(target.id)===Number(actor.id)||roleRank(actor.role)<=roleRank(target.role))return res.status(403).json({error:"Можно менять роли только аккаунтам ниже по иерархии"});
  const tx=db.transaction(()=>{
   db.prepare("UPDATE users SET role=? WHERE id=?").run(role,id);
   log(current(req).id,"Роль игрока "+target.username+" изменена на "+(ROLE_LABELS[role]||role));
@@ -1064,14 +1060,14 @@ app.post("/api/owner/users/:id/role",requireAuth,requireOwner,(req,res)=>{
  res.json({ok:true,role});
 });
 app.delete("/api/owner/users/:id",requireAuth,requireOwner,(req,res)=>{
- const id=Number(req.params.id);
+ const actor=current(req),id=Number(req.params.id);
  const target=db.prepare("SELECT id,username,role FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(ownerShield(target))return res.status(403).json({error:"Нельзя удалить владельца"});
+ if(Number(target.id)===Number(actor.id)||roleRank(actor.role)<=roleRank(target.role))return res.status(403).json({error:"Можно удалять только аккаунты ниже по иерархии"});
  const tx=db.transaction(()=>{
   db.prepare("DELETE FROM inventory WHERE user_id=?").run(id);
   db.prepare("DELETE FROM activity WHERE user_id=?").run(id);
-  db.prepare("DELETE FROM users WHERE id=? AND role NOT IN ('owner','co_owner')").run(id);
+  db.prepare("DELETE FROM users WHERE id=?").run(id);
  });
  tx();res.json({ok:true});
 });
