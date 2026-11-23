@@ -603,7 +603,7 @@ const skinCatalog=[
   ["★ Karambit | Tiger Tooth (Factory New)",215000,"Нож","★ Karambit | Tiger Tooth"]
 ].filter(([name])=>!skinCatalog.some(s=>s.name===name)).map(([name,value,rarity,imageBaseName])=>({
   name,value,steamRub:value,rarity,marketWear:"Factory New",image:"",imageBaseName,
-  fixedPrice:true,priceSource:"Виртуальная оценка CaseArena",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)
+  fixedPrice:false,priceSource:"Оценка CaseArena",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)
 })));
 
 cases.push(
@@ -635,12 +635,12 @@ cases.push(
     skinCatalog.push({name,value,steamRub:value,rarity:rarityNames[rarity]||rarity||category,image:item.image||"",marketWear:"Field-Tested",fixedPrice:true,priceSource:"Виртуальная оценка CaseArena",steamUrl,sourceId:item.id||null,category});
     known.add(name);added++;
    }
-   console.log("Imported complete CS2 skin catalogue",{sourceItems:rows.length,added,total:skinCatalog.length});
+   console.log("Imported complete CS2 skin catalogue",{sourceItems:rows.length,added,total:skinCatalog.length,withImages:skinCatalog.filter(s=>!!s.image).length,withoutImages:skinCatalog.filter(s=>!s.image).length});
   }catch(error){console.warn("Could not import complete CS2 skin catalogue:",error.message)}
  }
  const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
  for(const crate of cases)for(const item of crate.items)if(initialSkinPrices.has(item[0]))item[1]=initialSkinPrices.get(item[0]);
- const STEAM_PRICE_REFRESH_MS=60*60*1000;
+ const STEAM_PRICE_REFRESH_MS=5*60*1000;
  let steamPriceRefreshRunning=false,steamPriceLastUpdated=0,steamPriceCursor=0;
  const parseSteamRubPrice=value=>{if(!value)return 0;const normalized=String(value).replace(/[^0-9,\.]/g,"").replace(/\.(?=.*\.)/g,"").replace(",",".");const n=Number(normalized);return Number.isFinite(n)&&n>0?n:0};
  async function refreshSteamPrices(){
@@ -696,13 +696,13 @@ async function getSkinImageIndex(){
  return skinImageIndexPromise;
 }
 function normalizeSkinImageName(value){
- return String(value||"").replace(/^★\\s*/,"").replace(/\\s*\\([^)]*\\)\\s*$/,"").trim().toLowerCase();
+ return String(value||"").replace(/^★\s*/,"").replace(/\s*\([^)]*\)\s*$/,"").trim().toLowerCase();
 }
 function resolveSkinImage(name,imageIndex){
  const exact=imageIndex.get(name);
  if(exact)return exact;
  const entry=skinCatalog.find(s=>s.name===name);
- const candidates=[entry?.imageBaseName,name,String(name).replace(/ \\(.*\\)$/,"")].filter(Boolean);
+ const candidates=[entry?.imageBaseName,name,String(name).replace(/ \(.*\)$/,"")].filter(Boolean);
  for(const candidate of candidates){
   const direct=imageIndex.get(candidate);
   if(direct)return direct;
@@ -723,6 +723,24 @@ app.get("/api/skins",async(req,res)=>{
  let imageIndex=new Map();
  try{imageIndex=await getSkinImageIndex()}catch(error){console.warn("Skin images unavailable:",error.message)}
  res.json(skinCatalog.map(s=>({...s,image:resolveSkinImage(s.name,imageIndex)||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Ожидает котировку Steam"})));
+});
+app.post("/api/skins/buy",requireAuth,(req,res)=>{
+ const u=current(req),skinName=String(req.body.skinName||"").trim().slice(0,160);
+ const skin=skinCatalog.find(item=>item.name===skinName);
+ if(!skin)return res.status(404).json({error:"Скин не найден в каталоге"});
+ const price=Math.round(Number(skin.value));
+ if(!Number.isSafeInteger(price)||price<1||price>5000000)return res.status(400).json({error:"У этого скина пока некорректная цена"});
+ try{
+  const result=db.transaction(()=>{
+   const fresh=db.prepare("SELECT balance FROM users WHERE id=?").get(u.id);
+   if(!fresh||fresh.balance<price)throw new Error("Недостаточно CR для покупки");
+   db.prepare("UPDATE users SET balance=balance-? WHERE id=?").run(price,u.id);
+   const item=db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,skin.name,price);
+   log(u.id,"Куплен скин "+skin.name+" за "+price+" CR");
+   return {ok:true,itemId:item.lastInsertRowid,name:skin.name,value:price,balance:fresh.balance-price};
+  })();
+  res.json({...result,user:userView(current(req))});
+ }catch(error){res.status(400).json({error:error.message||"Не удалось купить скин"});}
 });
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
   const u=current(req), c=cases.find(x=>x.id===req.params.id);
