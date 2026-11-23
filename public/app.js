@@ -184,6 +184,16 @@ async function loadLeaders(){const rows=await api("/api/leaderboard");$("#leader
 window.viewPlayer=async username=>{try{const d=await api("/api/users/"+encodeURIComponent(username));const u=d.user;openModal("ПРОФИЛЬ ИГРОКА",'<div class="profile-head"><div class="avatar">'+esc(u.username.slice(0,2).toUpperCase())+'</div><div><h3>'+esc(u.username)+roleBadge(u.role)+'</h3><p class="muted small">В инвентаре '+d.inventory.length+' предметов · стоимость '+money(d.inventoryValue)+'</p></div></div><div class="public-inventory">'+(d.inventory.length?d.inventory.map(x=>skinCard(x.item_name,x.item_value,{market:true})).join(""):'<p class="muted">Инвентарь пуст</p>')+'</div>')}catch(e){toast(e.message)}};
 async function loadBattles(){const bs=await api("/api/battles");$("#battle-list").innerHTML=bs.map(b=>'<div class="battle"><div><strong>'+esc(b.name)+'</strong><p class="muted small">'+b.players+' игрока · '+b.rounds+' раунда · '+esc(b.status)+'</p></div><div><b class="battle-price">'+money(b.entry)+'</b> <button class="btn primary" onclick="joinBattle('+b.id+','+b.entry+')">Участвовать</button></div></div>').join("")}
 window.joinBattle=async(id,entry)=>{try{const d=await api("/api/battles/"+id+"/join",{method:"POST",body:JSON.stringify({entry})});await refresh();toast(d.message)}catch(e){toast(e.message)}};
+window.switchArenaMode=mode=>{
+ const battles=$("#arena-battles"),upgrade=$("#arena-upgrade");
+ if(!battles||!upgrade)return;
+ const showUpgrade=mode==="upgrade";
+ battles.classList.toggle("active",!showUpgrade);
+ upgrade.classList.toggle("active",showUpgrade);
+ document.querySelectorAll(".arena-switcher button").forEach((button,index)=>button.classList.toggle("active",index===(showUpgrade?1:0)));
+ if(showUpgrade)renderUpgrade();
+};
+
 async function loadStaff(search=""){
  const box=$("#staff-content");
  if(!box||!me||roleRank(me.role)<1)return;
