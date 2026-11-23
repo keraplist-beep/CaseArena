@@ -1319,7 +1319,7 @@ input,select{border-radius:9px}
 .upgrade-v2-tools button:last-child{margin-left:auto;color:#ffc45a}
 .upgrade-reference-center{display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:24px}
 .upgrade-reference .upgrade-wheel-stage{width:clamp(230px,43vw,390px)!important;height:auto!important;aspect-ratio:1;margin:18px auto 12px!important}
-.upgrade-reference .upgrade-wheel-dial{border:9px solid #283342!important;box-shadow:0 0 0 3px #45566b,0 0 0 9px #101722,inset 0 0 26px #000b!important;background:conic-gradient(from -90deg,#263648 0 var(--chance),#202b39 var(--chance) 100%)!important}
+.upgrade-reference .upgrade-wheel-dial{border:9px solid #283342!important;box-shadow:0 0 0 3px #45566b,0 0 0 9px #101722,inset 0 0 26px #000b!important;background:conic-gradient(from 180deg,#263648 0 var(--chance),#202b39 var(--chance) 100%)!important}
 .upgrade-reference .upgrade-wheel-center{background:radial-gradient(circle,#29394c,#111a26 72%)!important;border:3px solid #52647a!important;box-shadow:0 0 0 5px #172231,0 0 24px #000b!important}
 .upgrade-reference .upgrade-wheel-center b{font-size:clamp(23px,4vw,34px)!important}
 .upgrade-reference .upgrade-wheel-center small{font-size:8px!important;letter-spacing:1px}
@@ -1374,3 +1374,6 @@ input,select{border-radius:9px}
  .upgrade-reference-side .pick-card small{font-size:9px}
  .upgrade-reference-summary{gap:8px;font-size:9px}
 }
+
+/* Pointer rests at six o’clock; the success sector begins at the same point. */
+.upgrade-reference .upgrade-wheel-pointer{transform:rotate(180deg)!important}
