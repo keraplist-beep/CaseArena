@@ -725,6 +725,8 @@ async function loadCompleteSkinCatalog(){
  }
  const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
  for(const crate of cases)for(const item of crate.items)if(initialSkinPrices.has(item[0]))item[1]=initialSkinPrices.get(item[0]);
+ // Виртуальный курс CaseArena: 1 CR ≈ 1 RUB. Рыночные USD-котировки пересчитываем по ориентиру 82 RUB за USD (23.11.2026).
+  const CASEARENA_RUB_PER_USD=82;
  const MARKET_PRICE_REFRESH_MS=5*60*1000;
  let marketPriceRefreshRunning=false,marketPriceLastUpdated=0;
  async function refreshMarketPrices(){
@@ -762,7 +764,7 @@ async function loadCompleteSkinCatalog(){
     const marketUsd=steamAsk>0?steamAsk:lowestAsk>0?lowestAsk:0;
     if(!Number.isFinite(marketUsd)||marketUsd<=0)continue;
     skin.marketUsd=marketUsd;
-    skin.value=Math.max(1,Math.round(marketUsd*100));
+    skin.value=Math.max(1,Math.round(marketUsd*CASEARENA_RUB_PER_USD));
     skin.priceSource=steamAsk>0?"Steam Market":"Рынок OpenSkin";
     skin.marketplace=steamAsk>0?"steam":String(row.lowest_ask?.marketplace||"market");
     skin.priceUpdatedAt=row.updated_at||sourceUpdatedAt||new Date().toISOString();
