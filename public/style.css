@@ -1043,3 +1043,31 @@ input,select{border-radius:9px}
 .upgrade-pointer-preview small{font-size:11px;color:#aab7c8}
 .upgrade-wheel-pointer:before{border-left-width:6px;border-right-width:6px;border-top-width:13px}
 .upgrade-wheel-pointer:after{top:13px;left:calc(50% - 1px);width:2px;height:7%;box-shadow:0 0 5px #ffd16a66}
+
+/* Multi-skin CaseArena upgrader */
+.upgrade-selected-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:0 0 12px}
+.upgrade-slot{position:relative;min-width:0;min-height:86px;padding:7px 4px;border:1px dashed #40566e;border-radius:9px;background:#101d2b;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}
+.upgrade-slot.filled{border-style:solid;border-color:#4de1d1;background:linear-gradient(145deg,#173447,#101d2b)}
+.upgrade-slot .skin-art{width:44px;height:38px;min-height:38px}
+.upgrade-slot b{font-size:8px;line-height:1.2;max-width:100%;overflow-wrap:anywhere}
+.upgrade-slot small{font-size:8px;color:#ffcf75}
+.upgrade-slot-plus{font-size:22px;color:#6c8198}
+.upgrade-slot-remove{position:absolute;right:3px;top:2px;width:19px;height:19px;border:0;border-radius:50%;background:#542b39;color:#fff;z-index:2}
+.upgrade-total{font-size:10px;color:#a9bbce}.upgrade-total b{color:#4de1d1}
+.upgrade-select-mark{font-size:8px;color:#4de1d1}
+.upgrade-select-panel .pick-grid{max-height:350px;overflow:auto}
+.upgrade-quick-label{font-size:9px;font-weight:800;letter-spacing:1.2px;color:#8299b3;text-align:center}
+.upgrade-multipliers.upgrade-odds{grid-template-columns:repeat(3,1fr)}
+.upgrade-multipliers button.active{border-color:#4de1d1;background:#16404a;color:#64f2df;box-shadow:0 0 0 1px #4de1d155}
+.upgrade-mode-row,.upgrade-theme-row{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px}
+.upgrade-mode-row span,.upgrade-theme-row span{font-size:9px;color:#8fa4ba;margin-right:3px}
+.upgrade-mode-row button,.upgrade-theme-row button{padding:7px 9px;border:1px solid #304762;border-radius:7px;background:#122236;color:#b9c9d9;font-size:9px}
+.upgrade-mode-row button.active,.upgrade-theme-row button.active{border-color:#4de1d1;color:#4de1d1}
+.upgrade-price-filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:7px 0}
+.upgrade-price-filters input{min-width:0;width:100%;padding:8px;font-size:10px}
+.upgrade-cashback{padding:9px;border:1px solid #39b99a55;border-radius:8px;background:#12382d;color:#69e4bd;font-weight:800}
+.upgrade-machine[data-theme="neon"]{border-color:#8745b5;box-shadow:0 0 35px #a64cff18}
+.upgrade-machine[data-theme="neon"] .upgrade-slot.filled,.upgrade-machine[data-theme="neon"] .pick-card.chosen{border-color:#c66cff;box-shadow:0 0 15px #c66cff33}
+.upgrade-machine[data-theme="minimal"]{background:#101820;border-color:#45515d}
+.upgrade-machine[data-theme="minimal"] .upgrade-slot,.upgrade-machine[data-theme="minimal"] .upgrade-select-panel{background:#111a22;border-color:#46515b}
+@media(max-width:560px){.upgrade-selected-slots{grid-template-columns:repeat(3,minmax(0,1fr))}.upgrade-slot{min-height:76px}.upgrade-select-panel .pick-grid{max-height:320px}.upgrade-mode-row,.upgrade-theme-row{gap:4px}.upgrade-mode-row button,.upgrade-theme-row button{padding:7px 6px;font-size:8px}}
