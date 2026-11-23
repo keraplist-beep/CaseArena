@@ -348,10 +348,10 @@ function updateUpgradePreview(){
  const pointer=$("#upgrade-wheel-pointer");if(pointer){pointer.style.transition="none";pointer.style.transform="rotate(180deg)"}
  if(!items.length||!target||target.value<=stake){
   const msg=!items.length?"Добавь от 1 до 6 скинов":!target?"Теперь выбери желаемый скин справа":"Цель должна быть дороже общей ставки";
-  box.innerHTML='<span class="muted">'+msg+'</span>';if(chanceText)chanceText.textContent="—";const circle=$("#chanceCircle"),chanceLabel=$("#upgradeChance"),profitLabel=$("#upgradeProfit"),action=$("#doUpgradeBtn");if(circle)circle.style.setProperty("--chance","0%");if(chanceLabel)chanceLabel.textContent="0.0%";if(profitLabel)profitLabel.textContent="0 CR";if(action)action.disabled=true;if(wheel){wheel.style.setProperty("--chance","0%");wheel.style.setProperty("--arc-deg","0deg");wheel.style.setProperty("--mid-deg","0deg");}if(status)status.textContent=msg;if(win)win.textContent="—";if(fail)fail.textContent="—";return;
+  box.innerHTML='<span class="muted">'+msg+'</span>';if(chanceText)chanceText.textContent="—";const circle=$("#chanceCircle"),chanceLabel=$("#upgradeChance"),profitLabel=$("#upgradeProfit"),action=$("#doUpgradeBtn");if(circle)circle.style.setProperty("--chance","0%");if(chanceLabel)chanceLabel.textContent="0.0%";if(profitLabel)profitLabel.textContent="0 CR";if(action)action.disabled=true;if(wheel)wheel.style.setProperty("--chance","0%");if(status)status.textContent=msg;if(win)win.textContent="—";if(fail)fail.textContent="—";return;
  }
  const pct=Math.round(chance*100)/100,profit=target.value-stake; const circle=$("#chanceCircle"),chanceLabel=$("#upgradeChance"),profitLabel=$("#upgradeProfit"),action=$("#doUpgradeBtn");if(circle)circle.style.setProperty("--chance",pct+"%");if(chanceLabel)chanceLabel.textContent=pct.toFixed(1)+"%";if(profitLabel)profitLabel.textContent=money(profit);if(action)action.disabled=!(items.length&&target&&target.value>stake);
- if(chanceText)chanceText.textContent=pct.toFixed(1)+"%";if(wheel){wheel.style.setProperty("--chance",pct+"%");wheel.style.setProperty("--arc-deg",(pct*3.6)+"deg");wheel.style.setProperty("--mid-deg",(pct*1.8)+"deg")}if(dial)updateWheelLabels(dial,chance);
+ if(chanceText)chanceText.textContent=pct.toFixed(1)+"%";if(wheel)wheel.style.setProperty("--chance",pct+"%");if(dial)updateWheelLabels(dial,chance);
  if(status)status.textContent="Комиссия 7% учтена · можно улучшать";
  if(win)win.textContent=pct.toFixed(1)+"%";if(fail)fail.textContent=(100-pct).toFixed(1)+"%";
  box.innerHTML='<div><b>'+items.length+' предметов · ставка '+money(stake)+'</b><div class="muted small">'+esc(target.name)+' · разница +'+money(profit)+'</div></div><div class="chance-number">'+pct.toFixed(1)+'%</div>';
@@ -364,7 +364,7 @@ window.upgrade=async()=>{
  try{
   upgradeSettings.mode=$("#fastUpgrade")&&$("#fastUpgrade").checked?"fast":"animated"; const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemIds:items.map(x=>x.id),targetName:target.name})});
   const chance=Math.max(0,Math.min(95,Number(d.chance)||0)),wheel=$("#upgrade-wheel"),pointer=$("#upgrade-wheel-pointer"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status");
-  if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance.toFixed(1)+"%";if(wheel){wheel.style.setProperty("--chance",chance+"%");wheel.style.setProperty("--arc-deg",(chance*3.6)+"deg");wheel.style.setProperty("--mid-deg",(chance*1.8)+"deg")}
+  if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance.toFixed(1)+"%";if(wheel)wheel.style.setProperty("--chance",chance+"%");
   if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance.toFixed(1)+"%";if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance).toFixed(1)+"%";
   if(status)status.textContent=upgradeSettings.mode==="fast"?"Мгновенный результат":"Стрелка вращается…";
   if(dial){dial.style.transition="none";dial.style.transform="none";updateWheelLabels(dial,chance)}
