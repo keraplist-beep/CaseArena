@@ -61,7 +61,7 @@
 <a href="#leaders" data-nav="leaders" onclick="window.navigateCaseArenaPage('leaders')"><span class="bottom-nav-icon">🏆</span><span>Лидеры</span></a>
 </nav>
 <div id="modal" class="modal hidden"><div class="modal-box"><button class="close" onclick="closeModal()">×</button><h2 id="modal-title">Аккаунт</h2><div id="modal-body"></div></div></div><div id="toast" class="toast"></div>
-<script src="/app.js?v=arena-shop-3"></script>
+<script src="/app.js?v=forced-drop-1"></script>
 <script>
 (()=> {
  const pages=[...document.querySelectorAll('.page-view')];
@@ -75,6 +75,8 @@
   if(page==='staff' && !window.canAccessStaff?.()){page='cases';history.replaceState({},'',location.pathname+'#cases')}
   currentPage=page;
   pages.forEach(el=>el.classList.toggle('active-page',el.dataset.page===page));
+  if(page==='staff')window.loadStaff?.();
+  if(page==='owner')window.loadOwner?.();
   nav.querySelectorAll('a[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===page));
   document.title='CaseArena — '+({cases:'Кейсы',skins:'Скины',arena:'Арена',contracts:'Контракты',profile:'Профиль',leaders:'Лидеры',owner:'Панель владельца',staff:'Управление сервером'}[page]||'Арена');
   window.scrollTo(0,0);
