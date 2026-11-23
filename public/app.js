@@ -177,19 +177,27 @@ async function loadOwner(search=ownerSearchQuery){
     '<div class="owner-stat"><small>СТОИМОСТЬ ИНВЕНТАРЯ</small><b>'+money(inventoryValue)+'</b></div>'+
    '</div>'+
    '<div class="owner-toolbar"><div><h3>Управление игроками</h3><small class="muted">Выдача баланса и смена роли — отдельными действиями</small></div><div class="owner-toolbar-actions"><input id="owner-search" value="'+esc(ownerSearchQuery)+'" placeholder="Поиск по нику…" oninput="searchOwnerUsers(this.value)"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
-   '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>
-    '<div class="user-row" data-user="'+esc(u.username.toLowerCase())+'">'+
+   '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>{
+    const isOwner=u.role==="owner";
+    const locked=isOwner&&Number(u.id)!==Number(me.id);
+    const disabled=locked?"disabled":"";
+    const roleDisabled=isOwner?"disabled":"";
+    const moderation=isOwner?"":(Number(u.banned)===1
+      ? '<button class="btn secondary" onclick="ownerUnban('+u.id+')">Разбанить</button>'
+      : '<button class="btn danger" onclick="ownerBan('+u.id+')">Заблокировать</button>')+
+      '<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>';
+    return '<div class="user-row" data-user="'+esc(u.username.toLowerCase())+'">'+
      '<div class="user-info"><b>'+esc(u.username)+'</b> '+roleBadge(u.role)+
      '<small>'+(Number(u.banned)===1?'ЗАБЛОКИРОВАН · ':'Аккаунт активен · ')+esc(ROLE_LABELS[u.role]||u.role)+' · '+Number(u.item_count||0)+' предметов · инвентарь '+money(u.inventory_value)+'</small></div>'+
-     '<div class="owner-field"><small>БАЛАНС · '+money(u.balance)+'</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" placeholder="Сумма" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'></div>'+
+     '<div class="owner-field"><small>БАЛАНС · '+money(u.balance)+'</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" placeholder="Сумма" '+disabled+'></div>'+
      '<div class="owner-actions owner-balance-actions">'+
-      '<button class="btn primary" onclick="ownerBalance('+u.id+',\'add\')" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'>Выдать +</button>'+
-      '<button class="btn secondary" onclick="ownerBalance('+u.id+',\'set\')" '+(u.role==="owner"&&Number(u.id)!==Number(me.id)?"disabled":"")+'>Задать</button>'+
+      '<button class="btn primary" onclick="ownerBalance('+u.id+',\'add\')" '+disabled+'>Выдать +</button>'+
+      '<button class="btn secondary" onclick="ownerBalance('+u.id+',\'set\')" '+disabled+'>Задать</button>'+
      '</div>'+
-     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+(u.role==="owner"?"disabled":"")+'>'+ROLE_ORDER.filter(role=>role!=="owner").map(role=>'<option value="'+role+'" '+(u.role===role?"selected":"")+'>'+ROLE_LABELS[role]+'</option>').join("")+'</select></label>'+
-     '<div class="owner-actions"><button class="btn secondary" onclick="ownerRole('+u.id+')" '+(u.role==="owner"?"disabled":"")+'>Сохранить роль</button>'+
-     (u.role==="owner"?'':(Number(u.banned)===1?'<button class="btn secondary" onclick="ownerUnban('+u.id+')">Разбанить</button>':'<button class="btn danger" onclick="ownerBan('+u.id+')">Заблокировать</button>')+'<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>'))+'</div></div>'
-   ).join(""):'<p class="muted">'+(ownerSearchQuery?"По этому нику игроки не найдены.":"Пока нет игроков.")+'</p>')+'</div>'+
+     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+roleDisabled+'>'+ROLE_ORDER.filter(role=>role!=="owner").map(role=>'<option value="'+role+'" '+(u.role===role?"selected":"")+'>'+ROLE_LABELS[role]+'</option>').join("")+'</select></label>'+
+     '<div class="owner-actions"><button class="btn secondary" onclick="ownerRole('+u.id+')" '+roleDisabled+'>Сохранить роль</button>'+
+     moderation+'</div></div>';
+   }).join(""):'<p class="muted">'+(ownerSearchQuery?"По этому нику игроки не найдены.":"Пока нет игроков.")+'</p>')+'</div>'+
    '<div class="owner-activity"><h3>Последние действия</h3>'+
    (activity.length?activity.map(item=>'<p><b>'+esc(item.username||"Система")+'</b><span>'+esc(item.message)+'</span></p>').join(""):'<p class="muted">Действий пока нет.</p>')+
    '</div>';
