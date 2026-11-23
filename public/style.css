@@ -799,3 +799,31 @@ body{padding-bottom:100px}
  .upgrade-wheel-center small{font-size:8px!important}
  .wheel-sector-label{font-size:8px!important;letter-spacing:0!important}
 }
+
+
+/* CS2-style case opening: wide viewport, large item strip and clear stop marker */
+.modal-box:has(.casebattle-roulette){width:min(1040px,calc(100vw - 30px));padding:26px 28px;background:linear-gradient(160deg,#182535,#0b121c 75%);border:1px solid #53677b;border-radius:8px;box-shadow:0 24px 90px #000c,0 0 55px #d5a43a18}
+.modal-box:has(.casebattle-roulette) h2{font-size:clamp(15px,2vw,21px);text-align:center;letter-spacing:2px;color:#f1f5f9}
+.opening-subtitle{text-align:center;color:#9babbc;font:700 10px Orbitron,sans-serif;letter-spacing:2px;margin:8px 0 18px}
+.casebattle-roulette{margin:0;padding:28px 0;border:1px solid #53677b;border-left:0;border-right:0;border-radius:2px;background:linear-gradient(180deg,#080e15,#142333 50%,#080e15);box-shadow:inset 0 0 45px #000d,0 10px 32px #0008}
+.casebattle-roulette .roulette-window{padding:14px 0;min-height:190px}
+.casebattle-roulette .roulette-track{gap:8px;will-change:transform}
+.casebattle-roulette .roulette-skin{width:164px;min-height:174px;padding:10px;border-radius:3px;border:1px solid #35495c;background:linear-gradient(180deg,#24394c,#111b27);justify-content:space-between}
+.casebattle-roulette .roulette-skin .skin-art{height:105px;min-height:105px;background:radial-gradient(ellipse,#40566b,#111923 72%);border-radius:2px}
+.casebattle-roulette .roulette-skin .skin-art img{height:98px;width:100%;object-fit:contain}
+.casebattle-roulette .roulette-skin>b{font-size:10px;min-height:27px}
+.casebattle-roulette .roulette-skin>small{font-size:9px}
+.casebattle-roulette .roulette-pointer{border-left-width:14px;border-right-width:14px;border-top-width:22px;filter:drop-shadow(0 0 8px #f5c85a)}
+.casebattle-roulette .roulette-winner{border:2px solid #ffd36a;background:linear-gradient(180deg,#655022,#1a2027);box-shadow:inset 0 0 30px #ffd36a44,0 0 24px #ffd36a88}
+.opening-footer{display:flex;justify-content:space-between;gap:12px;color:#778da3;font:700 9px Orbitron,sans-serif;letter-spacing:1.4px;margin-top:14px}
+.casebattle-roulette .roulette-edge-fade{background:linear-gradient(90deg,#080e15 0,transparent 15%,transparent 85%,#080e15 100%)}
+@media(max-width:600px){
+ .modal{padding:8px}
+ .modal-box:has(.casebattle-roulette){width:calc(100vw - 16px);padding:20px 10px}
+ .casebattle-roulette{padding:20px 0}
+ .casebattle-roulette .roulette-window{min-height:158px;padding:10px 0}
+ .casebattle-roulette .roulette-skin{width:122px;min-height:146px;padding:7px}
+ .casebattle-roulette .roulette-skin .skin-art{height:82px;min-height:82px}
+ .casebattle-roulette .roulette-skin .skin-art img{height:76px}
+ .opening-footer{font-size:7px}
+}
