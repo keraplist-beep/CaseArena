@@ -636,6 +636,7 @@ cases.push(
     known.add(name);added++;
    }
    console.log("Imported complete CS2 skin catalogue",{sourceItems:rows.length,added,total:skinCatalog.length,withImages:skinCatalog.filter(s=>!!s.image).length,withoutImages:skinCatalog.filter(s=>!s.image).length});
+   for(const skin of skinCatalog){skin.fixedPrice=false;if(!skin.priceSource)skin.priceSource="Оценка CaseArena";}
   }catch(error){console.warn("Could not import complete CS2 skin catalogue:",error.message)}
  }
  const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
@@ -722,7 +723,11 @@ function resolveSkinImage(name,imageIndex){
 app.get("/api/skins",async(req,res)=>{
  let imageIndex=new Map();
  try{imageIndex=await getSkinImageIndex()}catch(error){console.warn("Skin images unavailable:",error.message)}
- res.json(skinCatalog.map(s=>({...s,image:resolveSkinImage(s.name,imageIndex)||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Ожидает котировку Steam"})));
+ const result=skinCatalog.map(s=>({...s,image:resolveSkinImage(s.name,imageIndex)||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Оценка CaseArena"}));
+ const missing=result.filter(item=>!item.image);
+ if(missing.length)console.warn("CS2 skin image audit",{total:result.length,withImages:result.length-missing.length,withoutImages:missing.length,samples:missing.slice(0,12).map(item=>item.name)});
+ else console.log("CS2 skin image audit passed",{total:result.length,withImages:result.length,withoutImages:0});
+ res.json(result);
 });
 app.post("/api/skins/buy",requireAuth,(req,res)=>{
  const u=current(req),skinName=String(req.body.skinName||"").trim().slice(0,160);
