@@ -233,7 +233,11 @@ if (googleConfigured) {
     } catch (err) { return done(err); }
   }));
 }
-const authLimiter = rateLimit({windowMs: 15*60*1000, limit: 30, standardHeaders: true, legacyHeaders: false});
+const authLimiter = rateLimit({windowMs: 15*60*1000, limit: 30, standardHeaders: true, legacyHeaders: false, handler:(req,res)=>{
+ const username=String(req.body?.username||"").trim().toLowerCase().slice(0,20);
+ console.warn("[AUTH] request rate limited",JSON.stringify({path:req.path,username:username||null,reason:"too_many_attempts",at:new Date().toISOString()}));
+ res.status(429).json({error:"Слишком много попыток. Подожди 15 минут и попробуй снова."});
+}});
 app.use(express.static(path.join(__dirname, "public")));
 
 const userView = u => ({id:u.id, username:u.username, role:u.role, balance:u.balance});
@@ -336,13 +340,19 @@ app.post("/api/login",authLimiter,async(req,res)=>{
   const username=String(req.body.username||"").trim().toLowerCase();
   const password=String(req.body.password||"");
   const u=db.prepare("SELECT * FROM users WHERE username=?").get(username);
-  if (!u || !(await bcrypt.compare(password,u.password_hash))) return res.status(401).json({error:"Неверный ник или пароль"});
-  if (u.banned) return res.status(403).json({error:"Ваш аккаунт заблокирован администрацией"});
+  if (!u || !(await bcrypt.compare(password,u.password_hash))) {
+    console.warn("[AUTH] login rejected",JSON.stringify({username:username||null,reason:"invalid_credentials",at:new Date().toISOString()}));
+    return res.status(401).json({error:"Неверный ник или пароль"});
+  }
+  if (u.banned) {
+    console.warn("[AUTH] login rejected",JSON.stringify({username,reason:"account_banned",at:new Date().toISOString()}));
+    return res.status(403).json({error:"Ваш аккаунт заблокирован администрацией"});
+  }
   req.session = req.session || {};
   req.session.userId = u.id;
   req.session.sessionVersion = u.session_version || 0;
-
-res.json({user:userView(u)});
+  console.info("[AUTH] login succeeded",JSON.stringify({username,at:new Date().toISOString()}));
+  res.json({user:userView(u)});
 });
 app.post("/api/logout",(req,res)=>{req.session=null;res.json({ok:true});});
 
@@ -904,9 +914,9 @@ app.post("/api/upgrade",requireAuth,(req,res)=>{
   if(!targetSkin)return res.status(400).json({error:"Такого скина нет в каталоге"});
   const target=Number(targetSkin.value);
   if(!Number.isFinite(target)||target<50||target>5000000||target<=item.item_value)return res.status(400).json({error:"Цель должна быть дороже предмета"});
-  const defaultChance=Math.min(75,item.item_value/target*75);
+  const defaultChance=Math.min(70,item.item_value/target*70);
   const requestedChance=req.body.chance===undefined?defaultChance:Number(req.body.chance);
-  if(!Number.isFinite(requestedChance)||requestedChance<1||requestedChance>95)return res.status(400).json({error:"Шанс должен быть от 1% до 95%"});
+  if(!Number.isFinite(requestedChance)||requestedChance<1||requestedChance>70)return res.status(400).json({error:"Шанс должен быть от 1% до 70%"});
   const chance=Math.round(requestedChance*100)/100,success=Math.random()*100<chance;
   const tx=db.transaction(()=>{
     db.prepare("DELETE FROM inventory WHERE id=? AND user_id=?").run(item.id,u.id);
