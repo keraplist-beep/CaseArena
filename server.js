@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS users (
  banned INTEGER NOT NULL DEFAULT 0,
  session_version INTEGER NOT NULL DEFAULT 0,
  last_hourly_claim BIGINT NOT NULL DEFAULT 0,
- lunacy_redeemed INTEGER NOT NULL DEFAULT 0
+ lunacy_redeemed INTEGER NOT NULL DEFAULT 0,
+ forced_drop INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS inventory (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,6 +47,7 @@ if (!localUserColumns.includes("banned")) localDb.exec("ALTER TABLE users ADD CO
 if (!localUserColumns.includes("session_version")) localDb.exec("ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0");
 if (!localUserColumns.includes("last_hourly_claim")) localDb.exec("ALTER TABLE users ADD COLUMN last_hourly_claim BIGINT NOT NULL DEFAULT 0");
 if (!localUserColumns.includes("lunacy_redeemed")) localDb.exec("ALTER TABLE users ADD COLUMN lunacy_redeemed INTEGER NOT NULL DEFAULT 0");
+if (!localUserColumns.includes("forced_drop")) localDb.exec("ALTER TABLE users ADD COLUMN forced_drop INTEGER NOT NULL DEFAULT 0");
 
 const { Pool } = require("pg");
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for persistent CaseArena storage");
@@ -139,6 +141,7 @@ async function initializePersistentDatabase() {
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_hourly_claim BIGINT NOT NULL DEFAULT 0");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS lunacy_redeemed INTEGER NOT NULL DEFAULT 0");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS forced_drop INTEGER NOT NULL DEFAULT 0");
  const [users, inventory, activity] = await Promise.all([
    pool.query("SELECT * FROM users ORDER BY id"),
    pool.query("SELECT * FROM inventory ORDER BY id"),
@@ -148,8 +151,8 @@ async function initializePersistentDatabase() {
  if (remoteHasData) {
    localDb.exec("DELETE FROM inventory; DELETE FROM activity; DELETE FROM users;");
    for (const u of users.rows) localDb.prepare(
-     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version,last_hourly_claim,lunacy_redeemed) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
-   ).run(u.id,u.username,u.password_hash,u.role,u.balance,sqlTimestamp(u.created_at),u.google_sub,u.banned||0,u.session_version||0,u.last_hourly_claim||0,u.lunacy_redeemed||0);
+     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version,last_hourly_claim,lunacy_redeemed,forced_drop) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
+   ).run(u.id,u.username,u.password_hash,u.role,u.balance,sqlTimestamp(u.created_at),u.google_sub,u.banned||0,u.session_version||0,u.last_hourly_claim||0,u.lunacy_redeemed||0,u.forced_drop||0);
    for (const item of inventory.rows) localDb.prepare(
      "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES(?,?,?,?,?)"
    ).run(item.id,item.user_id,item.item_name,item.item_value,sqlTimestamp(item.created_at));
@@ -161,8 +164,8 @@ async function initializePersistentDatabase() {
    const localInventory = localDb.prepare("SELECT * FROM inventory ORDER BY id").all();
    const localActivity = localDb.prepare("SELECT * FROM activity ORDER BY id").all();
    for (const u of localUsers) await pool.query(
-     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version,last_hourly_claim,lunacy_redeemed) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (id) DO NOTHING",
-     [u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub,u.banned||0,u.session_version||0,u.last_hourly_claim||0,u.lunacy_redeemed||0]
+     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version,last_hourly_claim,lunacy_redeemed,forced_drop) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (id) DO NOTHING",
+     [u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub,u.banned||0,u.session_version||0,u.last_hourly_claim||0,u.lunacy_redeemed||0,u.forced_drop||0]
    );
    for (const item of localInventory) await pool.query(
      "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING",
@@ -775,27 +778,26 @@ app.post("/api/skins/buy",requireAuth,(req,res)=>{
  if(!Number.isSafeInteger(price)||price<1||price>5000000)return res.status(400).json({error:"У этого скина пока некорректная цена"});
  try{
   const result=db.transaction(()=>{
-   const fresh=db.prepare("SELECT balance FROM users WHERE id=?").get(u.id);
-   if(!fresh||fresh.balance<price)throw new Error("Недостаточно CR для покупки");
-   db.prepare("UPDATE users SET balance=balance-? WHERE id=?").run(price,u.id);
-   const item=db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,skin.name,price);
-   log(u.id,"Куплен скин "+skin.name+" за "+price+" CR");
-   return {ok:true,itemId:item.lastInsertRowid,name:skin.name,value:price,balance:fresh.balance-price};
-  })();
-  res.json({...result,user:userView(current(req))});
- }catch(error){res.status(400).json({error:error.message||"Не удалось купить скин"});}
-});
-app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
-  const u=current(req), c=cases.find(x=>x.id===req.params.id);
-  if(!c) return res.status(404).json({error:"Кейс не найден"});
-  const tx=db.transaction(()=>{
-    const fresh=db.prepare("SELECT balance FROM users WHERE id=?").get(u.id);
-    if(fresh.balance<c.price) throw new Error("Недостаточно средств");
-    const eligibleItems=c.id==="god-tier"?c.items.filter(item=>Number(item[1])<140000):c.items; if(!eligibleItems.length)throw new Error("В кейсе пока нет доступных предметов"); const totalWeight=eligibleItems.reduce((sum,item)=>sum+(Number(item[2])||0),0); let roll=Math.random()*totalWeight; let selected=eligibleItems[eligibleItems.length-1]; for(const item of eligibleItems){roll-=Number(item[2])||0;if(roll<=0){selected=item;break;}} const [name,value]=selected;
+   const fresh=db.prepare("SELECT balance,forced_drop FROM users WHERE id=?").get(u.id);
+     if(fresh.balance<c.price) throw new Error("Недостаточно средств");
+     let selected;
+     if(Number(fresh.forced_drop)===1){
+       const premium=skinCatalog.reduce((best,item)=>Number(item.value)>Number(best?.value||0)?item:best,null);
+       if(!premium)throw new Error("Не удалось определить самый дорогой скин");
+       selected=[premium.name,Number(premium.value),0];
+       db.prepare("UPDATE users SET forced_drop=0 WHERE id=?").run(u.id);
+     }else{
+       const eligibleItems=c.id==="god-tier"?c.items.filter(item=>Number(item[1])<140000):c.items;
+       if(!eligibleItems.length)throw new Error("В кейсе пока нет доступных предметов");
+       const totalWeight=eligibleItems.reduce((sum,item)=>sum+(Number(item[2])||0),0);
+       let roll=Math.random()*totalWeight;selected=eligibleItems[eligibleItems.length-1];
+       for(const item of eligibleItems){roll-=Number(item[2])||0;if(roll<=0){selected=item;break;}}
+     }
+     const [name,value]=selected;
     db.prepare("UPDATE users SET balance=balance-? WHERE id=?").run(c.price,u.id);
     db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,name,value);
     log(u.id,`Открыт кейс ${c.name}: ${name}`);
-    return {name,value,balance:fresh.balance-c.price,caseName:c.name};
+    return {name,value,balance:fresh.balance-c.price,caseName:c.name,forcedDrop:Number(fresh.forced_drop)===1};
   });
   try { res.json(tx()); } catch(e) { res.status(400).json({error:e.message}); }
 });
@@ -875,7 +877,7 @@ app.post("/api/battles/:id/join",requireAuth,(req,res)=>{
 });
 app.get("/api/staff/users",requireAuth,requireStaff,(req,res)=>{
  const q=String(req.query.search||"").trim().slice(0,40).replace(/[%_]/g,"");
- const rows=db.prepare("SELECT id,username,role,banned FROM users WHERE username LIKE ? COLLATE NOCASE ORDER BY banned DESC,id DESC LIMIT 250").all("%"+q+"%");
+ const rows=db.prepare("SELECT u.id,u.username,u.role,u.banned,u.created_at,(SELECT COUNT(*) FROM inventory i WHERE i.user_id=u.id) AS item_count FROM users u WHERE u.username LIKE ? COLLATE NOCASE ORDER BY u.banned DESC,u.id DESC LIMIT 250").all("%"+q+"%");
  res.json({users:rows});
 });
 app.post("/api/staff/users/:id/action",requireAuth,requireStaff,(req,res)=>{
@@ -910,7 +912,7 @@ app.post("/api/staff/users/:id/action",requireAuth,requireStaff,(req,res)=>{
 
 app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
  const search=String(req.query.search||"").trim().slice(0,40).replace(/[%_]/g,"");
- const userFields="SELECT id,username,role,balance,banned,created_at,(SELECT COUNT(*) FROM inventory WHERE user_id=users.id) AS item_count,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users";
+ const userFields="SELECT id,username,role,balance,banned,created_at,forced_drop,(SELECT COUNT(*) FROM inventory WHERE user_id=users.id) AS item_count,(SELECT COALESCE(SUM(item_value),0) FROM inventory WHERE user_id=users.id) AS inventory_value FROM users";
  const users=search
   ? db.prepare(userFields+" WHERE username LIKE ? COLLATE NOCASE ORDER BY banned DESC,id DESC LIMIT 250").all("%"+search+"%")
   : db.prepare(userFields+" ORDER BY banned DESC,id DESC LIMIT 250").all();
@@ -920,6 +922,16 @@ app.get("/api/owner/overview",requireAuth,requireOwner,(req,res)=>{
  const totalBalance=db.prepare("SELECT COALESCE(SUM(balance),0) n FROM users").get().n;
  const totalInventoryValue=db.prepare("SELECT COALESCE(SUM(item_value),0) n FROM inventory").get().n;
  res.json({users,activity,totalUsers,totalItems,totalBalance,totalInventoryValue,search});
+});
+app.post("/api/owner/users/:id/forced-drop",requireAuth,requireOwner,(req,res)=>{
+ const id=Number(req.params.id),enabled=req.body.enabled===true;
+ if(!Number.isInteger(id)||id<1)return res.status(400).json({error:"Некорректный игрок"});
+ const target=db.prepare("SELECT id,username,role FROM users WHERE id=?").get(id);
+ if(!target)return res.status(404).json({error:"Игрок не найден"});
+ if(ownerShield(target))return res.status(403).json({error:"Нельзя назначить дроп самому владельцу"});
+ db.prepare("UPDATE users SET forced_drop=? WHERE id=?").run(enabled?1:0,id);
+ log(current(req).id,(enabled?"Включён гарантированный самый дорогой дроп для ":"Отключён гарантированный дроп для ")+target.username);
+ res.json({ok:true,enabled,username:target.username});
 });
 app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
  const id=Number(req.params.id), amount=Number(req.body.amount), mode=req.body.mode==="add"?"add":"set";
