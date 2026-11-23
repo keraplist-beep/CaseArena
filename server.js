@@ -428,6 +428,34 @@ cases.forEach(c=>{
  if(c.items[0])c.items[0][2]=(Number(c.items[0][2])||0)+redistributed;
 });
 
+ 
+// Каждое открытие кейса имеет ровно 35% шанса окупиться
+// (стоимость выпавшего предмета не ниже цены кейса).
+cases.forEach(c=>{
+ const addFallback=(profitable)=>{
+  const candidates=skinCatalog.filter(s=>profitable?Number(s.value)>=c.price:Number(s.value)<c.price)
+   .sort((a,b)=>profitable?Number(a.value)-Number(b.value):Number(a.value)-Number(b.value));
+  const chosen=candidates.find(s=>!c.items.some(item=>item[0]===s.name));
+  if(chosen)c.items.push([chosen.name,Number(chosen.value),1]);
+ };
+ let winners=c.items.filter(item=>Number(item[1])>=c.price);
+ let losers=c.items.filter(item=>Number(item[1])<c.price);
+ if(!winners.length){addFallback(true);winners=c.items.filter(item=>Number(item[1])>=c.price);}
+ if(!losers.length){addFallback(false);losers=c.items.filter(item=>Number(item[1])<c.price);}
+ const normalize=(group,target)=>{
+  const total=group.reduce((sum,item)=>sum+Math.max(0,Number(item[2])||0),0);
+  if(!group.length||!total)return;
+  let assigned=0;
+  group.forEach((item,index)=>{
+   const weight=Math.max(0,Number(item[2])||0);
+   const chance=index===group.length-1?target-assigned:target*weight/total;
+   item[2]=chance;assigned+=chance;
+  });
+ };
+ normalize(winners,35);
+ normalize(losers,65);
+});
+
 async function caseImageData(){
  let skinsIndex=new Map(),cratesIndex=new Map();
  try{skinsIndex=await getSkinImageIndex()}catch(error){console.warn("Case skin images unavailable:",error.message)}
@@ -854,7 +882,10 @@ app.post("/api/upgrade",requireAuth,(req,res)=>{
   if(!targetSkin)return res.status(400).json({error:"Такого скина нет в каталоге"});
   const target=Number(targetSkin.value);
   if(!Number.isFinite(target)||target<50||target>5000000||target<=item.item_value)return res.status(400).json({error:"Цель должна быть дороже предмета"});
-  const chance=Math.min(75,item.item_value/target*75),success=Math.random()*100<chance;
+  const defaultChance=Math.min(75,item.item_value/target*75);
+  const requestedChance=req.body.chance===undefined?defaultChance:Number(req.body.chance);
+  if(!Number.isFinite(requestedChance)||requestedChance<1||requestedChance>95)return res.status(400).json({error:"Шанс должен быть от 1% до 95%"});
+  const chance=Math.round(requestedChance*100)/100,success=Math.random()*100<chance;
   const tx=db.transaction(()=>{
     db.prepare("DELETE FROM inventory WHERE id=? AND user_id=?").run(item.id,u.id);
     if(success)db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,targetSkin.name,target);
