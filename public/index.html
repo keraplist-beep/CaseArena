@@ -19,7 +19,7 @@
    <div class="upgrade-layout">
     <div class="upgrade-select-panel"><div class="upgrade-panel-head"><b>ТВОЙ ПРЕДМЕТ</b><span>1. Выбери скин</span></div><div id="upgrade-source" class="pick-grid"></div></div>
     <div class="upgrade-main-panel upgrader-center">
-     <div class="upgrader-title"><span>UPGRADE</span><small>СОБЕРИ СВОЙ АПГРЕЙД</small></div>
+     <div class="upgrader-title"><div><span>UPGRADE</span><small>СОБЕРИ СВОЙ АПГРЕЙД</small></div><button class="upgrade-settings-trigger" type="button" aria-label="Настройки апгрейдера" title="Настройки апгрейдера" onclick="openUpgradeSettings()">⚙</button></div>
      <div class="upgrader-comparison">
       <div class="upgrader-item"><div id="upgrade-from-art" class="upgrader-art"><span>?</span></div><b id="upgrade-from-name">Твой предмет</b><small id="upgrade-from-price">Выбери слева</small></div>
       <div class="upgrader-arrow"><span>➜</span><small>ЦЕЛЬ</small></div>
@@ -61,7 +61,7 @@
 <a href="#leaders" data-nav="leaders" onclick="window.navigateCaseArenaPage('leaders')"><span class="bottom-nav-icon">🏆</span><span>Лидеры</span></a>
 </nav>
 <div id="modal" class="modal hidden"><div class="modal-box"><button class="close" onclick="closeModal()">×</button><h2 id="modal-title">Аккаунт</h2><div id="modal-body"></div></div></div><div id="toast" class="toast"></div>
-<script src="/app.js?v=forced-drop-1"></script>
+<script src="/app.js?v=upgrade-settings-1"></script>
 <script>
 (()=> {
  const pages=[...document.querySelectorAll('.page-view')];
