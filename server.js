@@ -193,19 +193,14 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({limit:"30kb"}));
 app.use((req,res,next) => {
  const originalJson = res.json.bind(res);
+ // Do not hold every API response while PostgreSQL mirror writes are pending.
+ // SQLite is the request-time store; mirror writes continue asynchronously.
  res.json = (payload) => {
-   writeQueue.then(() => {
-     if (writeError) {
-       res.status(503);
-       return originalJson({error:"Хранилище временно недоступно. Попробуйте ещё раз."});
-     }
-     return originalJson(payload);
-   }).catch(error => {
-     console.error("Response persistence check failed:", error.message);
+   if (writeError) {
      res.status(503);
-     originalJson({error:"Хранилище временно недоступно."});
-   });
-   return res;
+     return originalJson({error:"Хранилище временно недоступно. Попробуйте ещё раз."});
+   }
+   return originalJson(payload);
  };
  next();
 });
