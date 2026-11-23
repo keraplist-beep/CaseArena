@@ -1,25 +1,29 @@
 const $=s=>document.querySelector(s);
 let me=null, inventory=[], selected=new Set(), skins=[], casesCache=[], upgradeSourceId=null, upgradeTarget=null, rolling=false, skinCatalogVisible=72;
-const UPGRADE_DEFAULTS={chance:35,speed:5.2,shape:"circle"};
-let upgradeSettings=(()=>{try{return {...UPGRADE_DEFAULTS,...JSON.parse(localStorage.getItem("casearena-upgrade-settings")||"{}")}}catch{return {...UPGRADE_DEFAULTS}}})();
+const UPGRADE_DEFAULTS={chance:35,speed:8,shape:"arrow"};
+let upgradeSettings=(()=>{try{
+ const saved=JSON.parse(localStorage.getItem("casearena-upgrade-settings")||"{}");
+ const rawSpeed=Number(saved.speed);
+ return {...UPGRADE_DEFAULTS,...saved,chance:Math.max(1,Math.min(70,Number(saved.chance)||35)),speed:(saved.speed==="fast"||(!Number.isNaN(rawSpeed)&&rawSpeed>0&&rawSpeed<5))?2:8,shape:"arrow"};
+}catch{return {...UPGRADE_DEFAULTS}}})();
 function saveUpgradeSettings(){try{localStorage.setItem("casearena-upgrade-settings",JSON.stringify(upgradeSettings))}catch{}}
 function applyUpgradeWheelSettings(){
- const shape=upgradeSettings.shape||"circle";
- ["#upgrade-wheel","#upgrade-wheel-dial","#upgrade-wheel-pointer"].forEach(selector=>{const el=$(selector);if(el)el.dataset.shape=shape});
+ const pointer=$("#upgrade-wheel-pointer");
+ if(pointer)pointer.dataset.shape="arrow";
 }
 window.setUpgradeSetting=(key,value)=>{
- if(key==="chance")upgradeSettings.chance=Math.max(1,Math.min(95,Number(value)||35));
- if(key==="speed")upgradeSettings.speed=Math.max(1,Math.min(10,Number(value)||5.2));
- if(key==="shape"&&["circle","hexagon","square"].includes(value))upgradeSettings.shape=value;
+ if(key==="chance")upgradeSettings.chance=Math.max(1,Math.min(70,Number(value)||35));
+ if(key==="speed")upgradeSettings.speed=value==="fast"?2:8;
+ if(key==="shape")upgradeSettings.shape="arrow";
  saveUpgradeSettings();applyUpgradeWheelSettings();updateUpgradePreview();
  const chanceLabel=$("#upgrade-setting-chance-value"),speedLabel=$("#upgrade-setting-speed-value");
  if(chanceLabel)chanceLabel.textContent=Number(upgradeSettings.chance).toFixed(0)+"%";
- if(speedLabel)speedLabel.textContent=Number(upgradeSettings.speed).toFixed(1)+" сек";
- document.querySelectorAll("[data-upgrade-shape]").forEach(el=>el.classList.toggle("active",el.dataset.upgradeShape===upgradeSettings.shape));
+ if(speedLabel)speedLabel.textContent=upgradeSettings.speed===2?"Быстро · 2 сек":"Медленно · 8 сек";
+ document.querySelectorAll("[data-upgrade-speed]").forEach(el=>el.classList.toggle("active",el.dataset.upgradeSpeed===(upgradeSettings.speed===2?"fast":"slow")));
 };
 window.openUpgradeSettings=()=>{
- const shape=upgradeSettings.shape||"circle";
- openModal("НАСТРОЙКИ АПГРЕЙДЕРА",'<div class="upgrade-settings"><label>Шанс успеха <b id="upgrade-setting-chance-value">'+Number(upgradeSettings.chance).toFixed(0)+'%</b></label><input type="range" min="1" max="95" step="1" value="'+upgradeSettings.chance+'" oninput="setUpgradeSetting(\'chance\',this.value)"><p class="muted small">Фактический шанс выигрыша при следующей попытке</p><label>Скорость вращения <b id="upgrade-setting-speed-value">'+Number(upgradeSettings.speed).toFixed(1)+' сек</b></label><input type="range" min="1" max="10" step="0.5" value="'+upgradeSettings.speed+'" oninput="setUpgradeSetting(\'speed\',this.value)"><p class="muted small">Время одного вращения</p><label>Форма колеса</label><div class="upgrade-shape-options"><button type="button" data-upgrade-shape="circle" class="'+(shape==="circle"?"active":"")+'" onclick="setUpgradeSetting(\'shape\',\'circle\')">Круг</button><button type="button" data-upgrade-shape="hexagon" class="'+(shape==="hexagon"?"active":"")+'" onclick="setUpgradeSetting(\'shape\',\'hexagon\')">Шестиугольник</button><button type="button" data-upgrade-shape="square" class="'+(shape==="square"?"active":"")+'" onclick="setUpgradeSetting(\'shape\',\'square\')">Квадрат</button></div><button class="btn primary full-btn" onclick="closeModal()">Готово</button></div>');
+ const speed=upgradeSettings.speed===2?"fast":"slow";
+ openModal("НАСТРОЙКИ АПГРЕЙДЕРА",'<div class="upgrade-settings"><label>Шанс успеха <b id="upgrade-setting-chance-value">'+Number(upgradeSettings.chance).toFixed(0)+'%</b></label><input type="range" min="1" max="70" step="1" value="'+upgradeSettings.chance+'" oninput="setUpgradeSetting(\'chance\',this.value)"><p class="muted small">От 1% до 70%. Шанс проверяется сервером.</p><label>Скорость вращения <b id="upgrade-setting-speed-value">'+(speed==="fast"?"Быстро · 2 сек":"Медленно · 8 сек")+'</b></label><div class="upgrade-speed-options"><button type="button" data-upgrade-speed="slow" class="'+(speed==="slow"?"active":"")+'" onclick="setUpgradeSetting(\'speed\',\'slow\')">Медленно <small>8 сек</small></button><button type="button" data-upgrade-speed="fast" class="'+(speed==="fast"?"active":"")+'" onclick="setUpgradeSetting(\'speed\',\'fast\')">Быстро <small>2 сек</small></button></div><label>Форма указателя</label><div class="upgrade-pointer-preview"><span>➤</span><small>Маленькая стрелка</small></div><button class="btn primary full-btn" onclick="closeModal()">Готово</button></div>');
 };
 
 const money=n=>Number(n||0).toLocaleString("ru-RU")+" CR";
@@ -37,7 +41,7 @@ function closeModal(){$("#modal").classList.add("hidden")}
 window.closeModal=closeModal;
 function authModal(){openModal("Вход в CaseArena",'<a class="btn secondary google-btn" href="/auth/google"><b>G</b> Продолжить с Google</a><p class="muted small">Или войди по игровому нику.</p><div class="inline"><button class="btn secondary" onclick="authForm(\'login\')">Войти</button><button class="btn secondary" onclick="authForm(\'register\')">Регистрация</button></div><div id="auth-form"></div>');authForm("login")}
 window.authModal=authModal;
-window.authForm=mode=>{$("#auth-form").innerHTML='<form onsubmit="submitAuth(event,\''+mode+'\')"><input name="username" placeholder="Никнейм" minlength="3" maxlength="20" required><input name="password" type="password" placeholder="Пароль (минимум 10 символов)" minlength="10" required><button class="btn primary">'+(mode==="login"?"Войти":"Создать аккаунт")+'</button></form>'};
+window.authForm=mode=>{$("#auth-form").innerHTML='<form onsubmit="submitAuth(event,\''+mode+'\')"><input name="username" placeholder="Никнейм" minlength="3" maxlength="20" required><input name="password" type="password" '+(mode==="register"?'placeholder="Пароль (минимум 10 символов)" minlength="10"':'placeholder="Пароль"')+' required><button class="btn primary">'+(mode==="login"?"Войти":"Создать аккаунт")+'</button></form>'};
 window.submitAuth=async(e,mode)=>{e.preventDefault();const f=new FormData(e.target);try{await api("/api/"+(mode==="login"?"login":"register"),{method:"POST",body:JSON.stringify(Object.fromEntries(f))});closeModal();await refresh();toast("Добро пожаловать в CaseArena")}catch(err){toast(err.message)}};
 function nicknameModal(){openModal("Выбери игровой ник",'<p class="muted">Google подключён. Придумай ник для профиля.</p><form onsubmit="completeGoogleNick(event)"><input name="username" placeholder="Например, DragonKing" minlength="3" maxlength="20" required><button class="btn primary">Продолжить</button></form>')}
 window.completeGoogleNick=async e=>{e.preventDefault();const username=new FormData(e.target).get("username");try{await api("/api/google/complete-nickname",{method:"POST",body:JSON.stringify({username})});closeModal();history.replaceState({},"",location.pathname);await refresh()}catch(err){toast(err.message)}};
@@ -163,7 +167,7 @@ function updateUpgradePreview(){
   if(win)win.textContent="—";if(fail)fail.textContent="—";
   return;
  }
- const chance=Math.max(1,Math.min(95,Number(upgradeSettings.chance)||35)),pct=Math.round(chance);
+ const chance=Math.max(1,Math.min(70,Number(upgradeSettings.chance)||35)),pct=Math.round(chance);
  if(chanceText)chanceText.textContent=pct+"%";
  if(wheel)wheel.style.setProperty("--chance",pct+"%");
  if(dial)updateWheelLabels(dial,chance);
@@ -187,7 +191,7 @@ window.upgrade=async()=>{
   if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance).toFixed(2)+"%";
   if(status)status.textContent="Стрелка вращается…";
   if(dial){dial.style.transition="none";dial.style.transform="none";updateWheelLabels(dial,chance)}
-  const spinSeconds=Math.max(1,Math.min(10,Number(upgradeSettings.speed)||5.2));
+  const spinSeconds=(upgradeSettings.speed===2?2:8);
   applyUpgradeWheelSettings();
   if(pointer){
    const successArc=chance*3.6;
