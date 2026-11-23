@@ -58,11 +58,13 @@
 (()=> {
  const pages=[...document.querySelectorAll('.page-view')];
  const nav=document.querySelector('.bottom-nav');
+ let currentPage=(location.hash||'#cases').slice(1);
  function render(requestedPage){
-  let page=requestedPage||((location.hash||'#cases').slice(1));
+  let page=requestedPage||currentPage;
   if(!document.querySelector('[data-page="'+page+'"]')) page='cases';
   if(page==='owner' && !window.canAccessOwner?.()){page='cases';history.replaceState({},'',location.pathname+'#cases')}
   if(page==='staff' && !window.canAccessStaff?.()){page='cases';history.replaceState({},'',location.pathname+'#cases')}
+  currentPage=page;
   pages.forEach(el=>el.classList.toggle('active-page',el.dataset.page===page));
   nav.querySelectorAll('a[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===page));
   document.title='CaseArena — '+({cases:'Кейсы',upgrade:'Апгрейд',battles:'Баттлы',contracts:'Контракты',profile:'Профиль',leaders:'Лидеры',owner:'Панель владельца',staff:'Управление сервером'}[page]||'Арена');
@@ -79,8 +81,8 @@
   event.preventDefault();
   render((link.dataset.nav||target.slice(1)));
  },true);
- window.addEventListener('hashchange',render);
- window.addEventListener('popstate',render);
+ window.addEventListener('hashchange',()=>render((location.hash||'#cases').slice(1)));
+ window.addEventListener('popstate',()=>render((location.hash||'#cases').slice(1)));
  render();
 })();
 </script>
