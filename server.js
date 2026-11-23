@@ -651,11 +651,24 @@ cases.push(
   marketPriceRefreshRunning=true;
   let updated=0,steamCount=0,otherCount=0;
   try{
-   const response=await fetch("https://api.openskin.dev/v1/prices/all",{headers:{"Accept":"application/json"},signal:AbortSignal.timeout(45000)});
-   if(!response.ok)throw new Error("OpenSkin prices returned HTTP "+response.status);
-   const snapshot=await response.json();
-   const marketData=snapshot.data||{};
-   if(!marketData||typeof marketData!=="object")throw new Error("OpenSkin returned an invalid price snapshot");
+   const names=skinCatalog.map(skin=>skin.name+" ("+(skin.marketWear||"Field-Tested")+")");
+   const batches=[];
+   for(let i=0;i<names.length;i+=500)batches.push(names.slice(i,i+500));
+   const responses=await Promise.allSettled(batches.map(async items=>{
+    const response=await fetch("https://api.openskin.dev/v1/prices/batch",{method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json"},body:JSON.stringify({items}),signal:AbortSignal.timeout(45000)});
+    if(!response.ok)throw new Error("OpenSkin batch returned HTTP "+response.status);
+    return response.json();
+   }));
+   const marketData={};let sourceUpdatedAt=null,successfulBatches=0;
+   for(let i=0;i<responses.length;i++){
+    const result=responses[i];
+    if(result.status!=="fulfilled"){console.warn("OpenSkin price batch failed",i+1,result.reason?.message||"unknown error");continue}
+    successfulBatches++;
+    const payload=result.value;
+    Object.assign(marketData,payload.data||{});
+    if(payload.updated_at&&(!sourceUpdatedAt||payload.updated_at>sourceUpdatedAt))sourceUpdatedAt=payload.updated_at;
+   }
+   if(!successfulBatches)throw new Error("OpenSkin returned no successful price batches");
    for(const skin of skinCatalog){
     const marketHashName=skin.name+" ("+(skin.marketWear||"Field-Tested")+")";
     const row=marketData[marketHashName]||marketData[skin.name];
@@ -669,7 +682,7 @@ cases.push(
     skin.value=Math.max(1,Math.round(marketUsd*100));
     skin.priceSource=steamAsk>0?"Steam Market":"Рынок OpenSkin";
     skin.marketplace=steamAsk>0?"steam":String(row.lowest_ask?.marketplace||"market");
-    skin.priceUpdatedAt=row.updated_at||snapshot.updated_at||new Date().toISOString();
+    skin.priceUpdatedAt=row.updated_at||sourceUpdatedAt||new Date().toISOString();
     updated++;
     if(steamAsk>0)steamCount++;else otherCount++;
    }
@@ -678,10 +691,11 @@ cases.push(
    for(const skin of skinCatalog)if(skin.priceSource==="Steam Market"||skin.priceSource==="Рынок OpenSkin")db.prepare("UPDATE inventory SET item_value=? WHERE item_name=?").run(skin.value,skin.name);
    await flushWrites();
    marketPriceLastUpdated=Date.now();
-   console.log("CS2 market prices refreshed",{updated,total:skinCatalog.length,steam:steamCount,otherMarketplaces:otherCount,sourceUpdatedAt:snapshot.updated_at||null,updatedAt:new Date(marketPriceLastUpdated).toISOString()});
+   console.log("CS2 market prices refreshed",{updated,total:skinCatalog.length,steam:steamCount,otherMarketplaces:otherCount,successfulBatches,totalBatches:batches.length,sourceUpdatedAt,updatedAt:new Date(marketPriceLastUpdated).toISOString()});
   }catch(error){console.warn("CS2 market price refresh failed:",error.message)}
   finally{marketPriceRefreshRunning=false}
  }
+
 let skinImageIndexPromise=null;
 const caseImageSource={
  starter:"Kilowatt Case",dust:"Prisma 2 Case",neon:"Dreams & Nightmares Case",inferno:"Revolution Case",sniper:"Snakebite Case",royal:"Operation Bravo Case",knife:"Huntsman Weapon Case",elite:"Operation Breakout Weapon Case",viper:"Fracture Case",dragon:"Operation Phoenix Weapon Case",doppler:"Chroma Case",gloves:"Glove Case",blackpearl:"Spectrum Case",
