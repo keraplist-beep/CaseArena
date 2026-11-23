@@ -1033,3 +1033,13 @@ input,select{border-radius:9px}
 #case-detail-page .case-detail{margin:0 auto}
 #case-detail-page .case-detail-hero{min-height:260px}
 @media(max-width:560px){.case-detail-page-head{align-items:flex-start;flex-direction:column}.case-detail-page-head .btn{width:100%}}
+
+.upgrade-speed-options{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.upgrade-speed-options button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:1px solid #38506a;border-radius:9px;background:#142131;color:#dce8f3;font-size:13px;font-weight:800}
+.upgrade-speed-options button small{font-size:10px;color:#8fa6bc;font-weight:600}
+.upgrade-speed-options button.active{border-color:#4de1d1;background:#164047;color:#8af3e8}
+.upgrade-pointer-preview{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid #2b4057;border-radius:9px;background:#101c2b}
+.upgrade-pointer-preview span{font-size:17px;color:#ffd16a;line-height:1}
+.upgrade-pointer-preview small{font-size:11px;color:#aab7c8}
+.upgrade-wheel-pointer:before{border-left-width:6px;border-right-width:6px;border-top-width:13px}
+.upgrade-wheel-pointer:after{top:13px;left:calc(50% - 1px);width:2px;height:7%;box-shadow:0 0 5px #ffd16a66}
