@@ -441,20 +441,39 @@ cases.push(
  {id:"collector",name:"COLLECTOR",subtitle:"Самые дорогие предметы CaseArena",price:399999,theme:"sapphire",cover:"AWP | Dragon Lore",items:[["AWP | Dragon Lore",471500,1],["M4A4 | Howl",125000,1],["★ Karambit | Sapphire",115000,1],["AK-47 | Wild Lotus",110000,1],["AWP | Gungnir",95000,1]]}
 );
 cases.forEach(c=>{if(!c.cover)c.cover=c.items[c.items.length-1][0];});
-// Редкие предметы (начиная с третьего слота) выпадают в 4 раза реже.
-// Снятый шанс переносится на самый дешёвый предмет кейса; сумма шансов остаётся 100%.
-const RARE_DROP_ODDS_FACTOR=0.25;
+// Баланс кейсов: средняя ожидаемая стоимость дропа — около 82% цены кейса.
+// Если даже самый дешёвый предмет дороже этой цели, цена кейса автоматически повышается.
+// Исходные веса задают относительную редкость; алгоритм корректирует их под целевую экономику.
+function balanceCase(c){
+ if(!Array.isArray(c.items)||!c.items.length)return;
+ const values=c.items.map(item=>Math.max(1,Number(item[1])||1));
+ const minValue=Math.min(...values),maxValue=Math.max(...values);
+ const targetReturn=0.82;
+ if(minValue>Number(c.price)*targetReturn){
+  c.price=Math.ceil((minValue/targetReturn)/100)*100;
+ }
+ const target=Math.min(maxValue,Math.max(minValue,Number(c.price)*targetReturn));
+ const base=c.items.map(item=>Math.max(0.0001,Number(item[2])||1));
+ const span=maxValue-minValue;
+ const expected=lambda=>{
+  const weights=base.map((w,i)=>w*Math.exp(-lambda*(span?((values[i]-minValue)/span):0)));
+  const total=weights.reduce((a,b)=>a+b,0)||1;
+  return weights.reduce((sum,w,i)=>sum+w*values[i],0)/total;
+ };
+ let low=-100,high=100;
+ for(let i=0;i<90;i++){
+  const mid=(low+high)/2;
+  if(expected(mid)>target)low=mid;else high=mid;
+ }
+ const lambda=(low+high)/2;
+ const weights=base.map((w,i)=>w*Math.exp(-lambda*(span?((values[i]-minValue)/span):0)));
+ const total=weights.reduce((a,b)=>a+b,0)||1;
+ c.items.forEach((item,i)=>{item[2]=Number((weights[i]/total*100).toFixed(8));});
+ c.expectedValue=Math.round(c.items.reduce((sum,item)=>sum+item[1]*item[2]/100,0));
+}
 cases.forEach(c=>{
- let redistributed=0;
- c.items.forEach((item,index)=>{
-  if(index>=2){
-   const oldChance=Number(item[2])||0;
-   const newChance=oldChance*RARE_DROP_ODDS_FACTOR;
-   item[2]=newChance;
-   redistributed+=oldChance-newChance;
-  }
- });
- if(c.items[0])c.items[0][2]=(Number(c.items[0][2])||0)+redistributed;
+ if(!c.cover)c.cover=c.items[c.items.length-1][0];
+ balanceCase(c);
 });
 
  
@@ -468,14 +487,14 @@ app.get("/api/cases",async(req,res)=>{
  const {skinsIndex,cratesIndex}=await caseImageData();
  res.json(cases.map(({id,name,subtitle,price,theme,items,cover})=>{
   const coverImage=resolveSkinImage(cover,skinsIndex)||cratesIndex.get(String(caseImageSource[theme]||"").toLowerCase())||"";
-  return {id,name,subtitle,price,theme:theme||"classic",count:items.length,image:coverImage};
+  return {id,name,subtitle,price,expectedValue:Math.round(items.reduce((sum,item)=>sum+Number(item[1])*Number(item[2])/100,0)),theme:theme||"classic",count:items.length,image:coverImage};
  }));
 });
 app.get("/api/cases/:id",async(req,res)=>{
  const c=cases.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:"Кейс не найден"});
  const {skinsIndex,cratesIndex}=await caseImageData();
  const coverImage=resolveSkinImage(c.cover,skinsIndex)||cratesIndex.get(String(caseImageSource[c.theme]||"").toLowerCase())||"";
- res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,theme:c.theme||"classic",count:c.items.length,image:coverImage,items:c.items.map(([name,value,chance])=>({name,value,chance,image:resolveSkinImage(name,skinsIndex)}))});
+ res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,expectedValue:Math.round(c.items.reduce((sum,item)=>sum+Number(item[1])*Number(item[2])/100,0)),theme:c.theme||"classic",count:c.items.length,image:coverImage,items:c.items.map(([name,value,chance])=>({name,value,chance,image:resolveSkinImage(name,skinsIndex)}))});
 });
 const skinCatalog=[
  ["Glock-18 | Candy Apple",45,65,"Армейское","pistols/glock-18-candy-apple.png"],
@@ -889,10 +908,11 @@ app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
     }else{
       const eligibleItems=c.id==="god-tier"?c.items.filter(item=>Number(item[1])<140000):c.items;
       if(!eligibleItems.length)throw new Error("В кейсе пока нет доступных предметов");
-      const totalWeight=eligibleItems.reduce((sum,item)=>sum+(Number(item[2])||0),0);
-      let roll=Math.random()*totalWeight;
+      const weights=eligibleItems.map(item=>Math.max(1,Math.round((Number(item[2])||0)*1000000)));
+      const totalWeight=weights.reduce((sum,weight)=>sum+weight,0);
+      let roll=crypto.randomInt(totalWeight);
       selected=eligibleItems[eligibleItems.length-1];
-      for(const item of eligibleItems){roll-=Number(item[2])||0;if(roll<=0){selected=item;break;}}
+      for(let i=0;i<eligibleItems.length;i++){roll-=weights[i];if(roll<0){selected=eligibleItems[i];break;}}
     }
     const [name,value]=selected;
     db.prepare("UPDATE users SET balance=balance-? WHERE id=?").run(c.price,u.id);
