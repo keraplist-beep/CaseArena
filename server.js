@@ -591,7 +591,7 @@ const skinCatalog=[
  cases.push(
   {id:"aurora-vault",name:"AURORA VAULT",subtitle:"Премиальная охота за редчайшими скинами",price:8999,theme:"sapphire",cover:"AWP | Gungnir",items:[["AWP | Gungnir",95000,60],["AK-47 | Wild Lotus",110000,25],["★ Karambit | Sapphire",115000,10],["AWP | Dragon Lore",471500,4],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]},
   {id:"black-pearl",name:"ЧЁРНАЯ ЖЕМЧУЖИНА",subtitle:"Изумруды, сапфиры и коллекционные ножи",price:19999,theme:"blackpearl",cover:"★ Butterfly Knife | Emerald",items:[["★ M9 Bayonet | Sapphire",180000,55],["★ Butterfly Knife | Emerald",260000,25],["AWP | Dragon Lore (Souvenir Factory New)",1250000,12],["★ Butterfly Knife | Emerald (Factory New)",2000000,7],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]},
-  {id:"god-tier",name:"GOD TIER",subtitle:"Максимальный уровень редкости CaseArena",price:49999,theme:"gold",cover:"★ Karambit | Emerald",items:[["★ Sport Gloves | Pandora's Box",140000,50],["★ Karambit | Emerald",220000,28],["★ M9 Bayonet | Sapphire (Factory New)",1800000,15],["★ Karambit | Emerald (Factory New)",2200000,6],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]}
+  {id:"god-tier",name:"GOD TIER",subtitle:"Премиальный кейс с ограниченным шансом на редкие предметы",price:49999,theme:"gold",cover:"★ Karambit | Sapphire",items:[["AK-47 | Fire Serpent",9800,55],["AWP | Dragon Lore",25000,25],["AWP | Gungnir",95000,12],["AK-47 | Wild Lotus",110000,6],["★ Karambit | Sapphire",115000,2]]}
  );
  const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
  for(const crate of cases)for(const item of crate.items)if(initialSkinPrices.has(item[0]))item[1]=initialSkinPrices.get(item[0]);
@@ -666,7 +666,7 @@ app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
   const tx=db.transaction(()=>{
     const fresh=db.prepare("SELECT balance FROM users WHERE id=?").get(u.id);
     if(fresh.balance<c.price) throw new Error("Недостаточно средств");
-    const totalWeight=c.items.reduce((sum,item)=>sum+(Number(item[2])||0),0); let roll=Math.random()*totalWeight; let selected=c.items[c.items.length-1]; for(const item of c.items){roll-=Number(item[2])||0;if(roll<=0){selected=item;break;}} const [name,value]=selected;
+    const eligibleItems=c.id==="god-tier"?c.items.filter(item=>Number(item[1])<140000):c.items; if(!eligibleItems.length)throw new Error("В кейсе пока нет доступных предметов"); const totalWeight=eligibleItems.reduce((sum,item)=>sum+(Number(item[2])||0),0); let roll=Math.random()*totalWeight; let selected=eligibleItems[eligibleItems.length-1]; for(const item of eligibleItems){roll-=Number(item[2])||0;if(roll<=0){selected=item;break;}} const [name,value]=selected;
     db.prepare("UPDATE users SET balance=balance-? WHERE id=?").run(c.price,u.id);
     db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,name,value);
     log(u.id,`Открыт кейс ${c.name}: ${name}`);
