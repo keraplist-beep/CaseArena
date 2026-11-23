@@ -588,7 +588,25 @@ const skinCatalog=[
   ["★ Butterfly Knife | Doppler Black Pearl",1350000,"Нож","★ Butterfly Knife | Doppler"]
  ].filter(([name])=>!skinCatalog.some(s=>s.name===name)).map(([name,value,rarity,imageBaseName])=>({name,value,steamRub:value,rarity,marketWear:"Factory New",image:"",imageBaseName,fixedPrice:true,priceSource:"Виртуальная коллекционная оценка",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)})));
 
- cases.push(
+ skinCatalog.push(...[
+  ["AWP | Dragon Lore (Factory New)",850000,"Тайное","AWP | Dragon Lore"],
+  ["AWP | Gungnir (Factory New)",520000,"Тайное","AWP | Gungnir"],
+  ["AWP | Medusa (Factory New)",390000,"Тайное","AWP | Medusa"],
+  ["AK-47 | Wild Lotus (Factory New)",480000,"Тайное","AK-47 | Wild Lotus"],
+  ["M4A4 | Howl (Factory New)",360000,"Контрабанда","M4A4 | Howl"],
+  ["★ Sport Gloves | Vice (Factory New)",310000,"Перчатки","★ Sport Gloves | Vice"],
+  ["★ Specialist Gloves | Crimson Kimono (Factory New)",470000,"Перчатки","★ Specialist Gloves | Crimson Kimono"],
+  ["★ Karambit | Doppler Ruby (Factory New)",920000,"Нож","★ Karambit | Doppler"],
+  ["★ M9 Bayonet | Doppler Ruby (Factory New)",610000,"Нож","★ M9 Bayonet | Doppler"],
+  ["★ Butterfly Knife | Doppler Ruby (Factory New)",780000,"Нож","★ Butterfly Knife | Doppler"],
+  ["★ Butterfly Knife | Fade (Factory New)",245000,"Нож","★ Butterfly Knife | Fade"],
+  ["★ Karambit | Tiger Tooth (Factory New)",215000,"Нож","★ Karambit | Tiger Tooth"]
+].filter(([name])=>!skinCatalog.some(s=>s.name===name)).map(([name,value,rarity,imageBaseName])=>({
+  name,value,steamRub:value,rarity,marketWear:"Factory New",image:"",imageBaseName,
+  fixedPrice:true,priceSource:"Виртуальная оценка CaseArena",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)
+})));
+
+cases.push(
   {id:"aurora-vault",name:"AURORA VAULT",subtitle:"Премиальная охота за редчайшими скинами",price:8999,theme:"sapphire",cover:"AWP | Gungnir",items:[["AWP | Gungnir",95000,60],["AK-47 | Wild Lotus",110000,25],["★ Karambit | Sapphire",115000,10],["AWP | Dragon Lore",471500,4],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]},
   {id:"black-pearl",name:"ЧЁРНАЯ ЖЕМЧУЖИНА",subtitle:"Изумруды, сапфиры и коллекционные ножи",price:19999,theme:"blackpearl",cover:"★ Butterfly Knife | Emerald",items:[["★ M9 Bayonet | Sapphire",180000,55],["★ Butterfly Knife | Emerald",260000,25],["AWP | Dragon Lore (Souvenir Factory New)",1250000,12],["★ Butterfly Knife | Emerald (Factory New)",2000000,7],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]},
   {id:"god-tier",name:"GOD TIER",subtitle:"Премиальный кейс с ограниченным шансом на редкие предметы",price:49999,theme:"gold",cover:"★ Karambit | Sapphire",items:[["AK-47 | Fire Serpent",9800,55],["AWP | Dragon Lore",25000,25],["AWP | Gungnir",95000,12],["AK-47 | Wild Lotus",110000,6],["★ Karambit | Sapphire",115000,2]]}
