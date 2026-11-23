@@ -70,7 +70,7 @@ function makeRollItems(caseItems,winnerName){
  const pool=Array.isArray(caseItems)&&caseItems.length?caseItems:[{name:"AK-47 | Redline",value:720,chance:1}];
  const total=pool.reduce((sum,item)=>sum+Math.max(0,Number(item.chance)||0),0)||pool.length;
  const draw=()=>{let roll=Math.random()*total;for(const item of pool){roll-=Math.max(0,Number(item.chance)||0);if(roll<=0)return item}return pool[pool.length-1]};
- const winner=pool.find(item=>item.name===winnerName)||{name:winnerName,value:0,chance:0};
+ const winner=pool.find(item=>item.name===winnerName)||{name:winnerName,value:Number(skinInfo(winnerName).value)||0,chance:0};
  const stopIndex=52,arr=Array.from({length:64},draw);arr[stopIndex]=winner;return arr;
 }
 function rouletteMarkup(items){
