@@ -534,3 +534,35 @@ window.deleteUser=async(id,username)=>{
  window.addEventListener('popstate',()=>render((location.hash||'#cases').slice(1)));
  render();
 })();
+
+
+/* =========================================
+   ДЕМОНСТРАЦИОННАЯ ЛЕНТА ПРЕДМЕТОВ
+   Это примеры, не реальные выигрыши игроков.
+   ========================================= */
+function initDropFeed() {
+  const feed = document.getElementById("dropFeed");
+  if (!feed || feed.dataset.initialized === "1") return;
+  feed.dataset.initialized = "1";
+
+  const demoDrops = [
+    { name: "AWP | Dragon Lore", price: 507473, img: "https://community.cloudflare.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERN1z2z0hwfSSqZ6F7I3vEMjx7M_CW1mLh19duY2z2wX1JvBqi4XlF_a3pQ/360fx360f" },
+    { name: "★ Karambit | Doppler", price: 150059, img: "https://community.cloudflare.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERN1z2z0hwfSSqZ6F7I3vEMjx7M_CW1mLh19duY2z2wX1JvBqi4XlF_a3pQ/360fx360f" },
+    { name: "AK-47 | Neon Rider", price: 4776, img: "https://community.cloudflare.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERN1z2z0hwfSSqZ6F7I3vEMjx7M_CW1mLh19duY2z2wX1JvBqi4XlF_a3pQ/360fx360f" },
+    { name: "M4A1-S | Printstream", price: 17905, img: "https://community.cloudflare.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERN1z2z0hwfSSqZ6F7I3vEMjx7M_CW1mLh19duY2z2wX1JvBqi4XlF_a3pQ/360fx360f" },
+    { name: "Butterfly Knife | Fade", price: 135516, img: "https://community.cloudflare.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERN1z2z0hwfSSqZ6F7I3vEMjx7M_CW1mLh19duY2z2wX1JvBqi4XlF_a3pQ/360fx360f" }
+  ];
+  const itemsHTML = [...demoDrops, ...demoDrops].map(item => `
+    <div class="drop-item">
+      <img loading="lazy" src="${item.img}" alt="${item.name}">
+      <span class="drop-name">${item.name}</span>
+      <span class="drop-price">${item.price.toLocaleString("ru-RU")} CR</span>
+    </div>
+  `).join("");
+  feed.innerHTML = itemsHTML;
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initDropFeed, { once: true });
+} else {
+  initDropFeed();
+}
