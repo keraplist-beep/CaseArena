@@ -454,7 +454,7 @@ function balanceCase(c){
  }
  const target=Math.min(maxValue,Math.max(minValue,Number(c.price)*targetReturn));
  const base=c.items.map(item=>Math.max(0.0001,Number(item[2])||1));
- const valueScale=Math.max(1,Number(c.price)||1);
+ const valueScale=Math.max(1,target-minValue);
  const normalized=values.map(value=>Math.min(10,(value-minValue)/valueScale));
  const expected=lambda=>{
   const weights=base.map((w,i)=>w*Math.exp(-lambda*normalized[i]));
