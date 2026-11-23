@@ -271,11 +271,11 @@ function requireStaff(req,res,next) {
 
 app.get("/auth/google", (req,res,next) => {
   if (!googleConfigured) return res.redirect("/?google=unavailable");
-  passport.authenticate("google", { scope: ["profile", "email"], session: false })(req,res,next);
+  passport.authenticate("google", { scope: ["profile", "email"], session: false, state: true })(req,res,next);
 });
 app.get("/auth/google/callback", (req,res,next) => {
   if (!googleConfigured) return res.redirect("/?google=unavailable");
-  passport.authenticate("google", { session: false }, (err, result) => {
+  passport.authenticate("google", { session: false, state: true }, (err, result) => {
     if (err || !result) return res.redirect("/?google=error");
     if (result.existing) {
       req.session = req.session || {};
@@ -301,8 +301,7 @@ app.post("/api/google/complete-nickname", authLimiter, (req,res) => {
     const info = db.prepare("INSERT INTO users(username,password_hash,google_sub,balance,last_hourly_claim) VALUES(?,?,?,?,?)")
       .run(username, placeholderHash, pending.googleSub, 10000, Math.floor(Date.now()/1000));
     req.session = req.session || {};
-    req.session = req.session || {};
- req.session.userId = info.lastInsertRowid;
+    req.session.userId = info.lastInsertRowid;
     req.session.sessionVersion = 0;
     delete req.session.pendingGoogle;
     log(info.lastInsertRowid, "Аккаунт создан через Google");
