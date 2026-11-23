@@ -218,9 +218,9 @@ async function loadStaff(search=""){
      actions.push('<button class="btn secondary" onclick="staffAction('+u.id+',\'kick\')">Кик</button>');
     }
    }
-   return '<div class="staff-row"><div><b>'+esc(u.username)+'</b> '+roleBadge(u.role)+'<small>'+(u.banned?"ЗАБЛОКИРОВАН":"Аккаунт активен")+'</small></div><div class="staff-actions">'+actions.join("")+'</div></div>';
+   return '<div class="staff-row"><div><b>'+esc(u.username)+'</b> '+roleBadge(u.role)+'<small>'+(u.banned?"ЗАБЛОКИРОВАН":"Аккаунт активен")+' · '+Number(u.item_count||0)+' предметов · регистрация '+esc(String(u.created_at||"").slice(0,10)||"—")+'</small></div><div class="staff-actions">'+actions.join("")+'</div></div>';
   });
-  box.innerHTML='<div class="staff-toolbar"><div><b>Игроки сервера</b><small class="muted">Твоя роль: '+ROLE_LABELS[me.role]+'</small></div><input id="staff-search" placeholder="Поиск по нику…" value="'+esc(q)+'" oninput="searchStaffUsers(this.value)"></div><div class="staff-list">'+(rows.length?rows.join(""):'<p class="muted">Игроки не найдены</p>')+'</div>';
+  box.innerHTML='<div class="staff-toolbar"><div><b>Игроки сервера · '+users.length+'</b><small class="muted">Все аккаунты, включая игроков без открытых кейсов · твоя роль: '+ROLE_LABELS[me.role]+'</small></div><input id="staff-search" placeholder="Поиск по нику…" value="'+esc(q)+'" oninput="searchStaffUsers(this.value)"></div><div class="staff-list">'+(rows.length?rows.join(""):'<p class="muted">Игроки не найдены</p>')+'</div>';
  }catch(e){box.innerHTML='<p class="muted">'+esc(e.message)+'</p>'}
 }
 let staffSearchTimer=null;
@@ -249,7 +249,7 @@ async function loadOwner(search=ownerSearchQuery){
     '<div class="owner-stat"><small>БАЛАНСЫ ИГРОКОВ</small><b>'+money(d.totalBalance)+'</b></div>'+
     '<div class="owner-stat"><small>СТОИМОСТЬ ИНВЕНТАРЯ</small><b>'+money(inventoryValue)+'</b></div>'+
    '</div>'+
-   '<div class="owner-toolbar"><div><h3>Управление игроками</h3><small class="muted">Выдача баланса и смена роли — отдельными действиями</small></div><div class="owner-toolbar-actions"><input id="owner-search" value="'+esc(ownerSearchQuery)+'" placeholder="Поиск по нику…" oninput="searchOwnerUsers(this.value)"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
+   '<div class="owner-toolbar"><div><h3>Управление игроками</h3><small class="muted">Все аккаунты, включая игроков без открытых кейсов. Гарантированный дроп выдаётся на следующее открытие.</small></div><div class="owner-toolbar-actions"><input id="owner-search" value="'+esc(ownerSearchQuery)+'" placeholder="Поиск по нику…" oninput="searchOwnerUsers(this.value)"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
    '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>{
     const isOwner=u.role==="owner";
     const locked=isOwner&&Number(u.id)!==Number(me.id);
@@ -261,7 +261,7 @@ async function loadOwner(search=ownerSearchQuery){
       '<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>';
     return '<div class="user-row" data-user="'+esc(u.username.toLowerCase())+'">'+
      '<div class="user-info"><b>'+esc(u.username)+'</b> '+roleBadge(u.role)+
-     '<small>'+(Number(u.banned)===1?'ЗАБЛОКИРОВАН · ':'Аккаунт активен · ')+esc(ROLE_LABELS[u.role]||u.role)+' · '+Number(u.item_count||0)+' предметов · инвентарь '+money(u.inventory_value)+'</small></div>'+
+     '<small>'+(Number(u.banned)===1?'ЗАБЛОКИРОВАН · ':'Аккаунт активен · ')+esc(ROLE_LABELS[u.role]||u.role)+' · '+Number(u.item_count||0)+' предметов · инвентарь '+money(u.inventory_value)+(Number(u.forced_drop)===1?' · ГАРАНТИРОВАННЫЙ ДРОП ВКЛЮЧЁН':'')+'</small></div>'+
      '<div class="owner-field"><small>БАЛАНС · '+money(u.balance)+'</small><input id="bal-'+u.id+'" type="number" min="0" max="100000000" placeholder="Сумма" '+disabled+'></div>'+
      '<div class="owner-actions owner-balance-actions">'+
       '<button class="btn primary" onclick="ownerBalance('+u.id+',\'add\')" '+disabled+'>Выдать +</button>'+
@@ -269,7 +269,7 @@ async function loadOwner(search=ownerSearchQuery){
      '</div>'+
      '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+roleDisabled+'>'+ROLE_ORDER.filter(role=>role!=="owner").map(role=>'<option value="'+role+'" '+(u.role===role?"selected":"")+'>'+ROLE_LABELS[role]+'</option>').join("")+'</select></label>'+
      '<div class="owner-actions"><button class="btn secondary" onclick="ownerRole('+u.id+')" '+roleDisabled+'>Сохранить роль</button>'+
-     moderation+'</div></div>';
+     (isOwner?'':'<button class="btn '+(Number(u.forced_drop)===1?'danger':'primary')+'" onclick="ownerForcedDrop('+u.id+','+(Number(u.forced_drop)===1?'false':'true')+')">'+(Number(u.forced_drop)===1?'Отключить дроп':'Выдать лучший дроп')+'</button>')+moderation+'</div></div>';
    }).join(""):'<p class="muted">'+(ownerSearchQuery?"По этому нику игроки не найдены.":"Пока нет игроков.")+'</p>')+'</div>'+
    '<div class="owner-activity"><h3>Последние действия</h3>'+
    (activity.length?activity.map(item=>'<p><b>'+esc(item.username||"Система")+'</b><span>'+esc(item.message)+'</span></p>').join(""):'<p class="muted">Действий пока нет.</p>')+
@@ -279,9 +279,15 @@ async function loadOwner(search=ownerSearchQuery){
  }
 }
 window.loadOwner=loadOwner;
+window.loadStaff=loadStaff;
 let ownerSearchQuery="";
 let ownerSearchTimer=null;
 window.searchOwnerUsers=value=>{ownerSearchQuery=String(value||"").trim();clearTimeout(ownerSearchTimer);ownerSearchTimer=setTimeout(()=>loadOwner(ownerSearchQuery),280)};
+window.ownerForcedDrop=async(id,enabled)=>{
+ if(!confirm(enabled?"Включить для игрока гарантированный самый дорогой скин при следующем открытии кейса?":"Отключить гарантированный дроп?"))return;
+ try{const d=await api("/api/owner/users/"+id+"/forced-drop",{method:"POST",body:JSON.stringify({enabled})});await loadOwner();toast(enabled?"Гарантированный дроп включён для "+d.username:"Гарантированный дроп отключён")}
+ catch(e){toast(e.message)}
+};
 window.ownerBalance=async(id,mode)=>{
  const field=$("#bal-"+id),amount=Number(field?.value);
  if(!Number.isInteger(amount)||amount<(mode==="add"?1:0)){toast("Укажи корректную сумму");return}
