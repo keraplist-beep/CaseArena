@@ -611,18 +611,47 @@ cases.push(
   {id:"black-pearl",name:"ЧЁРНАЯ ЖЕМЧУЖИНА",subtitle:"Изумруды, сапфиры и коллекционные ножи",price:19999,theme:"blackpearl",cover:"★ Butterfly Knife | Emerald",items:[["★ M9 Bayonet | Sapphire",180000,55],["★ Butterfly Knife | Emerald",260000,25],["AWP | Dragon Lore (Souvenir Factory New)",1250000,12],["★ Butterfly Knife | Emerald (Factory New)",2000000,7],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]},
   {id:"god-tier",name:"GOD TIER",subtitle:"Премиальный кейс с ограниченным шансом на редкие предметы",price:49999,theme:"gold",cover:"★ Karambit | Sapphire",items:[["AK-47 | Fire Serpent",9800,55],["AWP | Dragon Lore",25000,25],["AWP | Gungnir",95000,12],["AK-47 | Wild Lotus",110000,6],["★ Karambit | Sapphire",115000,2]]}
  );
+ async function loadCompleteSkinCatalog(){
+  try{
+   const response=await fetch("https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json",{signal:AbortSignal.timeout(25000)});
+   if(!response.ok)throw new Error("CS2 skin catalogue returned "+response.status);
+   const rows=await response.json();
+   const known=new Set(skinCatalog.map(item=>item.name));
+   const rarityNames={"Consumer Grade":"Потребительское","Industrial Grade":"Промышленное","Mil-Spec Grade":"Армейское","Restricted":"Запрещённое","Classified":"Засекреченное","Covert":"Тайное","Contraband":"Контрабанда","Extraordinary":"Экстраординарное"};
+   let added=0;
+   for(const item of rows){
+    const name=String(item.name||"").trim();
+    if(!name.includes(" | ")||!item.image||known.has(name))continue;
+    const rarity=String(item.rarity?.name||"");
+    const knifeOrGlove=/^★/.test(name);
+    const glove=/Gloves?\s*\|/i.test(name);
+    const category=glove?"Перчатки":knifeOrGlove?"Нож":"Скин";
+    const base={"Consumer Grade":65,"Industrial Grade":110,"Mil-Spec Grade":220,"Restricted":520,"Classified":1250,"Covert":4200,"Contraband":18000,"Extraordinary":9000}[rarity]||180;
+    let hash=0;for(let i=0;i<name.length;i++)hash=(hash*31+name.charCodeAt(i))>>>0;
+    const multiplier=0.72+(hash%79)/100;
+    const categoryMultiplier=glove?22:knifeOrGlove?18:1;
+    const value=Math.max(25,Math.round(base*multiplier*categoryMultiplier));
+    const steamUrl="https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name);
+    skinCatalog.push({name,value,steamRub:value,rarity:rarityNames[rarity]||rarity||category,image:item.image,marketWear:"Field-Tested",fixedPrice:true,priceSource:"Виртуальная оценка CaseArena",steamUrl,sourceId:item.id||null,category});
+    known.add(name);added++;
+   }
+   console.log("Imported complete CS2 skin catalogue",{sourceItems:rows.length,added,total:skinCatalog.length});
+  }catch(error){console.warn("Could not import complete CS2 skin catalogue:",error.message)}
+ }
  const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
  for(const crate of cases)for(const item of crate.items)if(initialSkinPrices.has(item[0]))item[1]=initialSkinPrices.get(item[0]);
  const STEAM_PRICE_REFRESH_MS=60*60*1000;
- let steamPriceRefreshRunning=false,steamPriceLastUpdated=0;
+ let steamPriceRefreshRunning=false,steamPriceLastUpdated=0,steamPriceCursor=0;
  const parseSteamRubPrice=value=>{if(!value)return 0;const normalized=String(value).replace(/[^0-9,\.]/g,"").replace(/\.(?=.*\.)/g,"").replace(",",".");const n=Number(normalized);return Number.isFinite(n)&&n>0?n:0};
  async function refreshSteamPrices(){
   if(steamPriceRefreshRunning)return;
   steamPriceRefreshRunning=true;
   let updated=0;
   try{
-   for(const skin of skinCatalog){
-    if(skin.fixedPrice)continue;
+   const eligible=skinCatalog.filter(skin=>!skin.fixedPrice);
+   const batch=eligible.slice(steamPriceCursor,steamPriceCursor+20);
+   if(!batch.length){steamPriceCursor=0}
+   for(const skin of (batch.length?batch:eligible.slice(0,20))){
     try{
      const marketHashName=skin.name+" ("+(skin.marketWear||"Field-Tested")+")";
      const url="https://steamcommunity.com/market/priceoverview/?"+new URLSearchParams({appid:"730",country:"RU",currency:"5",market_hash_name:marketHashName});
@@ -636,6 +665,7 @@ cases.push(
     }catch(error){console.warn("Steam price unavailable for",skin.name,error.message)}
     await new Promise(resolve=>setTimeout(resolve,3300));
    }
+   steamPriceCursor=(steamPriceCursor+20)%Math.max(20,eligible.length);
    const priceByName=new Map(skinCatalog.map(s=>[s.name,s.value]));
    for(const crate of cases)for(const item of crate.items)if(priceByName.has(item[0]))item[1]=priceByName.get(item[0]);
    for(const skin of skinCatalog)if(skin.priceSource==="Steam Market"||skin.priceSource==="Оценка рынка")db.prepare("UPDATE inventory SET item_value=? WHERE item_name=?").run(skin.value,skin.name);
@@ -891,6 +921,7 @@ async function startServer() {
      db.prepare("UPDATE users SET role='owner' WHERE username=?").run(OWNER_USERNAME);
    }
  }
+ await loadCompleteSkinCatalog();
  await flushWrites();
  app.listen(port,()=>{
   console.log("CaseArena running on port",port);
