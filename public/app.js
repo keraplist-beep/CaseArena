@@ -342,8 +342,9 @@ function updateWheelLabels(dial,chance){
  if(!dial)return;
  const win=dial.querySelector(".wheel-sector-win"),fail=dial.querySelector(".wheel-sector-fail"),pct=Math.max(0,Math.min(100,Number(chance)||0));
  const place=(el,angle)=>{if(!el)return;const radius=Math.max(62,dial.clientWidth*.405);el.style.top="50%";el.style.left="50%";el.style.transform="translate(-50%,-50%) rotate("+angle+"deg) translateY(-"+radius+"px) rotate("+(-angle)+"deg)"};
- if(win){win.textContent="УСПЕХ "+pct.toFixed(1)+"%";place(win,pct*1.8)}
- if(fail){fail.textContent="НЕУДАЧА "+(100-pct).toFixed(1)+"%";place(fail,pct+(360-pct)/2)}
+ const arc=pct*3.6;
+ if(win){win.textContent="УСПЕХ "+pct.toFixed(1)+"%";place(win,180+arc/2)}
+ if(fail){fail.textContent="НЕУДАЧА "+(100-pct).toFixed(1)+"%";place(fail,180+arc+(360-arc)/2)}
 }
 function updateUpgradePreview(){
  const box=$("#upgrade-preview"),chanceText=$("#upgrade-wheel-value"),wheel=$("#upgrade-wheel"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status"),win=$("#upgrade-success-percent"),fail=$("#upgrade-fail-percent");
@@ -357,7 +358,7 @@ function updateUpgradePreview(){
  if(fromPrice)fromPrice.textContent=items.length?money(stake):"Выбери до 6 слева";
  if(toPrice)toPrice.textContent=target?money(target.value):"Выбери справа";
  if(dial){dial.style.transition="none";dial.style.transform="none";updateWheelLabels(dial,chance)}
- const pointer=$("#upgrade-wheel-pointer");if(pointer){pointer.style.transition="none";pointer.style.transform="rotate(0deg)"}
+ const pointer=$("#upgrade-wheel-pointer");if(pointer){pointer.style.transition="none";pointer.style.transform="rotate(180deg)"}
  if(!items.length||!target||target.value<=stake){
   const msg=!items.length?"Добавь от 1 до 6 скинов":!target?"Теперь выбери желаемый скин справа":"Цель должна быть дороже общей ставки";
   box.innerHTML='<span class="muted">'+msg+'</span>';if(chanceText)chanceText.textContent="—";const circle=$("#chanceCircle"),chanceLabel=$("#upgradeChance"),profitLabel=$("#upgradeProfit"),action=$("#doUpgradeBtn");if(circle)circle.style.setProperty("--chance","0%");if(chanceLabel)chanceLabel.textContent="0.0%";if(profitLabel)profitLabel.textContent="0 CR";if(action)action.disabled=true;if(wheel)wheel.style.setProperty("--chance","0%");if(status)status.textContent=msg;if(win)win.textContent="—";if(fail)fail.textContent="—";return;
@@ -383,7 +384,7 @@ window.upgrade=async()=>{
   const spinSeconds=upgradeSettings.mode==="fast"?0.15:(upgradeSettings.speed===2?2:8);applyUpgradeWheelSettings();
   if(pointer&&upgradeSettings.mode!=="fast"){
    const arc=chance*3.6,landing=d.success?arc/2:arc+(360-arc)/2;
-   pointer.style.transition="none";pointer.style.transform="rotate(0deg)";void pointer.offsetWidth;pointer.style.transition="transform "+spinSeconds+"s cubic-bezier(.08,.76,.12,1)";pointer.style.transform="rotate("+(360*7+landing)+"deg)";
+   pointer.style.transition="none";pointer.style.transform="rotate(0deg)";void pointer.offsetWidth;pointer.style.transition="transform "+spinSeconds+"s cubic-bezier(.08,.76,.12,1)";pointer.style.transform="rotate("+(360*7+180+landing)+"deg)";
   }
   await new Promise(resolve=>setTimeout(resolve,spinSeconds*1000+100));
   openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?(d.targetName||target.name):items[0].item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(d.targetName||target.name):"Предметы потеряны")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p>'+(d.cashback?'<p class="upgrade-cashback">Возвращено '+money(d.cashback)+' · 10% ставки</p>':'')+'</div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
