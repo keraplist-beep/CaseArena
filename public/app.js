@@ -94,7 +94,7 @@ function renderCases(){
  let list=[...casesCache];
  if(casesFilter==="budget")list=list.filter(x=>Number(x.price)<=500);
  else if(casesFilter==="premium")list=list.filter(x=>Number(x.price)>=5000);
- else if(casesFilter==="popular")list=list.filter(x=>x.tag==="popular"||x.popular===true||x.featured===true||x.tag==="hot");
+ else if(casesFilter==="popular"){const popularIds=["neon","royal","knife","elite","viper","dragon","doppler","gloves","blackpearl"];list=list.filter(x=>popularIds.includes(x.id)||x.tag==="popular"||x.popular===true||x.featured===true||x.tag==="hot")}
  if(casesSort==="price-asc")list.sort((x,y)=>Number(x.price)-Number(y.price));
  else if(casesSort==="price-desc")list.sort((x,y)=>Number(y.price)-Number(x.price));
  const grid=$("#case-grid");if(!grid)return;
