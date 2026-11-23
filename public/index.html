@@ -45,12 +45,12 @@
 <section id="owner" class="section page-view" data-page="owner"><div class="section-head"><div><p class="eyebrow">CONTROL ROOM</p><h2>Панель владельца <span class="owner-tag">OWNER</span></h2></div></div><div id="owner-content" class="panel"></div></section>
 </main><footer><a class="logo" href="#cases"><span>CASE</span>ARENA</a><p>Демо-платформа. Баланс и предметы виртуальные, реальные деньги и выплаты не поддерживаются.</p></footer>
 <nav class="bottom-nav" aria-label="Основная навигация">
-<a href="#cases" data-nav="cases" class="active"><span class="bottom-nav-icon">▦</span><span>Кейсы</span></a>
-<a href="#upgrade" data-nav="upgrade"><span class="bottom-nav-icon">↗</span><span>Апгрейд</span></a>
-<a href="#battles" data-nav="battles"><span class="bottom-nav-icon">⚔</span><span>Баттлы</span></a>
-<a href="#contracts" data-nav="contracts"><span class="bottom-nav-icon">⇄</span><span>Контракты</span></a>
-<a href="#profile" data-nav="profile"><span class="bottom-nav-icon">◉</span><span>Профиль</span></a>
-<a href="#leaders" data-nav="leaders"><span class="bottom-nav-icon">🏆</span><span>Лидеры</span></a>
+<a href="#cases" data-nav="cases" class="active" onclick="window.navigateCaseArenaPage('cases')"><span class="bottom-nav-icon">▦</span><span>Кейсы</span></a>
+<a href="#upgrade" data-nav="upgrade" onclick="window.navigateCaseArenaPage('upgrade')"><span class="bottom-nav-icon">↗</span><span>Апгрейд</span></a>
+<a href="#battles" data-nav="battles" onclick="window.navigateCaseArenaPage('battles')"><span class="bottom-nav-icon">⚔</span><span>Баттлы</span></a>
+<a href="#contracts" data-nav="contracts" onclick="window.navigateCaseArenaPage('contracts')"><span class="bottom-nav-icon">⇄</span><span>Контракты</span></a>
+<a href="#profile" data-nav="profile" onclick="window.navigateCaseArenaPage('profile')"><span class="bottom-nav-icon">◉</span><span>Профиль</span></a>
+<a href="#leaders" data-nav="leaders" onclick="window.navigateCaseArenaPage('leaders')"><span class="bottom-nav-icon">🏆</span><span>Лидеры</span></a>
 </nav>
 <div id="modal" class="modal hidden"><div class="modal-box"><button class="close" onclick="closeModal()">×</button><h2 id="modal-title">Аккаунт</h2><div id="modal-body"></div></div></div><div id="toast" class="toast"></div>
 <script src="/app.js"></script>
@@ -71,6 +71,7 @@
   window.scrollTo(0,0);
  }
  window.renderCaseArenaPage=render;
+ window.navigateCaseArenaPage=page=>render(page);
  // Reliable navigation for mobile browsers and in-app webviews.
  // Switch pages directly: the site does not need URL hashes for tab navigation.
  document.addEventListener('click',event=>{
