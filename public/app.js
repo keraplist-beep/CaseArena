@@ -89,7 +89,24 @@ window.buySkin=async name=>{
 window.filterSkinCatalog=()=>renderSkinCatalog(true);
 window.showMoreSkins=()=>{skinCatalogVisible+=72;renderSkinCatalog(false)};
 async function loadSkins(){skins=await api("/api/skins");renderSkinCatalog();renderUpgrade()}
-async function loadCases(){casesCache=await api("/api/cases");$("#case-grid").innerHTML=casesCache.map((c,i)=>'<article class="case-card case-theme-'+esc(c.theme||"classic")+'" onclick="showCase(\''+esc(c.id)+'\')"><div class="case-visual case-visual-photo"><span class="case-index">CASE / '+String(i+1).padStart(2,"0")+'</span><div class="case-art-mark">'+esc(c.name)+'</div>'+(c.image?'<img class="case-cover-image" loading="lazy" src="'+esc(c.image)+'" alt="'+esc(c.name)+'" onerror="this.style.display=\'none\'">':'<div class="case-box-art">✦</div>')+'<span class="case-cover-glow"></span><span class="case-art-sub">CASEARENA • '+Number(c.count||0)+' SKINS</span></div><div class="case-info"><h3>'+esc(c.name)+'</h3><p class="case-subtitle">'+esc(c.subtitle||"Коллекция CS2")+'</p><div class="case-bottom"><span class="price">'+money(c.price)+'</span><button class="btn primary" onclick="event.stopPropagation();showCase(\''+esc(c.id)+'\')">Смотреть кейс</button></div></div></article>').join("")}
+let casesFilter="all",casesSort="default",casesLimit=12;
+function renderCases(){
+ let list=[...casesCache];
+ if(casesFilter==="budget")list=list.filter(x=>Number(x.price)<=500);
+ else if(casesFilter==="premium")list=list.filter(x=>Number(x.price)>=5000);
+ else if(casesFilter==="popular")list=list.filter(x=>x.tag==="popular"||x.popular===true||x.featured===true||x.tag==="hot");
+ if(casesSort==="price-asc")list.sort((x,y)=>Number(x.price)-Number(y.price));
+ else if(casesSort==="price-desc")list.sort((x,y)=>Number(y.price)-Number(x.price));
+ const grid=$("#case-grid");if(!grid)return;
+ const visible=list.slice(0,casesLimit);
+ grid.innerHTML=visible.map(item=>'<article class="case-card" data-price="'+Number(item.price||0)+'" data-id="'+esc(item.id)+'">'+((item.tag==="hot"||item.tag==="new")?'<div class="case-badge '+item.tag+'">'+(item.tag==="hot"?"HOT":"NEW")+'</div>':'')+'<div class="case-image">'+(item.image?'<img loading="lazy" src="'+esc(item.image)+'" alt="'+esc(item.name)+'" onerror="this.style.display=\'none\'">':'<div class="case-placeholder case-placeholder-'+(Number(item.price)<500?"budget":Number(item.price)>=5000?"premium":"standard")+'"><span>✦</span></div>')+'</div><div class="case-info"><div class="case-name">'+esc(item.name)+'</div><div class="case-meta">'+Number(item.count||0)+' скинов</div><div class="case-price">'+money(item.price)+'</div></div><button class="case-open-btn" type="button" onclick="showCase(\''+esc(item.id)+'\')">Открыть</button></article>').join("");
+ const more=$("#showMoreCases");if(more)more.hidden=visible.length>=list.length;
+}
+window.showMoreCases=()=>{casesLimit+=12;renderCases()};
+async function loadCases(){casesCache=await api("/api/cases");casesLimit=12;renderCases()}
+document.querySelectorAll(".filter-btn[data-filter]").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".filter-btn[data-filter]").forEach(x=>x.classList.remove("active"));btn.classList.add("active");casesFilter=btn.dataset.filter;casesLimit=12;renderCases()}));
+$("#sortSelect")?.addEventListener("change",e=>{casesSort=e.target.value;casesLimit=12;renderCases()});
+
 window.showCase=async id=>{
  try{
   const d=await api("/api/cases/"+id);
