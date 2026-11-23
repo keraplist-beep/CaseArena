@@ -408,8 +408,25 @@ const cases=[
 ,{id:"gradient",name:"ГРАДИЕНТ",subtitle:"Переливы цвета и премиум-скины",price:799,theme:"gradient",cover:"AWP | Fade",items:[["Glock-18 | Vogue",180,45],["M4A1-S | Printstream",2350,32],["AWP | Fade",52000,17],["★ Stiletto Knife | Fade",31000,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
 ];
 cases.forEach(c=>{if(!c.cover)c.cover=c.items[c.items.length-1][0];});
-app.get("/api/cases",(req,res)=>{res.json(cases.map(({id,name,subtitle,price,theme,items,cover})=>({id,name,subtitle,price,theme:theme||"classic",count:items.length,image:""})));});
-app.get("/api/cases/:id",(req,res)=>{const c=cases.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:"Кейс не найден"});res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,theme:c.theme||"classic",count:c.items.length,image:"",items:c.items.map(([name,value,chance])=>({name,value,chance,image:""}))});});
+async function caseImageData(){
+ let skinsIndex=new Map(),cratesIndex=new Map();
+ try{skinsIndex=await getSkinImageIndex()}catch(error){console.warn("Case skin images unavailable:",error.message)}
+ try{cratesIndex=await getCrateImageIndex()}catch(error){console.warn("Case cover images unavailable:",error.message)}
+ return {skinsIndex,cratesIndex};
+}
+app.get("/api/cases",async(req,res)=>{
+ const {skinsIndex,cratesIndex}=await caseImageData();
+ res.json(cases.map(({id,name,subtitle,price,theme,items,cover})=>{
+  const coverImage=resolveSkinImage(cover,skinsIndex)||cratesIndex.get(String(caseImageSource[theme]||"").toLowerCase())||"";
+  return {id,name,subtitle,price,theme:theme||"classic",count:items.length,image:coverImage};
+ }));
+});
+app.get("/api/cases/:id",async(req,res)=>{
+ const c=cases.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:"Кейс не найден"});
+ const {skinsIndex,cratesIndex}=await caseImageData();
+ const coverImage=resolveSkinImage(c.cover,skinsIndex)||cratesIndex.get(String(caseImageSource[c.theme]||"").toLowerCase())||"";
+ res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,theme:c.theme||"classic",count:c.items.length,image:coverImage,items:c.items.map(([name,value,chance])=>({name,value,chance,image:resolveSkinImage(name,skinsIndex)}))});
+});
 const skinCatalog=[
  ["Glock-18 | Candy Apple",45,65,"Армейское","pistols/glock-18-candy-apple.png"],
  ["MP9 | Capillary",65,95,"Армейское","smgs/mp9-capillary.png"],
@@ -570,6 +587,12 @@ const skinCatalog=[
   ["★ Karambit | Emerald (Factory New)",2200000,"Нож","★ Karambit | Emerald"],
   ["★ Butterfly Knife | Doppler Black Pearl",1350000,"Нож","★ Butterfly Knife | Doppler"]
  ].filter(([name])=>!skinCatalog.some(s=>s.name===name)).map(([name,value,rarity,imageBaseName])=>({name,value,steamRub:value,rarity,marketWear:"Factory New",image:"",imageBaseName,fixedPrice:true,priceSource:"Виртуальная коллекционная оценка",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)})));
+
+ cases.push(
+  {id:"aurora-vault",name:"AURORA VAULT",subtitle:"Премиальная охота за редчайшими скинами",price:8999,theme:"sapphire",cover:"AWP | Gungnir",items:[["AWP | Gungnir",95000,60],["AK-47 | Wild Lotus",110000,25],["★ Karambit | Sapphire",115000,10],["AWP | Dragon Lore",471500,4],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]},
+  {id:"black-pearl",name:"ЧЁРНАЯ ЖЕМЧУЖИНА",subtitle:"Изумруды, сапфиры и коллекционные ножи",price:19999,theme:"blackpearl",cover:"★ Butterfly Knife | Emerald",items:[["★ M9 Bayonet | Sapphire",180000,55],["★ Butterfly Knife | Emerald",260000,25],["AWP | Dragon Lore (Souvenir Factory New)",1250000,12],["★ Butterfly Knife | Emerald (Factory New)",2000000,7],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]},
+  {id:"god-tier",name:"GOD TIER",subtitle:"Максимальный уровень редкости CaseArena",price:49999,theme:"gold",cover:"★ Karambit | Emerald",items:[["★ Sport Gloves | Pandora's Box",140000,50],["★ Karambit | Emerald",220000,28],["★ M9 Bayonet | Sapphire (Factory New)",1800000,15],["★ Karambit | Emerald (Factory New)",2200000,6],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]}
+ );
  const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
  for(const crate of cases)for(const item of crate.items)if(initialSkinPrices.has(item[0]))item[1]=initialSkinPrices.get(item[0]);
  const STEAM_PRICE_REFRESH_MS=60*60*1000;
@@ -624,8 +647,18 @@ async function getSkinImageIndex(){
  }
  return skinImageIndexPromise;
 }
-app.get("/api/skins",(req,res)=>{
- res.json(skinCatalog.map(s=>({...s,image:s.image&&!s.image.endsWith("/images/")?s.image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Ожидает котировку Steam"})));
+function resolveSkinImage(name,imageIndex){
+ const exact=imageIndex.get(name);
+ if(exact)return exact;
+ const entry=skinCatalog.find(s=>s.name===name);
+ if(entry?.imageBaseName&&imageIndex.has(entry.imageBaseName))return imageIndex.get(entry.imageBaseName);
+ const base=String(name).replace(/ \\(.*\\)$/,"");
+ return imageIndex.get(base)||"";
+}
+app.get("/api/skins",async(req,res)=>{
+ let imageIndex=new Map();
+ try{imageIndex=await getSkinImageIndex()}catch(error){console.warn("Skin images unavailable:",error.message)}
+ res.json(skinCatalog.map(s=>({...s,image:resolveSkinImage(s.name,imageIndex)||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Ожидает котировку Steam"})));
 });
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
   const u=current(req), c=cases.find(x=>x.id===req.params.id);
