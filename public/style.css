@@ -703,3 +703,99 @@ body{padding-bottom:100px}
 .wheel-sector-win{color:#fff4b0;text-shadow:0 0 8px #ffca35,0 2px 5px #000}
 .wheel-sector-fail{color:#f5e9e5;text-shadow:0 0 8px #b85a51,0 2px 5px #000}
 @media(max-width:420px){.wheel-sector-label{font-size:8px;letter-spacing:0}.upgrade-wheel-stage{width:min(300px,84vw)}}
+
+
+/* Upgrade wheel: larger dial and a clearly visible rotating rim needle */
+.upgrade-layout{grid-template-columns:minmax(0,1fr) minmax(390px,1.35fr) minmax(0,1fr);gap:18px}
+.upgrader-center{min-width:0;overflow:visible}
+.upgrade-wheel-stage{
+ width:min(100%,410px)!important;
+ height:auto!important;
+ aspect-ratio:1;
+ min-height:0;
+ margin:24px auto 22px!important;
+ padding:0!important;
+ position:relative;
+ display:grid!important;
+ place-items:center;
+}
+.upgrade-wheel{
+ position:absolute!important;
+ inset:0!important;
+ width:100%!important;
+ height:100%!important;
+ padding:0!important;
+ border-radius:50%!important;
+}
+.upgrade-wheel-dial{
+ position:absolute!important;
+ inset:0!important;
+ border-radius:50%!important;
+ border:10px solid #24313d!important;
+ box-shadow:0 0 0 3px #b08b4e,0 0 0 9px #111820,0 0 42px #ffbd3840,inset 0 0 28px #000b!important;
+ -webkit-mask:none!important;
+ mask:none!important;
+ overflow:hidden;
+}
+.upgrade-wheel-center{
+ width:43%!important;
+ height:43%!important;
+ left:50%!important;
+ top:50%!important;
+ transform:translate(-50%,-50%)!important;
+}
+.upgrade-wheel-pointer{
+ position:absolute!important;
+ inset:0!important;
+ left:0!important;
+ top:0!important;
+ width:100%!important;
+ height:100%!important;
+ z-index:8!important;
+ border-radius:50%;
+ transform-origin:50% 50%!important;
+ transition:transform 5.2s cubic-bezier(.08,.76,.12,1)!important;
+ pointer-events:none;
+}
+.upgrade-wheel-pointer:before{
+ content:""!important;
+ position:absolute!important;
+ left:50%!important;
+ top:1%!important;
+ width:5px!important;
+ height:49%!important;
+ transform:translateX(-50%)!important;
+ border:0!important;
+ border-radius:8px!important;
+ background:linear-gradient(180deg,#fff8d8 0%,#ffd15d 68%,#e58b23 100%)!important;
+ box-shadow:0 0 10px #ffc24c,0 0 22px #ffb32c66!important;
+}
+.upgrade-wheel-pointer:after{
+ content:""!important;
+ display:block!important;
+ position:absolute!important;
+ left:50%!important;
+ top:50%!important;
+ width:17px!important;
+ height:17px!important;
+ transform:translate(-50%,-50%)!important;
+ border-radius:50%!important;
+ background:radial-gradient(circle,#fff7d8 0 25%,#ffc34b 40% 68%,#68451d 75%)!important;
+ border:2px solid #ffe5a2!important;
+ box-shadow:0 0 0 4px #15110b,0 0 16px #ffbd38!important;
+}
+.wheel-sector-label{font-size:clamp(9px,1vw,12px)!important;max-width:44%!important}
+@media(max-width:1100px){
+ .upgrade-layout{grid-template-columns:1fr!important}
+ .upgrade-main-panel{grid-column:1!important;grid-row:1!important}
+ .upgrade-select-panel{grid-row:auto!important}
+ .upgrade-wheel-stage{width:min(82vw,390px)!important}
+}
+@media(max-width:560px){
+ .upgrade-wheel-stage{width:min(86vw,350px)!important;margin:18px auto!important}
+ .upgrade-wheel-dial{border-width:8px!important}
+ .upgrade-wheel-center{width:42%!important;height:42%!important}
+ .upgrade-wheel-center b{font-size:clamp(26px,8vw,38px)!important}
+ .upgrade-wheel-center small{font-size:8px!important}
+ .wheel-sector-label{font-size:8px!important;letter-spacing:0!important}
+}
