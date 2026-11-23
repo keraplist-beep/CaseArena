@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);
-let me=null, inventory=[], selected=new Set(), skins=[], casesCache=[], upgradeSourceId=null, upgradeTarget=null, rolling=false;
+let me=null, inventory=[], selected=new Set(), skins=[], casesCache=[], upgradeSourceId=null, upgradeTarget=null, rolling=false, skinCatalogVisible=72;
 const money=n=>Number(n||0).toLocaleString("ru-RU")+" CR";
 const rub=n=>Number(n||0).toLocaleString("ru-RU")+" ₽";
 const ROLE_ORDER=["user","moderator","admin","senior_admin","deputy_head_admin","head_admin","owner"];
@@ -37,7 +37,20 @@ async function refresh(){const d=await api("/api/me");me=d.user;inventory=d.inve
 function skinInfo(name){return skins.find(x=>x.name===name)||{name,value:0,steamRub:0,rarity:"Предмет",image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)}}
 function skinArt(name){const s=skinInfo(name);const glyph=name.startsWith("★")?"✦":name.split(" | ")[0].slice(0,3).toUpperCase();const image=s.image||"";return '<div class="skin-art '+(image?"":"no-image")+'">'+(image?'<img loading="lazy" src="'+esc(image)+'" alt="'+esc(name)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'no-image\')">':'')+'<span class="skin-glyph">'+esc(glyph)+'</span></div>'}
 function skinCard(name,value,opts={}){const s=skinInfo(name);return '<article class="skin-card rarity-'+esc((s.rarity||"").toLowerCase().replace(/[^a-zа-яё]+/g,"-"))+'">'+skinArt(name)+'<div class="skin-card-info"><span class="rarity-text">'+esc(s.rarity||"CS2")+'</span><b>'+esc(name)+'</b><strong>'+money(value??s.value)+'</strong><small class="steam-price">'+rub(s.steamRub)+' · '+(s.priceSource==="Steam Market"?"Steam":"оценка")+'</small>'+(opts.market?'<a class="market-link" href="'+esc(s.steamUrl)+'" target="_blank" rel="noopener">Steam Market ↗</a>':'')+(opts.select?'<label class="select-item"><input type="checkbox" '+(selected.has(opts.id)?"checked":"")+' onchange="toggleItem('+opts.id+',this.checked)"> Выбрать</label>':'')+(opts.sell?'<button class="btn secondary sell-skin-btn" onclick="sellItem('+opts.id+')">Продать за '+money(value??s.value)+'</button>':'')+'</div></article>'}
-async function loadSkins(){skins=await api("/api/skins")}
+function skinCategory(s){return s.category||(s.name.startsWith("★")?(s.name.includes("Gloves")?"Перчатки":"Нож"):"Оружие")}
+function renderSkinCatalog(reset=true){
+ const grid=$("#skin-catalog-grid");if(!grid)return;
+ if(reset)skinCatalogVisible=72;
+ const query=String($("#skin-catalog-search")?.value||"").trim().toLowerCase();
+ const category=$("#skin-catalog-category")?.value||"all";
+ const filtered=skins.filter(s=>(!query||(s.name+" "+(s.rarity||"")).toLowerCase().includes(query))&&(category==="all"||skinCategory(s)===category));
+ $("#skin-catalog-count").textContent="Найдено: "+filtered.length.toLocaleString("ru-RU")+" · всего в каталоге: "+skins.length.toLocaleString("ru-RU");
+ grid.innerHTML=filtered.slice(0,skinCatalogVisible).map(s=>skinCard(s.name,s.value,{market:true})).join("")||'<p class="muted">По запросу ничего не найдено.</p>';
+ const more=$("#skin-catalog-more");if(more)more.style.display=filtered.length>skinCatalogVisible?"inline-flex":"none";
+}
+window.filterSkinCatalog=()=>renderSkinCatalog(true);
+window.showMoreSkins=()=>{skinCatalogVisible+=72;renderSkinCatalog(false)};
+async function loadSkins(){skins=await api("/api/skins");renderSkinCatalog()}
 async function loadCases(){casesCache=await api("/api/cases");$("#case-grid").innerHTML=casesCache.map((c,i)=>'<article class="case-card case-theme-'+esc(c.theme||"classic")+'" onclick="showCase(\''+esc(c.id)+'\')"><div class="case-visual case-visual-photo"><span class="case-index">CASE / '+String(i+1).padStart(2,"0")+'</span><div class="case-art-mark">'+esc(c.name)+'</div>'+(c.image?'<img class="case-cover-image" loading="lazy" src="'+esc(c.image)+'" alt="'+esc(c.name)+'" onerror="this.style.display=\'none\'">':'<div class="case-box-art">✦</div>')+'<span class="case-cover-glow"></span><span class="case-art-sub">CASEARENA • '+Number(c.count||0)+' SKINS</span></div><div class="case-info"><h3>'+esc(c.name)+'</h3><p class="case-subtitle">'+esc(c.subtitle||"Коллекция CS2")+'</p><div class="case-bottom"><span class="price">'+money(c.price)+'</span><button class="btn primary" onclick="event.stopPropagation();showCase(\''+esc(c.id)+'\')">Смотреть кейс</button></div></div></article>').join("")}
 window.showCase=async id=>{try{const d=await api("/api/cases/"+id);const content='<div class="case-detail case-theme-'+esc(d.theme)+'"><div class="case-detail-hero"><div class="case-detail-art">'+esc(d.name)+'</div>'+(d.image?'<img src="'+esc(d.image)+'" alt="'+esc(d.name)+'">':'')+'<span>'+esc(d.subtitle)+'</span></div><div class="case-detail-heading"><div><h3>'+esc(d.name)+'</h3><p class="muted small">'+d.count+' предметов в кейсе</p></div><strong>'+money(d.price)+'</strong></div><div class="case-detail-items">'+d.items.map(item=>'<article class="case-drop-card"><div class="case-drop-image">'+(item.image?'<img src="'+esc(item.image)+'" alt="'+esc(item.name)+'">':'<span>CS2</span>')+'</div><b>'+esc(item.name)+'</b><small>'+money(item.value)+'</small><em>'+Number(item.chance).toLocaleString("ru-RU")+'%</em></article>').join("")+'</div><button class="btn primary full-btn" onclick="closeModal();openCase(\''+esc(d.id)+'\')">Открыть за '+money(d.price)+'</button></div>';openModal("СОДЕРЖИМОЕ КЕЙСА",content)}catch(e){toast(e.message)}};
 
