@@ -1010,3 +1010,19 @@ input,select{border-radius:9px}
  .bottom-nav{width:calc(100% - 14px);gap:2px}
  .bottom-nav a{font-size:8px;min-width:0}
 }
+
+/* Upgrade settings */
+.upgrader-title{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.upgrade-settings-trigger{flex:0 0 42px;width:42px;height:42px;border:1px solid #4de1d177;border-radius:12px;background:#142b3b;color:#78e8dd;font-size:23px;cursor:pointer}
+.upgrade-settings-trigger:hover{background:#1b4050;transform:rotate(25deg)}
+.upgrade-settings{display:grid;gap:12px}
+.upgrade-settings>label{display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:750}
+.upgrade-settings>label b{color:#65e2d3}
+.upgrade-settings input[type=range]{width:100%;accent-color:#4de1d1}
+.upgrade-shape-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.upgrade-shape-options button{padding:11px 6px;border:1px solid #38506a;border-radius:9px;background:#142131;color:#dce8f3;font-size:12px}
+.upgrade-shape-options button.active{border-color:#4de1d1;background:#164047;color:#8af3e8}
+#upgrade-wheel[data-shape="hexagon"],#upgrade-wheel[data-shape="hexagon"] .upgrade-wheel-dial{border-radius:0;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%)}
+#upgrade-wheel-pointer[data-shape="hexagon"]{clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%)}
+#upgrade-wheel[data-shape="square"],#upgrade-wheel[data-shape="square"] .upgrade-wheel-dial{border-radius:18px}
+#upgrade-wheel-pointer[data-shape="square"]{border-radius:18px}
