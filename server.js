@@ -697,7 +697,7 @@ async function getSkinImageIndex(){
  return skinImageIndexPromise;
 }
 function normalizeSkinImageName(value){
- return String(value||"").replace(/^★\s*/,"").replace(/\s*\([^)]*\)\s*$/,"").trim().toLowerCase();
+ return String(value||"").replace(/^★\s*/,"").replace(/^StatTrak™\s*/i,"").replace(/^Souvenir\s*/i,"").replace(/\s*\([^)]*\)\s*$/,"").trim().toLowerCase();
 }
 function resolveSkinImage(name,imageIndex){
  const exact=imageIndex.get(name);
@@ -719,6 +719,16 @@ function resolveSkinImage(name,imageIndex){
   if(normalized.startsWith(wanted+" ")||wanted.startsWith(normalized+" "))return url;
  }
  return "";
+}
+async function auditSkinImages(){
+ try{
+  const imageIndex=await getSkinImageIndex();
+  const missing=skinCatalog.filter(s=>{
+   const image=resolveSkinImage(s.name,imageIndex)||(s.image&&!s.image.endsWith("/images/")?s.image:"");
+   return !image;
+  });
+  console.log("CS2 skin image audit",{total:skinCatalog.length,withImages:skinCatalog.length-missing.length,withoutImages:missing.length,missingNames:missing.slice(0,100).map(s=>s.name)});
+ }catch(error){console.warn("CS2 skin image audit failed:",error.message)}
 }
 app.get("/api/skins",async(req,res)=>{
  let imageIndex=new Map();
@@ -949,6 +959,7 @@ async function startServer() {
  app.listen(port,()=>{
   console.log("CaseArena running on port",port);
   setTimeout(()=>refreshSteamPrices().catch(error=>console.error("Steam price refresh failed:",error.message)),8000);
+  const imageAuditTimer=setTimeout(()=>auditSkinImages(),15000);imageAuditTimer.unref?.();
   const priceTimer=setInterval(()=>refreshSteamPrices().catch(error=>console.error("Steam price refresh failed:",error.message)),STEAM_PRICE_REFRESH_MS);
   priceTimer.unref?.();
  });
