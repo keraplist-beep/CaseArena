@@ -429,33 +429,6 @@ cases.forEach(c=>{
 });
 
  
-// Каждое открытие кейса имеет ровно 35% шанса окупиться
-// (стоимость выпавшего предмета не ниже цены кейса).
-cases.forEach(c=>{
- const addFallback=(profitable)=>{
-  const candidates=skinCatalog.filter(s=>profitable?Number(s[1])>=c.price:Number(s[1])<c.price)
-   .sort((a,b)=>Number(a[1])-Number(b[1]));
-  const chosen=candidates.find(s=>!c.items.some(item=>item[0]===s[0]));
-  if(chosen)c.items.push([chosen[0],Number(chosen[1]),1]);
- };
- let winners=c.items.filter(item=>Number(item[1])>=c.price);
- let losers=c.items.filter(item=>Number(item[1])<c.price);
- if(!winners.length){addFallback(true);winners=c.items.filter(item=>Number(item[1])>=c.price);}
- if(!losers.length){addFallback(false);losers=c.items.filter(item=>Number(item[1])<c.price);}
- const normalize=(group,target)=>{
-  const total=group.reduce((sum,item)=>sum+Math.max(0,Number(item[2])||0),0);
-  if(!group.length||!total)return;
-  let assigned=0;
-  group.forEach((item,index)=>{
-   const weight=Math.max(0,Number(item[2])||0);
-   const chance=index===group.length-1?target-assigned:target*weight/total;
-   item[2]=chance;assigned+=chance;
-  });
- };
- normalize(winners,35);
- normalize(losers,65);
-});
-
 async function caseImageData(){
  let skinsIndex=new Map(),cratesIndex=new Map();
  try{skinsIndex=await getSkinImageIndex()}catch(error){console.warn("Case skin images unavailable:",error.message)}
@@ -659,7 +632,34 @@ cases.push(
   {id:"black-pearl",name:"ЧЁРНАЯ ЖЕМЧУЖИНА",subtitle:"Изумруды, сапфиры и коллекционные ножи",price:19999,theme:"blackpearl",cover:"★ Butterfly Knife | Emerald",items:[["★ M9 Bayonet | Sapphire",180000,55],["★ Butterfly Knife | Emerald",260000,25],["AWP | Dragon Lore (Souvenir Factory New)",1250000,12],["★ Butterfly Knife | Emerald (Factory New)",2000000,7],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]},
   {id:"god-tier",name:"GOD TIER",subtitle:"Премиальный кейс с ограниченным шансом на редкие предметы",price:49999,theme:"gold",cover:"★ Karambit | Sapphire",items:[["AK-47 | Fire Serpent",9800,55],["AWP | Dragon Lore",25000,25],["AWP | Gungnir",95000,12],["AK-47 | Wild Lotus",110000,6],["★ Karambit | Sapphire",115000,2]]}
  );
- async function loadCompleteSkinCatalog(){
+ // Каждое открытие кейса имеет ровно 35% шанса окупиться
+// (стоимость выпавшего предмета не ниже цены кейса).
+cases.forEach(c=>{
+ const addFallback=(profitable)=>{
+  const candidates=skinCatalog.filter(s=>profitable?Number(s[1])>=c.price:Number(s[1])<c.price)
+   .sort((a,b)=>Number(a[1])-Number(b[1]));
+  const chosen=candidates.find(s=>!c.items.some(item=>item[0]===s[0]));
+  if(chosen)c.items.push([chosen[0],Number(chosen[1]),1]);
+ };
+ let winners=c.items.filter(item=>Number(item[1])>=c.price);
+ let losers=c.items.filter(item=>Number(item[1])<c.price);
+ if(!winners.length){addFallback(true);winners=c.items.filter(item=>Number(item[1])>=c.price);}
+ if(!losers.length){addFallback(false);losers=c.items.filter(item=>Number(item[1])<c.price);}
+ const normalize=(group,target)=>{
+  const total=group.reduce((sum,item)=>sum+Math.max(0,Number(item[2])||0),0);
+  if(!group.length||!total)return;
+  let assigned=0;
+  group.forEach((item,index)=>{
+   const weight=Math.max(0,Number(item[2])||0);
+   const chance=index===group.length-1?target-assigned:target*weight/total;
+   item[2]=chance;assigned+=chance;
+  });
+ };
+ normalize(winners,35);
+ normalize(losers,65);
+});
+
+async function loadCompleteSkinCatalog(){
   try{
    const response=await fetch("https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json",{signal:AbortSignal.timeout(25000)});
    if(!response.ok)throw new Error("CS2 skin catalogue returned "+response.status);
