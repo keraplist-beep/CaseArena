@@ -973,15 +973,8 @@ app.get("/api/battles",(req,res)=>res.json([
 app.post("/api/battles/:id/join",requireAuth,(req,res)=>{
  const entry=Number(req.body.entry);
  if(![100,250,500].includes(entry)) return res.status(400).json({error:"Недопустимый взнос"});
- const u=current(req);
- const tx=db.transaction(()=>{
-   const b=db.prepare("SELECT balance FROM users WHERE id=?").get(u.id);
-   if(b.balance<entry) throw new Error("Недостаточно средств");
-   db.prepare("UPDATE users SET balance=balance-? WHERE id=?").run(entry,u.id);
-   log(u.id,`Вступление в демо-баттл #${req.params.id}`);
- });
- try{tx();res.json({message:"Вы присоединились к демо-баттлу",user:userView(current(req))});}
- catch(e){res.status(400).json({error:e.message});}
+ // Battles are visual demos for now: do not charge virtual balance until real matchmaking exists.
+ res.json({message:"Это демонстрационный баттл: участие пока не сохраняется, CR не списываются.",user:userView(current(req))});
 });
 app.get("/api/staff/users",requireAuth,requireStaff,(req,res)=>{
  const q=String(req.query.search||"").trim().slice(0,40).replace(/[%_]/g,"");
