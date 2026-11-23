@@ -433,10 +433,10 @@ cases.forEach(c=>{
 // (стоимость выпавшего предмета не ниже цены кейса).
 cases.forEach(c=>{
  const addFallback=(profitable)=>{
-  const candidates=skinCatalog.filter(s=>profitable?Number(s.value)>=c.price:Number(s.value)<c.price)
-   .sort((a,b)=>profitable?Number(a.value)-Number(b.value):Number(a.value)-Number(b.value));
-  const chosen=candidates.find(s=>!c.items.some(item=>item[0]===s.name));
-  if(chosen)c.items.push([chosen.name,Number(chosen.value),1]);
+  const candidates=skinCatalog.filter(s=>profitable?Number(s[1])>=c.price:Number(s[1])<c.price)
+   .sort((a,b)=>Number(a[1])-Number(b[1]));
+  const chosen=candidates.find(s=>!c.items.some(item=>item[0]===s[0]));
+  if(chosen)c.items.push([chosen[0],Number(chosen[1]),1]);
  };
  let winners=c.items.filter(item=>Number(item[1])>=c.price);
  let losers=c.items.filter(item=>Number(item[1])<c.price);
