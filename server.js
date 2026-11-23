@@ -644,38 +644,43 @@ cases.push(
  }
  const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
  for(const crate of cases)for(const item of crate.items)if(initialSkinPrices.has(item[0]))item[1]=initialSkinPrices.get(item[0]);
- const STEAM_PRICE_REFRESH_MS=5*60*1000;
- let steamPriceRefreshRunning=false,steamPriceLastUpdated=0,steamPriceCursor=0;
- const parseSteamRubPrice=value=>{if(!value)return 0;const normalized=String(value).replace(/[^0-9,\.]/g,"").replace(/\.(?=.*\.)/g,"").replace(",",".");const n=Number(normalized);return Number.isFinite(n)&&n>0?n:0};
- async function refreshSteamPrices(){
-  if(steamPriceRefreshRunning)return;
-  steamPriceRefreshRunning=true;
-  let updated=0;
+ const MARKET_PRICE_REFRESH_MS=5*60*1000;
+ let marketPriceRefreshRunning=false,marketPriceLastUpdated=0;
+ async function refreshMarketPrices(){
+  if(marketPriceRefreshRunning)return;
+  marketPriceRefreshRunning=true;
+  let updated=0,steamCount=0,otherCount=0;
   try{
-   const eligible=skinCatalog.filter(skin=>!skin.fixedPrice);
-   const batch=eligible.slice(steamPriceCursor,steamPriceCursor+20);
-   if(!batch.length){steamPriceCursor=0}
-   for(const skin of (batch.length?batch:eligible.slice(0,20))){
-    try{
-     const marketHashName=skin.name+" ("+(skin.marketWear||"Field-Tested")+")";
-     const url="https://steamcommunity.com/market/priceoverview/?"+new URLSearchParams({appid:"730",country:"RU",currency:"5",market_hash_name:marketHashName});
-     const response=await fetch(url,{headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0 CaseArena/1.0"},signal:AbortSignal.timeout(12000)});
-     if(response.status===429){console.warn("Steam Market rate limit reached; remaining prices will refresh next cycle");break}
-     if(response.ok){
-      const data=await response.json();
-      const price=parseSteamRubPrice(data.lowest_price)||parseSteamRubPrice(data.median_price);
-      if(data.success&&price>0){const value=Math.max(1,Math.round(price));skin.value=value;skin.steamRub=value;skin.priceSource="Steam Market";skin.priceUpdatedAt=Date.now();updated++}
-     }
-    }catch(error){console.warn("Steam price unavailable for",skin.name,error.message)}
-    await new Promise(resolve=>setTimeout(resolve,3300));
+   const response=await fetch("https://api.openskin.dev/v1/prices/all",{headers:{"Accept":"application/json"},signal:AbortSignal.timeout(45000)});
+   if(!response.ok)throw new Error("OpenSkin prices returned HTTP "+response.status);
+   const snapshot=await response.json();
+   const marketData=snapshot.data||{};
+   if(!marketData||typeof marketData!=="object")throw new Error("OpenSkin returned an invalid price snapshot");
+   for(const skin of skinCatalog){
+    const marketHashName=skin.name+" ("+(skin.marketWear||"Field-Tested")+")";
+    const row=marketData[marketHashName]||marketData[skin.name];
+    if(!row)continue;
+    const steamAsk=Number(row.steam?.ask);
+    const lowestAsk=Number(row.lowest_ask?.price);
+    const marketUsd=steamAsk>0?steamAsk:lowestAsk>0?lowestAsk:0;
+    if(!Number.isFinite(marketUsd)||marketUsd<=0)continue;
+    skin.marketUsd=marketUsd;
+    skin.value=Math.max(1,Math.round(marketUsd*100));
+    skin.priceSource=steamAsk>0?"Steam Market":"Рынок OpenSkin";
+    skin.marketplace=steamAsk>0?"steam":String(row.lowest_ask?.marketplace||"market");
+    skin.priceUpdatedAt=row.updated_at||snapshot.updated_at||new Date().toISOString();
+    if(!skin.image&&row.icon_url)skin.marketImage=row.icon_url;
+    updated++;
+    if(steamAsk>0)steamCount++;else otherCount++;
    }
-   steamPriceCursor=(steamPriceCursor+20)%Math.max(20,eligible.length);
-   const priceByName=new Map(skinCatalog.map(s=>[s.name,s.value]));
+   const priceByName=new Map(skinCatalog.map(skin=>[skin.name,skin.value]));
    for(const crate of cases)for(const item of crate.items)if(priceByName.has(item[0]))item[1]=priceByName.get(item[0]);
-   for(const skin of skinCatalog)if(skin.priceSource==="Steam Market"||skin.priceSource==="Оценка рынка")db.prepare("UPDATE inventory SET item_value=? WHERE item_name=?").run(skin.value,skin.name);
-   await flushWrites();steamPriceLastUpdated=Date.now();
-   console.log("Steam Market prices refreshed",{updated,total:skinCatalog.length,updatedAt:new Date(steamPriceLastUpdated).toISOString()});
-  }finally{steamPriceRefreshRunning=false}
+   for(const skin of skinCatalog)if(skin.priceSource==="Steam Market"||skin.priceSource==="Рынок OpenSkin")db.prepare("UPDATE inventory SET item_value=? WHERE item_name=?").run(skin.value,skin.name);
+   await flushWrites();
+   marketPriceLastUpdated=Date.now();
+   console.log("CS2 market prices refreshed",{updated,total:skinCatalog.length,steam:steamCount,otherMarketplaces:otherCount,sourceUpdatedAt:snapshot.updated_at||null,updatedAt:new Date(marketPriceLastUpdated).toISOString()});
+  }catch(error){console.warn("CS2 market price refresh failed:",error.message)}
+  finally{marketPriceRefreshRunning=false}
  }
 let skinImageIndexPromise=null;
 const caseImageSource={
@@ -727,7 +732,7 @@ async function auditSkinImages(){
  try{
   const imageIndex=await getSkinImageIndex();
   const missing=skinCatalog.filter(s=>{
-   const image=resolveSkinImage(s.name,imageIndex)||(s.image&&!s.image.endsWith("/images/")?s.image:"");
+   const image=resolveSkinImage(s.name,imageIndex)||s.marketImage||(s.image&&!s.image.endsWith("/images/")?s.image:"");
    return !image;
   });
   console.log("CS2 skin image audit",{total:skinCatalog.length,withImages:skinCatalog.length-missing.length,withoutImages:missing.length,missingNames:missing.slice(0,100).map(s=>s.name)});
@@ -736,7 +741,10 @@ async function auditSkinImages(){
 app.get("/api/skins",async(req,res)=>{
  let imageIndex=new Map();
  try{imageIndex=await getSkinImageIndex()}catch(error){console.warn("Skin images unavailable:",error.message)}
- const result=skinCatalog.map(s=>({...s,image:resolveSkinImage(s.name,imageIndex)||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Оценка CaseArena"}));
+ const result=skinCatalog.map(s=>{
+  const resolved=resolveSkinImage(s.name,imageIndex);
+  return {...s,image:resolved||(s.marketImage)|| (s.image&&!s.image.endsWith("/images/")?s.image:""),imageFallback:!resolved&&!!s.marketImage,steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Оценка CaseArena"};
+ });
  const missing=result.filter(item=>!item.image);
  if(missing.length)console.warn("CS2 skin image audit",{total:result.length,withImages:result.length-missing.length,withoutImages:missing.length,samples:missing.slice(0,12).map(item=>item.name)});
  else console.log("CS2 skin image audit passed",{total:result.length,withImages:result.length,withoutImages:0});
@@ -961,9 +969,9 @@ async function startServer() {
  await flushWrites();
  app.listen(port,()=>{
   console.log("CaseArena running on port",port);
-  setTimeout(()=>refreshSteamPrices().catch(error=>console.error("Steam price refresh failed:",error.message)),8000);
+  setTimeout(()=>refreshMarketPrices().catch(error=>console.error("Market price refresh failed:",error.message)),8000);
   const imageAuditTimer=setTimeout(()=>auditSkinImages(),15000);imageAuditTimer.unref?.();
-  const priceTimer=setInterval(()=>refreshSteamPrices().catch(error=>console.error("Steam price refresh failed:",error.message)),STEAM_PRICE_REFRESH_MS);
+  const priceTimer=setInterval(()=>refreshMarketPrices().catch(error=>console.error("Market price refresh failed:",error.message)),MARKET_PRICE_REFRESH_MS);
   priceTimer.unref?.();
  });
 }
