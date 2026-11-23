@@ -328,10 +328,8 @@ function playUpgradeSound(success){
 function updateWheelLabels(dial,chance){
  if(!dial)return;
  const win=dial.querySelector(".wheel-sector-win"),fail=dial.querySelector(".wheel-sector-fail"),pct=Math.max(0,Math.min(100,Number(chance)||0));
- const place=(el,angle)=>{if(!el)return;const radius=Math.max(62,dial.clientWidth*.405);el.style.top="50%";el.style.left="50%";el.style.transform="translate(-50%,-50%) rotate("+angle+"deg) translateY(-"+radius+"px) rotate("+(-angle)+"deg)"};
- const arc=pct*3.6;
- if(win){win.textContent="УСПЕХ "+pct.toFixed(1)+"%";place(win,180+arc/2)}
- if(fail){fail.textContent="НЕУДАЧА "+(100-pct).toFixed(1)+"%";place(fail,180+arc+(360-arc)/2)}
+ if(win)win.textContent="УСПЕХ "+pct.toFixed(1)+"%";
+ if(fail)fail.textContent="НЕУДАЧА "+(100-pct).toFixed(1)+"%";
 }
 function updateUpgradePreview(){
  const box=$("#upgrade-preview"),chanceText=$("#upgrade-wheel-value"),wheel=$("#upgrade-wheel"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status"),win=$("#upgrade-success-percent"),fail=$("#upgrade-fail-percent");
