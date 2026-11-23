@@ -771,35 +771,50 @@ app.get("/api/skins",async(req,res)=>{
  res.json(result);
 });
 app.post("/api/skins/buy",requireAuth,(req,res)=>{
- const u=current(req),skinName=String(req.body.skinName||"").trim().slice(0,160);
- const skin=skinCatalog.find(item=>item.name===skinName);
- if(!skin)return res.status(404).json({error:"Скин не найден в каталоге"});
- const price=Math.round(Number(skin.value));
- if(!Number.isSafeInteger(price)||price<1||price>5000000)return res.status(400).json({error:"У этого скина пока некорректная цена"});
- try{
-  const result=db.transaction(()=>{
-   const fresh=db.prepare("SELECT balance,forced_drop FROM users WHERE id=?").get(u.id);
-     if(fresh.balance<c.price) throw new Error("Недостаточно средств");
-     let selected;
-     if(Number(fresh.forced_drop)===1){
-       const premium=skinCatalog.reduce((best,item)=>Number(item.value)>Number(best?.value||0)?item:best,null);
-       if(!premium)throw new Error("Не удалось определить самый дорогой скин");
-       selected=[premium.name,Number(premium.value),0];
-       db.prepare("UPDATE users SET forced_drop=0 WHERE id=?").run(u.id);
-     }else{
-       const eligibleItems=c.id==="god-tier"?c.items.filter(item=>Number(item[1])<140000):c.items;
-       if(!eligibleItems.length)throw new Error("В кейсе пока нет доступных предметов");
-       const totalWeight=eligibleItems.reduce((sum,item)=>sum+(Number(item[2])||0),0);
-       let roll=Math.random()*totalWeight;selected=eligibleItems[eligibleItems.length-1];
-       for(const item of eligibleItems){roll-=Number(item[2])||0;if(roll<=0){selected=item;break;}}
-     }
-     const [name,value]=selected;
+  const u=current(req),skinName=String(req.body.skinName||"").trim().slice(0,160);
+  const skin=skinCatalog.find(item=>item.name===skinName);
+  if(!skin)return res.status(404).json({error:"Скин не найден в каталоге"});
+  const price=Math.round(Number(skin.value));
+  if(!Number.isSafeInteger(price)||price<1||price>5000000)return res.status(400).json({error:"У этого скина пока некорректная цена"});
+  try{
+   const result=db.transaction(()=>{
+    const fresh=db.prepare("SELECT balance FROM users WHERE id=?").get(u.id);
+    if(!fresh||fresh.balance<price)throw new Error("Недостаточно CR для покупки");
+    db.prepare("UPDATE users SET balance=balance-? WHERE id=?").run(price,u.id);
+    const item=db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,skin.name,price);
+    log(u.id,"Куплен скин "+skin.name+" за "+price+" CR");
+    return {ok:true,itemId:item.lastInsertRowid,name:skin.name,value:price,balance:fresh.balance-price};
+   })();
+   res.json({...result,user:userView(current(req))});
+  }catch(error){res.status(400).json({error:error.message||"Не удалось купить скин"});}
+ });
+app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
+  const u=current(req),c=cases.find(x=>x.id===req.params.id);
+  if(!c)return res.status(404).json({error:"Кейс не найден"});
+  const tx=db.transaction(()=>{
+    const fresh=db.prepare("SELECT balance,forced_drop FROM users WHERE id=?").get(u.id);
+    if(!fresh||fresh.balance<c.price)throw new Error("Недостаточно средств");
+    let selected;
+    if(Number(fresh.forced_drop)===1){
+      const premium=skinCatalog.reduce((best,item)=>Number(item.value)>Number(best?.value||0)?item:best,null);
+      if(!premium)throw new Error("Не удалось определить самый дорогой скин");
+      selected=[premium.name,Number(premium.value),0];
+      db.prepare("UPDATE users SET forced_drop=0 WHERE id=?").run(u.id);
+    }else{
+      const eligibleItems=c.id==="god-tier"?c.items.filter(item=>Number(item[1])<140000):c.items;
+      if(!eligibleItems.length)throw new Error("В кейсе пока нет доступных предметов");
+      const totalWeight=eligibleItems.reduce((sum,item)=>sum+(Number(item[2])||0),0);
+      let roll=Math.random()*totalWeight;
+      selected=eligibleItems[eligibleItems.length-1];
+      for(const item of eligibleItems){roll-=Number(item[2])||0;if(roll<=0){selected=item;break;}}
+    }
+    const [name,value]=selected;
     db.prepare("UPDATE users SET balance=balance-? WHERE id=?").run(c.price,u.id);
     db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,name,value);
-    log(u.id,`Открыт кейс ${c.name}: ${name}`);
+    log(u.id,"Открыт кейс "+c.name+": "+name+(Number(fresh.forced_drop)===1?" (гарантированный дроп владельца)":""));
     return {name,value,balance:fresh.balance-c.price,caseName:c.name,forcedDrop:Number(fresh.forced_drop)===1};
   });
-  try { res.json(tx()); } catch(e) { res.status(400).json({error:e.message}); }
+  try{res.json(tx());}catch(error){res.status(400).json({error:error.message});}
 });
 app.post("/api/inventory/:id/sell",requireAuth,(req,res)=>{
  const u=current(req),id=Number(req.params.id);
