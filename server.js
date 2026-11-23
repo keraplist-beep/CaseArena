@@ -413,8 +413,8 @@ const cases=[
 ,{id:"gradient",name:"ГРАДИЕНТ",subtitle:"Переливы цвета и премиум-скины",price:799,theme:"gradient",cover:"AWP | Fade",items:[["Glock-18 | Vogue",180,45],["M4A1-S | Printstream",2350,32],["AWP | Fade",52000,17],["★ Stiletto Knife | Fade",31000,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
 ];
 cases.forEach(c=>{if(!c.cover)c.cover=c.items[c.items.length-1][0];});
-app.get("/api/cases",async(req,res)=>{const crateImages=await getCrateImageIndex();res.json(cases.map(({id,name,subtitle,price,theme,items})=>({id,name,subtitle,price,theme:theme||"classic",count:items.length,image:crateImages.get((caseImageSource[id]||"").toLowerCase())||""})));});
-app.get("/api/cases/:id",async(req,res)=>{const c=cases.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:"Кейс не найден"});const [crateImages,imageIndex]=await Promise.all([getCrateImageIndex(),getSkinImageIndex()]);res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,theme:c.theme||"classic",count:c.items.length,image:crateImages.get((caseImageSource[c.id]||"").toLowerCase())||"",items:c.items.map(([name,value,chance])=>({name,value,chance,image:imageIndex.get(name)||""}))});});
+app.get("/api/cases",(req,res)=>{res.json(cases.map(({id,name,subtitle,price,theme,items,cover})=>({id,name,subtitle,price,theme:theme||"classic",count:items.length,image:""})));});
+app.get("/api/cases/:id",(req,res)=>{const c=cases.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:"Кейс не найден"});res.json({id:c.id,name:c.name,subtitle:c.subtitle,price:c.price,theme:c.theme||"classic",count:c.items.length,image:"",items:c.items.map(([name,value,chance])=>({name,value,chance,image:""}))});});
 const skinCatalog=[
  ["Glock-18 | Candy Apple",45,65,"Армейское","pistols/glock-18-candy-apple.png"],
  ["MP9 | Capillary",65,95,"Армейское","smgs/mp9-capillary.png"],
@@ -629,9 +629,8 @@ async function getSkinImageIndex(){
  }
  return skinImageIndexPromise;
 }
-app.get("/api/skins",async(req,res)=>{
- const imageIndex=await getSkinImageIndex();
- res.json(skinCatalog.map(s=>({...s,image:imageIndex.get(s.name)||imageIndex.get(s.imageBaseName||"")||(s.image&&!s.image.endsWith("/images/")?s.image:""),steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Ожидает котировку Steam"})));
+app.get("/api/skins",(req,res)=>{
+ res.json(skinCatalog.map(s=>({...s,image:s.image&&!s.image.endsWith("/images/")?s.image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Ожидает котировку Steam"})));
 });
 app.post("/api/cases/:id/open",requireAuth,(req,res)=>{
   const u=current(req), c=cases.find(x=>x.id===req.params.id);
