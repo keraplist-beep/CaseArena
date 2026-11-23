@@ -660,6 +660,7 @@ cases.push(
     const marketHashName=skin.name+" ("+(skin.marketWear||"Field-Tested")+")";
     const row=marketData[marketHashName]||marketData[skin.name];
     if(!row)continue;
+    if(!skin.image&&row.icon_url)skin.marketImage=row.icon_url;
     const steamAsk=Number(row.steam?.ask);
     const lowestAsk=Number(row.lowest_ask?.price);
     const marketUsd=steamAsk>0?steamAsk:lowestAsk>0?lowestAsk:0;
@@ -669,7 +670,6 @@ cases.push(
     skin.priceSource=steamAsk>0?"Steam Market":"Рынок OpenSkin";
     skin.marketplace=steamAsk>0?"steam":String(row.lowest_ask?.marketplace||"market");
     skin.priceUpdatedAt=row.updated_at||snapshot.updated_at||new Date().toISOString();
-    if(!skin.image&&row.icon_url)skin.marketImage=row.icon_url;
     updated++;
     if(steamAsk>0)steamCount++;else otherCount++;
    }
