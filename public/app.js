@@ -146,6 +146,9 @@ function renderUpgradeTargets(){
 window.filterUpgradeTargets=renderUpgradeTargets;
 function renderUpgrade(){
  const source=$("#upgrade-source"),slots=$("#upgrade-selected-slots");if(!source)return;
+ const machine=$(".upgrade-machine");if(machine&&!machine.dataset.theme){let theme="classic";try{theme=localStorage.getItem("casearena-upgrade-theme")||"classic"}catch{}machine.dataset.theme=["classic","neon","minimal"].includes(theme)?theme:"classic"}
+ document.querySelectorAll(".upgrade-mode-row button").forEach((el,i)=>el.classList.toggle("active",i===(upgradeSettings.mode==="fast"?1:0)));
+ document.querySelectorAll(".upgrade-theme-row button").forEach((el,i)=>el.classList.toggle("active",i===["classic","neon","minimal"].indexOf(machine?.dataset.theme||"classic")));
  const chosen=getUpgradeItems(),stake=getUpgradeStake();
  if(slots)slots.innerHTML=Array.from({length:6},(_,i)=>{const item=chosen[i];return '<div class="upgrade-slot '+(item?"filled":"")+'">'+(item?'<button type="button" class="upgrade-slot-remove" aria-label="Убрать предмет" onclick="chooseUpgradeSource('+item.id+')">×</button>'+skinArt(item.item_name)+'<b>'+esc(item.item_name)+'</b><small>'+money(item.item_value)+'</small>':'<span class="upgrade-slot-plus">+</span><small>Слот '+(i+1)+'</small>')+'</div>'}).join("");
  source.innerHTML=inventory.length?inventory.map(x=>'<button class="pick-card '+(upgradeSourceIds.includes(x.id)?"chosen":"")+'" onclick="chooseUpgradeSource('+x.id+')">'+skinArt(x.item_name)+'<b>'+esc(x.item_name)+'</b><small>'+money(x.item_value)+'</small><span class="upgrade-select-mark">'+(upgradeSourceIds.includes(x.id)?"✓ Выбран":"＋ Добавить")+'</span></button>').join(""):'<p class="muted small">Инвентарь пуст — сначала открой кейс</p>';
