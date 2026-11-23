@@ -472,6 +472,9 @@ function balanceCase(c){
  c.items.forEach((item,i)=>{item[2]=Number((weights[i]/total*100).toFixed(8));});
  c.expectedValue=Math.round(c.items.reduce((sum,item)=>sum+item[1]*item[2]/100,0));
 }
+function balanceAllCases(){
+ cases.forEach(c=>balanceCase(c));
+}
 cases.forEach(c=>{
  if(!c.cover)c.cover=c.items[c.items.length-1][0];
  balanceCase(c);
@@ -681,32 +684,10 @@ cases.push(
   {id:"black-pearl",name:"ЧЁРНАЯ ЖЕМЧУЖИНА",subtitle:"Изумруды, сапфиры и коллекционные ножи",price:19999,theme:"blackpearl",cover:"★ Butterfly Knife | Emerald",items:[["★ M9 Bayonet | Sapphire",180000,55],["★ Butterfly Knife | Emerald",260000,25],["AWP | Dragon Lore (Souvenir Factory New)",1250000,12],["★ Butterfly Knife | Emerald (Factory New)",2000000,7],["★ Karambit | Case Hardened (Blue Gem #387)",3200000,1]]},
   {id:"god-tier",name:"GOD TIER",subtitle:"Премиальный кейс с ограниченным шансом на редкие предметы",price:49999,theme:"gold",cover:"★ Karambit | Sapphire",items:[["AK-47 | Fire Serpent",9800,55],["AWP | Dragon Lore",25000,25],["AWP | Gungnir",95000,12],["AK-47 | Wild Lotus",110000,6],["★ Karambit | Sapphire",115000,2]]}
  );
- // Каждое открытие кейса имеет ровно 35% шанса окупиться
-// (стоимость выпавшего предмета не ниже цены кейса).
-cases.forEach(c=>{
- const addFallback=(profitable)=>{
-  const candidates=skinCatalog.filter(s=>profitable?Number(s[1])>=c.price:Number(s[1])<c.price)
-   .sort((a,b)=>Number(a[1])-Number(b[1]));
-  const chosen=candidates.find(s=>!c.items.some(item=>item[0]===s[0]));
-  if(chosen)c.items.push([chosen[0],Number(chosen[1]),1]);
- };
- let winners=c.items.filter(item=>Number(item[1])>=c.price);
- let losers=c.items.filter(item=>Number(item[1])<c.price);
- if(!winners.length){addFallback(true);winners=c.items.filter(item=>Number(item[1])>=c.price);}
- if(!losers.length){addFallback(false);losers=c.items.filter(item=>Number(item[1])<c.price);}
- const normalize=(group,target)=>{
-  const total=group.reduce((sum,item)=>sum+Math.max(0,Number(item[2])||0),0);
-  if(!group.length||!total)return;
-  let assigned=0;
-  group.forEach((item,index)=>{
-   const weight=Math.max(0,Number(item[2])||0);
-   const chance=index===group.length-1?target-assigned:target*weight/total;
-   item[2]=chance;assigned+=chance;
-  });
- };
- normalize(winners,35);
- normalize(losers,65);
-});
+ // Повторный проход обязателен: эти три кейса объявлены уже после первоначального баланса.
+ balanceAllCases();
+// Все кейсы, включая добавленные ниже премиальные, балансируются одной функцией.
+cases.forEach(balanceCase);
 
 async function loadCompleteSkinCatalog(){
   try{
@@ -741,6 +722,8 @@ async function loadCompleteSkinCatalog(){
  }
  const initialSkinPrices=new Map(skinCatalog.map(s=>[s.name,s.value]));
  for(const crate of cases)for(const item of crate.items)if(initialSkinPrices.has(item[0]))item[1]=initialSkinPrices.get(item[0]);
+ // Каталог может заменить исходные оценки цен; после синхронизации пересчитываем и цены кейсов, и шансы.
+ balanceAllCases();
  // Виртуальный курс CaseArena: 1 CR ≈ 1 RUB. Рыночные USD-котировки пересчитываем по ориентиру 82 RUB за USD (23.11.2026).
   const CASEARENA_RUB_PER_USD=82;
  const MARKET_PRICE_REFRESH_MS=5*60*1000;
@@ -790,6 +773,8 @@ async function loadCompleteSkinCatalog(){
    }
    const priceByName=new Map(skinCatalog.map(skin=>[skin.name,skin.value]));
    for(const crate of cases)for(const item of crate.items)if(priceByName.has(item[0]))item[1]=priceByName.get(item[0]);
+   // Рыночные цены меняются — минимальный дроп и цена каждого кейса должны оставаться согласованными.
+   balanceAllCases();
    const ownedItems=db.prepare("SELECT DISTINCT item_name FROM inventory").all();for(const owned of ownedItems){const currentPrice=priceByName.get(owned.item_name);if(currentPrice)db.prepare("UPDATE inventory SET item_value=? WHERE item_name=?").run(currentPrice,owned.item_name);}
    await flushWrites();
    marketPriceLastUpdated=Date.now();
