@@ -149,31 +149,24 @@ function renderCases() {
 
   grid.innerHTML = visible.map(item => {
     const price = Number(item.price) || 0;
-    let glowColor = "rgba(61,125,255,.24)";
-    if (item.tag === "premium" || price >= 5000) glowColor = "rgba(255,75,75,.24)";
-    else if (item.tag === "popular" || price >= 1000) glowColor = "rgba(255,165,0,.24)";
-    else if (item.tag === "green") glowColor = "rgba(46,204,113,.25)";
+    let badge = "";
+    if (price >= 5000) badge = '<div class="ca-badge hot">TOP</div>';
+    else if (price >= 500) badge = '<div class="ca-badge new">HOT</div>';
 
-    const badgeHTML = item.isNew ? '<span class="cb-badge-new">NEW</span>' :
-      (price >= 5000 ? '<span class="cb-badge-new cb-badge-top">TOP</span>' : "");
     const initial = esc(String(item.name || "?").trim().charAt(0).toUpperCase() || "?");
     const imageHTML = item.image
-      ? '<img loading="lazy" src="' + esc(item.image) + '" alt="' + esc(item.name) + '" class="cb-case-img" onerror="this.outerHTML=\'<div class=&quot;ca-fallback&quot;>' + initial + '</div>\'">'
+      ? '<img loading="lazy" src="' + esc(item.image) + '" alt="' + esc(item.name) + '" onerror="this.parentNode.innerHTML=\'<div class=&quot;ca-fallback&quot;>' + initial + '</div>\'">'
       : '<div class="ca-fallback">' + initial + '</div>';
 
-    return '<article class="case-card ca-card cb-card" data-id="' + esc(item.id) + '">' +
-      '<div class="cb-card-header">' +
-        '<div class="cb-card-title">' + esc(item.name) + '</div>' +
-        '<div class="cb-card-meta">' + Number(item.count || 0) + ' предметов ' + badgeHTML + '</div>' +
+    return '<article class="case-card ca-card" data-id="' + esc(item.id) + '">' +
+      badge +
+      '<div class="case-image ca-card-img">' + imageHTML + '</div>' +
+      '<div class="case-info">' +
+        '<div class="case-name ca-card-name">' + esc(item.name) + '</div>' +
+        '<div class="case-meta ca-card-meta">' + Number(item.count || 0) + ' скинов</div>' +
+        '<div class="case-price ca-card-price">' + money(price) + '</div>' +
       '</div>' +
-      '<div class="cb-card-image-wrap">' +
-        '<div class="cb-glow-bg" style="--case-glow:' + glowColor + '"></div>' +
-        imageHTML +
-      '</div>' +
-      '<div class="cb-card-footer">' +
-        '<button class="cb-price-btn" type="button" onclick="showCase(\' + esc(item.id) + '\')">' + money(price) + '</button>' +
-      '</div>' +
-      '<div class="cb-card-quick"><button class="case-quick-btn" type="button" onclick="openCase(\' + esc(item.id) + '\\',true)">⚡ Быстрое открытие</button></div>' +
+      '<div class="case-card-actions"><button class="case-open-btn ca-card-btn" type="button" onclick="showCase(\'' + esc(item.id) + '\')">Открыть</button><button class="case-quick-btn" type="button" onclick="openCase(\'' + esc(item.id) + '\',true)">⚡ Быстрое открытие</button></div>' +
     '</article>';
   }).join("");
 
