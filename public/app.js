@@ -437,9 +437,9 @@ async function loadStaff(search=""){
   const d=await api("/api/staff/users?search="+encodeURIComponent(q));
   const users=d.users||[], actorRank=roleRank(me.role);
   const rows=users.map(u=>{
-   const protectedOwner=u.role==="owner"||u.role==="co_owner", targetRank=roleRank(u.role), canManage=!protectedOwner&&Number(u.id)!==Number(me.id)&&actorRank>targetRank;
+   const targetRank=roleRank(u.role), protectedOwner=actorRank<=targetRank, canManage=!protectedOwner&&Number(u.id)!==Number(me.id);
    const actions=[];
-   if(protectedOwner)actions.push('<span class="owner-shield">🛡 Защищён</span>');
+   if(protectedOwner)actions.push('<span class="owner-shield">🛡 Защищён от твоей роли</span>');
    else if(canManage){
     if(actorRank>=2){
      actions.push('<button class="btn danger" onclick="staffAction('+u.id+',\'ban\')">Бан</button>');
@@ -484,11 +484,11 @@ async function loadOwner(search=ownerSearchQuery){
    '</div>'+
    '<div class="owner-toolbar"><div><h3>Управление игроками</h3><small class="muted">Все аккаунты, включая игроков без открытых кейсов. Гарантированный дроп выдаётся на следующее открытие.</small></div><div class="owner-toolbar-actions"><input id="owner-search" value="'+esc(ownerSearchQuery)+'" placeholder="Поиск по нику…" oninput="searchOwnerUsers(this.value)"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
    '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>{
-    const isOwner=u.role==="owner"||u.role==="co_owner";
-    const locked=isOwner&&Number(u.id)!==Number(me.id);
+    const targetRank=roleRank(u.role);
+    const locked=Number(u.id)===Number(me.id)||roleRank(me.role)<=targetRank;
     const disabled=locked?"disabled":"";
-    const roleDisabled=isOwner?"disabled":"";
-    const moderation=isOwner?"":(Number(u.banned)===1
+    const roleDisabled=locked?"disabled":"";
+    const moderation=locked?"":(Number(u.banned)===1
       ? '<button class="btn secondary" onclick="ownerUnban('+u.id+')">Разбанить</button>'
       : '<button class="btn danger" onclick="ownerBan('+u.id+')">Заблокировать</button>')+
       '<button class="btn danger" onclick="deleteUser('+u.id+',\''+esc(u.username)+'\')">Удалить</button>';
@@ -500,9 +500,9 @@ async function loadOwner(search=ownerSearchQuery){
       '<button class="btn primary" onclick="ownerBalance('+u.id+',\'add\')" '+disabled+'>Выдать +</button>'+
       '<button class="btn secondary" onclick="ownerBalance('+u.id+',\'set\')" '+disabled+'>Задать</button>'+
      '</div>'+
-     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+roleDisabled+'>'+ROLE_ORDER.filter(role=>role!=="owner").map(role=>'<option value="'+role+'" '+(u.role===role?"selected":"")+'>'+ROLE_LABELS[role]+'</option>').join("")+'</select></label>'+
+     '<label class="owner-field"><small>РОЛЬ</small><select id="role-'+u.id+'" '+roleDisabled+'>'+ROLE_ORDER.filter(role=>roleRank(role)<roleRank(me.role)).map(role=>'<option value="'+role+'" '+(u.role===role?"selected":"")+'>'+ROLE_LABELS[role]+'</option>').join("")+'</select></label>'+
      '<div class="owner-actions"><button class="btn secondary" onclick="ownerRole('+u.id+')" '+roleDisabled+'>Сохранить роль</button>'+
-     (isOwner?'':'<button class="btn '+(Number(u.forced_drop)===1?'danger':'primary')+'" onclick="ownerForcedDrop('+u.id+','+(Number(u.forced_drop)===1?'false':'true')+')">'+(Number(u.forced_drop)===1?'Отключить дроп':'Выдать лучший дроп')+'</button>')+moderation+'</div></div>';
+     (locked?'':'<button class="btn '+(Number(u.forced_drop)===1?'danger':'primary')+'" onclick="ownerForcedDrop('+u.id+','+(Number(u.forced_drop)===1?'false':'true')+')">'+(Number(u.forced_drop)===1?'Отключить дроп':'Выдать лучший дроп')+'</button>')+moderation+'</div></div>';
    }).join(""):'<p class="muted">'+(ownerSearchQuery?"По этому нику игроки не найдены.":"Пока нет игроков.")+'</p>')+'</div>'+
    '<div class="owner-activity"><h3>Последние действия</h3>'+
    (activity.length?activity.map(item=>'<p><b>'+esc(item.username||"Система")+'</b><span>'+esc(item.message)+'</span></p>').join(""):'<p class="muted">Действий пока нет.</p>')+
