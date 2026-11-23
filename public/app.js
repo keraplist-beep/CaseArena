@@ -354,3 +354,37 @@ window.deleteUser=async(id,username)=>{
  try{await api("/api/owner/users/"+id,{method:"DELETE"});await loadOwner();toast("Аккаунт удалён")}catch(e){toast(e.message)}
 };
 (async()=>{const jobs=[["скины",loadSkins],["кейсы",loadCases],["баттлы",loadBattles],["лидеры",loadLeaders],["профиль",refresh]];const results=await Promise.allSettled(jobs.map(([,run])=>run()));results.forEach((result,i)=>{if(result.status==="rejected"){const [name]=jobs[i];console.error("CaseArena: не загрузились "+name,result.reason);if(name==="кейсы")$("#case-grid").innerHTML='<p class="muted">Не удалось загрузить кейсы. Обнови страницу.</p>';if(name==="баттлы")$("#battle-list").innerHTML='<p class="muted">Баттлы временно недоступны.</p>';if(name==="лидеры")$("#leader-list").textContent="Таблица лидеров временно недоступна";}});const p=new URLSearchParams(location.search);if(p.get("chooseNick")==="1")nicknameModal();else if(p.has("google")){toast("Не удалось выполнить вход через Google");history.replaceState({},"",location.pathname)}setInterval(()=>{if(!document.hidden)loadLeaders().catch(e=>console.warn("Leaderboard auto-refresh failed:",e.message))},15000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadLeaders().catch(e=>console.warn("Leaderboard refresh failed:",e.message))})})();
+
+/* App navigation bootstrap: kept in the external script for mobile WebViews. */
+(()=>{
+ const pages=[...document.querySelectorAll('.page-view')];
+ const nav=document.querySelector('.bottom-nav');
+ let currentPage=(location.hash||'#cases').slice(1);
+ function render(requestedPage){
+  let page=requestedPage||currentPage;
+  if(page==='battles'||page==='upgrade')page='arena';
+  if(!document.querySelector('[data-page="'+page+'"]'))page='cases';
+  if(page==='owner'&&!window.canAccessOwner?.()){page='cases';history.replaceState({},'',location.pathname+'#cases')}
+  if(page==='staff'&&!window.canAccessStaff?.()){page='cases';history.replaceState({},'',location.pathname+'#cases')}
+  currentPage=page;
+  pages.forEach(el=>el.classList.toggle('active-page',el.dataset.page===page));
+  if(page==='staff')window.loadStaff?.();
+  if(page==='owner')window.loadOwner?.();
+  nav?.querySelectorAll('a[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===page));
+  document.title='CaseArena — '+({cases:'Кейсы',skins:'Скины',arena:'Арена',contracts:'Контракты',profile:'Профиль',leaders:'Лидеры',owner:'Панель владельца',staff:'Управление сервером'}[page]||'Арена');
+  window.scrollTo(0,0);
+ }
+ window.renderCaseArenaPage=render;
+ window.navigateCaseArenaPage=page=>render(page);
+ document.addEventListener('click',event=>{
+  const link=event.target instanceof Element?event.target.closest('a[href^="#"]'):null;
+  if(!link)return;
+  const target=link.getAttribute('href');
+  if(!target||target==='#')return;
+  event.preventDefault();
+  render(link.dataset.nav||target.slice(1));
+ },true);
+ window.addEventListener('hashchange',()=>render((location.hash||'#cases').slice(1)));
+ window.addEventListener('popstate',()=>render((location.hash||'#cases').slice(1)));
+ render();
+})();
