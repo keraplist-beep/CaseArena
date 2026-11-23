@@ -765,6 +765,7 @@ async function loadCompleteSkinCatalog(){
     if(!Number.isFinite(marketUsd)||marketUsd<=0)continue;
     skin.marketUsd=marketUsd;
     skin.value=Math.max(1,Math.round(marketUsd*CASEARENA_RUB_PER_USD));
+    skin.steamRub=skin.value;
     skin.priceSource=steamAsk>0?"Steam Market":"Рынок OpenSkin";
     skin.marketplace=steamAsk>0?"steam":String(row.lowest_ask?.marketplace||"market");
     skin.priceUpdatedAt=row.updated_at||sourceUpdatedAt||new Date().toISOString();
