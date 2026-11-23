@@ -58,8 +58,8 @@
 (()=> {
  const pages=[...document.querySelectorAll('.page-view')];
  const nav=document.querySelector('.bottom-nav');
- function render(){
-  let page=(location.hash||'#cases').slice(1);
+ function render(requestedPage){
+  let page=requestedPage||((location.hash||'#cases').slice(1));
   if(!document.querySelector('[data-page="'+page+'"]')) page='cases';
   if(page==='owner' && !window.canAccessOwner?.()){page='cases';history.replaceState({},'',location.pathname+'#cases')}
   if(page==='staff' && !window.canAccessStaff?.()){page='cases';history.replaceState({},'',location.pathname+'#cases')}
@@ -70,15 +70,15 @@
  }
  window.renderCaseArenaPage=render;
  // Reliable navigation for mobile browsers and in-app webviews.
+ // Switch pages directly: the site does not need URL hashes for tab navigation.
  document.addEventListener('click',event=>{
-  const link=event.target.closest('a[href^="#"]');
+  const link=event.target instanceof Element ? event.target.closest('a[href^="#"]') : null;
   if(!link)return;
   const target=link.getAttribute('href');
   if(!target||target==="#")return;
   event.preventDefault();
-  if(location.hash!==target)history.pushState({},'',target);
-  render();
- });
+  render((link.dataset.nav||target.slice(1)));
+ },true);
  window.addEventListener('hashchange',render);
  window.addEventListener('popstate',render);
  render();
