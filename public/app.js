@@ -52,7 +52,7 @@ window.ownerAccessReady=false;
 window.updateOwnerNavigation=()=>{
  const nav=document.querySelector(".bottom-nav");if(!nav)return;
  let owner=nav.querySelector('[data-nav="owner"]'),staff=nav.querySelector('[data-nav="staff"]');
- if(window.canAccessOwner()&&!owner){owner=document.createElement("a");owner.href="#owner";owner.dataset.nav="owner";owner.innerHTML='<span class="bottom-nav-icon">🛡</span><span>Владелец</span>';nav.appendChild(owner)}
+ if(window.canAccessOwner()&&!owner){owner=document.createElement("a");owner.href="#owner";owner.dataset.nav="owner";owner.innerHTML='<span class="bottom-nav-icon">🛡</span><span></span>';nav.appendChild(owner)}if(owner)owner.querySelector("span:last-child").textContent=me?.role==="co_owner"?"Совладелец":"Владелец"
  if(!window.canAccessOwner()&&owner)owner.remove();
  if(me&&roleRank(me.role)>=1&&!staff){staff=document.createElement("a");staff.href="#staff";staff.dataset.nav="staff";staff.innerHTML='<span class="bottom-nav-icon">🛠</span><span>Персонал</span>';nav.appendChild(staff)}
  if((!me||roleRank(me.role)<1)&&staff)staff.remove();
