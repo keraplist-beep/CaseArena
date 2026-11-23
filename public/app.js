@@ -223,16 +223,16 @@ window.showCase=async id=>{
  try{
   const d=await api("/api/cases/"+id);
   const host=$("#case-detail-content");if(!host)throw new Error("Страница кейса не найдена");
-  host.innerHTML='<div class="case-detail-page-head"><button class="btn secondary" onclick="navigateCaseArenaPage(\'cases\')">← Все кейсы</button><span class="eyebrow">CASEARENA / CASE DETAILS</span></div><div class="case-detail case-theme-'+esc(d.theme)+'"><div class="case-detail-hero"><div class="case-detail-art">'+esc(d.name)+'</div>'+(d.image?'<img src="'+esc(d.image)+'" alt="'+esc(d.name)+'">':'')+'<span>'+esc(d.subtitle)+'</span></div><div class="case-detail-heading"><div><h3>'+esc(d.name)+'</h3><p class="muted small">'+d.count+' предметов в кейсе</p></div><strong>'+money(d.price)+'</strong></div><div class="case-detail-items">'+d.items.map(item=>'<article class="case-drop-card"><div class="case-drop-image">'+(item.image?'<img src="'+esc(item.image)+'" alt="'+esc(item.name)+'">':'<span>CS2</span>')+'</div><b>'+esc(item.name)+'</b><small>'+money(item.value)+'</small><em>'+Number(item.chance).toLocaleString("ru-RU")+'%</em></article>').join("")+'</div><button class="btn primary full-btn" onclick="openCase(\''+esc(d.id)+'\')">Открыть за '+money(d.price)+'</button></div>';
+  host.innerHTML='<div class="case-detail-page-head"><button class="btn secondary" onclick="navigateCaseArenaPage(\'cases\')">← Все кейсы</button><span class="eyebrow">CASEARENA / CASE DETAILS</span></div><div class="case-detail case-theme-'+esc(d.theme)+'"><div class="case-detail-hero"><div class="case-detail-art">'+esc(d.name)+'</div>'+(d.image?'<img src="'+esc(d.image)+'" alt="'+esc(d.name)+'">':'')+'<span>'+esc(d.subtitle)+'</span></div><div class="case-detail-heading"><div><h3>'+esc(d.name)+'</h3><p class="muted small">'+d.count+' предметов · средний дроп около '+money(d.expectedValue||0)+'</p></div><strong>'+money(d.price)+'</strong></div><div class="case-detail-items">'+d.items.map(item=>'<article class="case-drop-card"><div class="case-drop-image">'+(item.image?'<img src="'+esc(item.image)+'" alt="'+esc(item.name)+'">':'<span>CS2</span>')+'</div><b>'+esc(item.name)+'</b><small>'+money(item.value)+'</small><em>'+Number(item.chance).toLocaleString("ru-RU")+'%</em></article>').join("")+'</div><button class="btn primary full-btn" onclick="openCase(\''+esc(d.id)+'\')">Открыть за '+money(d.price)+'</button></div>';
   window.navigateCaseArenaPage?.("case-detail");
  }catch(e){toast(e.message)}
 };
 
-function makeRollItems(caseItems,winnerName){
+function makeRollItems(caseItems,winningDrop){
  const pool=Array.isArray(caseItems)&&caseItems.length?caseItems:[{name:"AK-47 | Redline",value:720,chance:1}];
  const total=pool.reduce((sum,item)=>sum+Math.max(0,Number(item.chance)||0),0)||pool.length;
  const draw=()=>{let roll=Math.random()*total;for(const item of pool){roll-=Math.max(0,Number(item.chance)||0);if(roll<=0)return item}return pool[pool.length-1]};
- const winner=pool.find(item=>item.name===winnerName)||{name:winnerName,value:Number(skinInfo(winnerName).value)||0,chance:0};
+ const winner=pool.find(item=>item.name===winningDrop.name&&Number(item.value)===Number(winningDrop.value))||{name:winningDrop.name,value:Number(winningDrop.value)||0,chance:0};
  const stopIndex=52,arr=Array.from({length:64},draw);arr[stopIndex]=winner;return arr;
 }
 function rouletteMarkup(items){
@@ -261,7 +261,7 @@ window.openCase=async(id,quick=false)=>{
  try{
   const caseData=await api("/api/cases/"+id);
   const d=await api("/api/cases/"+id+"/open",{method:"POST"});
-  const items=makeRollItems(caseData.items,d.name);
+  const items=makeRollItems(caseData.items,d);
   openModal(quick?"БЫСТРОЕ ОТКРЫТИЕ":"ОТКРЫТИЕ КЕЙСА",rouletteMarkup(items));
   await animateRoll(quick?3200:4200);
   $("#modal-body").innerHTML='<div class="win-result">'+skinArt(d.name)+'<p class="muted small">ТЕБЕ ВЫПАЛО</p><h3>'+esc(d.name)+'</h3><strong>'+money(d.value)+'</strong><small class="steam-price">'+rub(skinInfo(d.name).steamRub)+'</small></div><button class="btn primary full-btn" onclick="closeModal()">Забрать предмет</button>';
