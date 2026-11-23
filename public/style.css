@@ -1026,3 +1026,10 @@ input,select{border-radius:9px}
 #upgrade-wheel-pointer[data-shape="hexagon"]{clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%)}
 #upgrade-wheel[data-shape="square"],#upgrade-wheel[data-shape="square"] .upgrade-wheel-dial{border-radius:18px}
 #upgrade-wheel-pointer[data-shape="square"]{border-radius:18px}
+
+.case-detail-page-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:8px 0 22px}
+.case-detail-page-head .btn{white-space:nowrap}
+#case-detail-content{max-width:1120px;margin:0 auto}
+#case-detail-page .case-detail{margin:0 auto}
+#case-detail-page .case-detail-hero{min-height:260px}
+@media(max-width:560px){.case-detail-page-head{align-items:flex-start;flex-direction:column}.case-detail-page-head .btn{width:100%}}
