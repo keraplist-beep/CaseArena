@@ -171,9 +171,9 @@ function renderCases() {
         imageHTML +
       '</div>' +
       '<div class="cb-card-footer">' +
-        '<button class="cb-price-btn" type="button" onclick="showCase(\\'' + esc(item.id) + '\\')">' + money(price) + '</button>' +
+        '<button class="cb-price-btn" type="button" onclick="showCase(\' + esc(item.id) + '\\')">' + money(price) + '</button>' +
       '</div>' +
-      '<div class="cb-card-quick"><button class="case-quick-btn" type="button" onclick="openCase(\\'' + esc(item.id) + '\\',true)">⚡ Быстрое открытие</button></div>' +
+      '<div class="cb-card-quick"><button class="case-quick-btn" type="button" onclick="openCase(\' + esc(item.id) + '\\',true)">⚡ Быстрое открытие</button></div>' +
     '</article>';
   }).join("");
 
