@@ -461,11 +461,11 @@ cases.forEach(c=>{
 });
 
  
-async function caseImageData(){
- let skinsIndex=new Map(),cratesIndex=new Map();
- try{skinsIndex=await getSkinImageIndex()}catch(error){console.warn("Case skin images unavailable:",error.message)}
- try{cratesIndex=await getCrateImageIndex()}catch(error){console.warn("Case cover images unavailable:",error.message)}
- return {skinsIndex,cratesIndex};
+function caseImageData(){
+ // Warm external image indexes in the background; never block the main page API on them.
+ getSkinImageIndex().catch(error=>console.warn("Case skin images unavailable:",error.message));
+ getCrateImageIndex().catch(error=>console.warn("Case cover images unavailable:",error.message));
+ return {skinsIndex:skinImageIndexCache,cratesIndex:crateImageIndexCache};
 }
 app.get("/api/cases",async(req,res)=>{
  const {skinsIndex,cratesIndex}=await caseImageData();
@@ -778,25 +778,25 @@ async function loadCompleteSkinCatalog(){
   finally{marketPriceRefreshRunning=false}
  }
 
-let skinImageIndexPromise=null;
+let skinImageIndexPromise=null,skinImageIndexCache=new Map();
 const caseImageSource={
  starter:"Kilowatt Case",dust:"Prisma 2 Case",neon:"Dreams & Nightmares Case",inferno:"Revolution Case",sniper:"Snakebite Case",royal:"Operation Bravo Case",knife:"Huntsman Weapon Case",elite:"Operation Breakout Weapon Case",viper:"Fracture Case",dragon:"Operation Phoenix Weapon Case",doppler:"Chroma Case",gloves:"Glove Case",blackpearl:"Spectrum Case",
  "ice-dragon":"Winter Offensive Weapon Case",cyberpunk:"CS20 Case","gold-hour":"Operation Wildfire Case",phoenix:"Operation Hydra Case",arctic:"Operation Vanguard Weapon Case",steel:"Spectrum 2 Case",blackout:"Danger Zone Case",glitch:"Shattered Web Case",emerald:"Gamma 2 Case",ruby:"Chroma 3 Case",sapphire:"Gamma Case","knife-rush":"Falchion Case","glove-boom":"Clutch Case","dragon-vault":"eSports 2013 Winter Case","eco-round":"eSports 2013 Case","starter-plus":"Recoil Case",midnight:"Horizon Case",gradient:"Prisma Case"
 };;
-let crateImageIndexPromise=null;
+let crateImageIndexPromise=null,crateImageIndexCache=new Map();
 async function getCrateImageIndex(){
  if(!crateImageIndexPromise){
   crateImageIndexPromise=fetch("https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/crates.json",{signal:AbortSignal.timeout(25000)})
-   .then(async response=>{if(!response.ok)throw new Error("CS2 crate catalogue unavailable");const rows=await response.json();return new Map(rows.filter(item=>item.type==="Case"&&item.name&&item.image).map(item=>[item.name.toLowerCase(),item.image]));})
-   .catch(error=>{console.warn("CS2 crate images unavailable:",error.message);return new Map();});
+   .then(async response=>{if(!response.ok)throw new Error("CS2 crate catalogue unavailable");const rows=await response.json();crateImageIndexCache=new Map(rows.filter(item=>item.type==="Case"&&item.name&&item.image).map(item=>[item.name.toLowerCase(),item.image]));return crateImageIndexCache;})
+   .catch(error=>{console.warn("CS2 crate images unavailable:",error.message);return crateImageIndexCache;});
  }
  return crateImageIndexPromise;
 }
 async function getSkinImageIndex(){
  if(!skinImageIndexPromise){
   skinImageIndexPromise=fetch("https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json",{signal:AbortSignal.timeout(12000)})
-   .then(async response=>{if(!response.ok)throw new Error("Skin catalogue unavailable");const rows=await response.json();return new Map(rows.map(item=>[item.name,item.image]).filter(row=>row[0]&&row[1]));})
-   .catch(error=>{console.warn("Skin image catalogue unavailable:",error.message);return new Map();});
+   .then(async response=>{if(!response.ok)throw new Error("Skin catalogue unavailable");const rows=await response.json();skinImageIndexCache=new Map(rows.map(item=>[item.name,item.image]).filter(row=>row[0]&&row[1]));return skinImageIndexCache;})
+   .catch(error=>{console.warn("Skin image catalogue unavailable:",error.message);return skinImageIndexCache;});
  }
  return skinImageIndexPromise;
 }
@@ -834,9 +834,9 @@ async function auditSkinImages(){
   console.log("CS2 skin image audit",{total:skinCatalog.length,withImages:skinCatalog.length-missing.length,withoutImages:missing.length,missingNames:missing.slice(0,100).map(s=>s.name)});
  }catch(error){console.warn("CS2 skin image audit failed:",error.message)}
 }
-app.get("/api/skins",async(req,res)=>{
- let imageIndex=new Map();
- try{imageIndex=await getSkinImageIndex()}catch(error){console.warn("Skin images unavailable:",error.message)}
+app.get("/api/skins",(req,res)=>{
+ getSkinImageIndex().catch(error=>console.warn("Skin images unavailable:",error.message));
+ const imageIndex=skinImageIndexCache;
  const result=skinCatalog.map(s=>{
   const resolved=resolveSkinImage(s.name,imageIndex);
   return {...s,image:resolved||(s.marketImage)|| (s.image&&!s.image.endsWith("/images/")?s.image:""),imageFallback:!resolved&&!!s.marketImage,steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(s.name),priceUpdatedAt:s.priceUpdatedAt||null,priceSource:s.priceSource||"Оценка CaseArena"};
