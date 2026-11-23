@@ -277,6 +277,7 @@ function renderUpgradeTargets(){
 }
 window.filterUpgradeTargets=renderUpgradeTargets;
 function renderUpgrade(){
+ applyUpgradeWheelSettings();
  const source=$("#upgrade-source"),slots=$("#upgrade-selected-slots");if(!source)return;
  const machine=$(".upgrade-machine");if(machine&&!machine.dataset.theme){let theme="classic";try{theme=localStorage.getItem("casearena-upgrade-theme")||"classic"}catch{}machine.dataset.theme=["classic","neon","minimal"].includes(theme)?theme:"classic"}
  document.querySelectorAll(".upgrade-mode-row button").forEach((el,i)=>el.classList.toggle("active",i===(upgradeSettings.mode==="fast"?1:0)));
@@ -320,6 +321,10 @@ window.chooseUpgradeSource=id=>{
 };
 window.chooseUpgradeTarget=name=>{upgradeTarget=name;renderUpgrade();document.querySelectorAll("[data-upgrade-mult],[data-upgrade-odds]").forEach(el=>el.classList.remove("active"))};
 applyUpgradeWheelSettings();
+function playUpgradeSound(success){
+ if(!upgradeSettings.sound)return;
+ try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const ctx=new C();if(ctx.state==="suspended")ctx.resume();[success?660:240,success?880:180].forEach((hz,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type="sine";o.frequency.value=hz;g.gain.setValueAtTime(.0001,ctx.currentTime+i*.13);g.gain.exponentialRampToValueAtTime(.08,ctx.currentTime+i*.13+.025);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+i*.13+.22);o.connect(g);g.connect(ctx.destination);o.start(ctx.currentTime+i*.13);o.stop(ctx.currentTime+i*.13+.24)});setTimeout(()=>ctx.close(),800)}catch{}
+}
 function updateWheelLabels(dial,chance){
  if(!dial)return;
  const win=dial.querySelector(".wheel-sector-win"),fail=dial.querySelector(".wheel-sector-fail"),pct=Math.max(0,Math.min(100,Number(chance)||0));
@@ -363,13 +368,13 @@ window.upgrade=async()=>{
   if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance.toFixed(1)+"%";if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance).toFixed(1)+"%";
   if(status)status.textContent=upgradeSettings.mode==="fast"?"Мгновенный результат":"Стрелка вращается…";
   if(dial){dial.style.transition="none";dial.style.transform="none";updateWheelLabels(dial,chance)}
-  const spinSeconds=upgradeSettings.mode==="fast"?0.15:(upgradeSettings.speed===2?2:8);applyUpgradeWheelSettings();
+  const spinSeconds=upgradeSettings.mode==="fast"?0.15:(upgradeSettings.speed===2?2:8)*(upgradeSettings.spinType===" азарт"?1.35:1);applyUpgradeWheelSettings();
   if(pointer&&upgradeSettings.mode!=="fast"){
    const arc=chance*3.6,landing=d.success?arc/2:arc+(360-arc)/2;
    pointer.style.transition="none";pointer.style.transform="rotate(0deg)";void pointer.offsetWidth;pointer.style.transition="transform "+spinSeconds+"s cubic-bezier(.08,.76,.12,1)";pointer.style.transform="rotate("+(360*7+180+landing)+"deg)";
   }
   await new Promise(resolve=>setTimeout(resolve,spinSeconds*1000+100));
-  openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?(d.targetName||target.name):items[0].item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(d.targetName||target.name):"Предметы потеряны")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p>'+(d.cashback?'<p class="upgrade-cashback">Возвращено '+money(d.cashback)+' · 10% ставки</p>':'')+'</div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
+  playUpgradeSound(!!d.success);openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?(d.targetName||target.name):items[0].item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(d.targetName||target.name):"Предметы потеряны")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p>'+(d.cashback?'<p class="upgrade-cashback">Возвращено '+money(d.cashback)+' · 10% ставки</p>':'')+'</div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
   upgradeSourceIds=[];upgradeSourceId=null;selected.clear();await refresh();
  }catch(e){toast(e.message)}finally{rolling=false}
 };
