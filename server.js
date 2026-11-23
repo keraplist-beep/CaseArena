@@ -654,6 +654,7 @@ cases.push(
    const names=skinCatalog.map(skin=>skin.name+" ("+(skin.marketWear||"Field-Tested")+")");
    const batches=[];
    for(let i=0;i<names.length;i+=500)batches.push(names.slice(i,i+500));
+   console.log("Fetching CS2 market prices",{items:names.length,batches:batches.length});
    const responses=await Promise.allSettled(batches.map(async items=>{
     const response=await fetch("https://api.openskin.dev/v1/prices/batch",{method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json"},body:JSON.stringify({items}),signal:AbortSignal.timeout(45000)});
     if(!response.ok)throw new Error("OpenSkin batch returned HTTP "+response.status);
@@ -668,6 +669,7 @@ cases.push(
     Object.assign(marketData,payload.data||{});
     if(payload.updated_at&&(!sourceUpdatedAt||payload.updated_at>sourceUpdatedAt))sourceUpdatedAt=payload.updated_at;
    }
+   console.log("OpenSkin price batches completed",{successfulBatches,totalBatches:batches.length,matchedItems:Object.keys(marketData).length});
    if(!successfulBatches)throw new Error("OpenSkin returned no successful price batches");
    for(const skin of skinCatalog){
     const marketHashName=skin.name+" ("+(skin.marketWear||"Field-Tested")+")";
@@ -688,7 +690,7 @@ cases.push(
    }
    const priceByName=new Map(skinCatalog.map(skin=>[skin.name,skin.value]));
    for(const crate of cases)for(const item of crate.items)if(priceByName.has(item[0]))item[1]=priceByName.get(item[0]);
-   for(const skin of skinCatalog)if(skin.priceSource==="Steam Market"||skin.priceSource==="Рынок OpenSkin")db.prepare("UPDATE inventory SET item_value=? WHERE item_name=?").run(skin.value,skin.name);
+   const ownedItems=db.prepare("SELECT DISTINCT item_name FROM inventory").all();for(const owned of ownedItems){const currentPrice=priceByName.get(owned.item_name);if(currentPrice)db.prepare("UPDATE inventory SET item_value=? WHERE item_name=?").run(currentPrice,owned.item_name);}
    await flushWrites();
    marketPriceLastUpdated=Date.now();
    console.log("CS2 market prices refreshed",{updated,total:skinCatalog.length,steam:steamCount,otherMarketplaces:otherCount,successfulBatches,totalBatches:batches.length,sourceUpdatedAt,updatedAt:new Date(marketPriceLastUpdated).toISOString()});
