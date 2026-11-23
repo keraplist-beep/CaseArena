@@ -1376,4 +1376,4 @@ input,select{border-radius:9px}
 }
 
 /* Pointer rests at six o’clock; the success sector begins at the same point. */
-.upgrade-reference .upgrade-wheel-pointer{transform:rotate(180deg)!important}
+.upgrade-reference .upgrade-wheel-pointer{transform:rotate(180deg)}
