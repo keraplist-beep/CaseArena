@@ -827,3 +827,75 @@ body{padding-bottom:100px}
  .casebattle-roulette .roulette-skin .skin-art img{height:76px}
  .opening-footer{font-size:7px}
 }
+
+
+/* Compact CaseBattle-inspired theme */
+:root{--bg:#101114;--panel:#191b20;--panel2:#22252b;--line:#343840;--gold:#f2ad24;--cyan:#f2ad24;--muted:#9298a3;--text:#f4f5f7}
+body{background:radial-gradient(ellipse at 50% -20%,#34302a 0,transparent 38%),#101114;color:#f4f5f7}
+.top{height:66px;background:#17191df2;border-bottom:1px solid #34373d;box-shadow:0 5px 22px #0008;padding:0 max(calc((100vw - 1380px)/2),22px)}
+.logo{font:900 21px Manrope,sans-serif;letter-spacing:-1px}.logo span{color:#f2ad24}
+#account .profile-shortcut{background:#24272d;border-color:#3a3e46;border-radius:7px}
+.mini-avatar{background:linear-gradient(145deg,#ffca52,#d88a00);color:#211600;border-radius:7px}
+.account-name small{color:#ffc247}
+.hero{max-width:1380px;min-height:260px;padding:32px 34px 25px;grid-template-columns:1.1fr .9fr}
+.hero:before{inset:12px 18px;border:1px solid #ffffff0b;border-radius:12px}
+.hero .eyebrow,.section .eyebrow{color:#d9a53d}
+.hero h1{font:900 clamp(34px,4vw,53px)/1.04 Manrope,sans-serif;letter-spacing:-2px}
+.hero h1 em{color:#ffbd35;text-shadow:0 0 25px #ffad2428}
+.hero .muted{font-size:13px}
+.primary,.hero .btn{background:linear-gradient(180deg,#ffc64d,#e99b00);color:#211600;box-shadow:0 3px 0 #9a6100;font-weight:900}
+.hero-art{height:210px}.orbit{width:200px;height:200px;border-color:#f2b63255;box-shadow:0 0 70px #f2a90020,inset 0 0 50px #f2a90012}
+.crate{width:135px;height:135px;border-radius:13px;background:linear-gradient(145deg,#87601c,#2b2b2b 70%);border:1px solid #dca12b;color:#ffd777;font-size:76px;box-shadow:0 20px 55px #000b}
+.float{background:#24272c;border:1px solid #454950;color:#e5c17b;border-radius:5px}.f2{color:#ffd16b}
+.ticker{background:#24262b;color:#d6a43b;border-block:1px solid #383b40;font:800 9px Manrope;letter-spacing:1.4px;padding:10px}
+.section{max-width:1380px;padding:38px 26px}.section-head{margin-bottom:18px}
+.section h2{font:900 24px Manrope,sans-serif;letter-spacing:-.5px}.section-head .muted{font-size:11px}
+.case-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.case-card{min-height:0;padding:0;border:1px solid #363a41;border-radius:8px;background:linear-gradient(155deg,#25282e,#191b20 78%);box-shadow:0 7px 18px #0006}
+.case-card:before{display:none}.case-card:after{background:radial-gradient(ellipse,#d79c2b22,transparent 70%)}
+.case-card:hover{transform:translateY(-3px);border-color:#c18a24;box-shadow:0 12px 26px #0009}
+.case-visual.case-visual-photo{height:158px;background:radial-gradient(ellipse at 50% 65%,#71501d44,transparent 65%),linear-gradient(145deg,#303137,#1b1d22)}
+.case-visual:before{opacity:.18}.case-art-mark{font:900 17px Manrope;color:#fff;letter-spacing:.5px}
+.case-cover-image{height:138px;filter:drop-shadow(0 12px 12px #000d)}
+.case-index{color:#a4a7ad;font:800 8px Manrope}.case-art-sub{color:#b7a27b}
+.case-info{padding:13px}.case-info h3{font:900 12px Manrope;letter-spacing:.3px;color:#f1f1f1}
+.case-subtitle{color:#969ba4;font-size:9px;min-height:24px}.case-bottom{border-top:1px solid #ffffff0d;padding-top:10px}
+.case-bottom .price,.price{color:#ffc04b;font-weight:900}
+.case-bottom .btn{background:linear-gradient(180deg,#ffc64d,#e99b00);color:#211600;box-shadow:0 2px 0 #986000;border-radius:5px}
+.panel,.battle{background:linear-gradient(145deg,#24272d,#191b20 78%);border:1px solid #383c43;border-radius:8px;box-shadow:0 8px 22px #0005}
+.battle-list{gap:9px}.battle{padding:13px 16px}
+.battle .btn,.secondary{background:#30343b;color:#e8e9eb;border:1px solid #484d56;border-radius:5px;box-shadow:none}
+.skin-showcase{background:#1b1d22;border-color:#383c43;border-radius:8px}
+.skin-tile{background:#25282e;border-color:#3b3f46;border-radius:7px}
+.rarity-label{background:#f2a9001a;border-color:#d69b2c66;color:#ffc65c}
+.skin-card{background:linear-gradient(150deg,#292c32,#1b1d22);border-color:#3a3e45;border-radius:7px}
+.skin-card:hover{border-color:#d39b31}.skin-art{background:radial-gradient(ellipse at 50% 60%,#59462255,transparent 68%),linear-gradient(145deg,#303238,#1c1e23)}
+.skin-card:before{background:#d6a13b}.skin-card-info>strong{color:#ffc04b}.steam-price{color:#9299a4}
+.market-link,.player-link{color:#e5b34c}
+.pick-card{background:linear-gradient(145deg,#292d33,#1b1e23);border-color:#41464e;border-radius:7px}
+.pick-card:hover,.pick-card.chosen{border-color:#e4ae3c;box-shadow:0 0 0 1px #e4ae3c55}
+.upgrader-center{background:radial-gradient(ellipse at 50% 42%,#29251f 0%,#171717 62%,#111 100%);border-color:#51412b}
+.chance-preview{background:#17191d;border-color:#3b3f46}.chance-number{color:#ffc04b}
+.upgrade-multipliers button{background:#292c32;border-color:#484d55;color:#eee;border-radius:5px}
+.bottom-nav{width:min(780px,calc(100% - 28px));background:#1b1d22f2;border:1px solid #454950;border-radius:10px;padding:6px;box-shadow:0 12px 38px #000c}
+.bottom-nav a{border-radius:6px;color:#a7abb2}.bottom-nav a:hover,.bottom-nav a.active{color:#ffc34c;background:#302a1d}
+.modal-box{background:linear-gradient(145deg,#282b31,#191b20);border-color:#4a4e55;border-radius:9px}
+input,select{background:#141619;border-color:#41464e;border-radius:6px}
+@media(max-width:900px){.case-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.hero{min-height:235px;padding:28px 24px}}
+@media(max-width:650px){
+ .top{height:60px;padding:0 13px}.logo{font-size:17px}
+ .hero{padding:25px 17px 18px;grid-template-columns:1fr;min-height:0}.hero:before{inset:5px 2px}
+ .hero h1{font-size:36px}.hero-art{height:155px}.orbit{width:145px;height:145px}.crate{width:100px;height:100px;font-size:58px}
+ .ticker{font-size:7px;padding:8px 3px;letter-spacing:.8px}.ticker span{padding:0 4px}
+ .section{padding:30px 13px}.section h2{font-size:21px}
+ .case-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .case-visual.case-visual-photo{height:120px}.case-cover-image{height:108px}
+ .case-art-mark{font-size:13px;top:28px;left:9px}
+ .case-info{padding:10px}.case-info h3{font-size:10px}
+ .case-subtitle{font-size:8px;min-height:22px;margin:5px 0 9px}
+ .case-bottom{gap:6px;align-items:stretch}.case-bottom .price{font-size:11px}
+ .case-bottom .btn{font-size:9px;padding:9px 6px}
+ .bottom-nav{width:calc(100% - 16px);bottom:max(8px,env(safe-area-inset-bottom));gap:2px;padding:5px}
+ .bottom-nav a{min-height:47px;font-size:8px}.bottom-nav-icon{font-size:16px}
+ .section-head{gap:8px}.section-head .muted{max-width:44%;text-align:right}
+}
