@@ -915,7 +915,7 @@ app.post("/api/upgrade",requireAuth,(req,res)=>{
   if(!targetSkin)return res.status(400).json({error:"Такого скина нет в каталоге"});
   const stake=items.reduce((sum,item)=>sum+Number(item.item_value||0),0),target=Number(targetSkin.value);
   if(!Number.isFinite(target)||target<50||target>5000000||target<=stake)return res.status(400).json({error:"Цель должна быть дороже общей ставки"});
-  const chance=Math.round(Math.max(1,Math.min(70,stake/target*0.93*100))*100)/100;
+  const chance=Math.round(Math.max(1,Math.min(95,stake/target*(1-0.07)*100))*100)/100;
   const success=Math.random()*100<chance,cashback=success?0:Math.floor(stake*0.10);
   const tx=db.transaction(()=>{
     db.prepare("DELETE FROM inventory WHERE user_id=? AND id IN ("+ids.map(()=>"?").join(",")+")").run(u.id,...ids);
