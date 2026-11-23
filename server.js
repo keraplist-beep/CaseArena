@@ -412,6 +412,22 @@ const cases=[
 ,{id:"gradient",name:"ГРАДИЕНТ",subtitle:"Переливы цвета и премиум-скины",price:799,theme:"gradient",cover:"AWP | Fade",items:[["Glock-18 | Vogue",180,45],["M4A1-S | Printstream",2350,32],["AWP | Fade",52000,17],["★ Stiletto Knife | Fade",31000,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
 ];
 cases.forEach(c=>{if(!c.cover)c.cover=c.items[c.items.length-1][0];});
+// Редкие предметы (начиная с третьего слота) выпадают в 4 раза реже.
+// Снятый шанс переносится на самый дешёвый предмет кейса; сумма шансов остаётся 100%.
+const RARE_DROP_ODDS_FACTOR=0.25;
+cases.forEach(c=>{
+ let redistributed=0;
+ c.items.forEach((item,index)=>{
+  if(index>=2){
+   const oldChance=Number(item[2])||0;
+   const newChance=oldChance*RARE_DROP_ODDS_FACTOR;
+   item[2]=newChance;
+   redistributed+=oldChance-newChance;
+  }
+ });
+ if(c.items[0])c.items[0][2]=(Number(c.items[0][2])||0)+redistributed;
+});
+
 async function caseImageData(){
  let skinsIndex=new Map(),cratesIndex=new Map();
  try{skinsIndex=await getSkinImageIndex()}catch(error){console.warn("Case skin images unavailable:",error.message)}
