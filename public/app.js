@@ -401,6 +401,8 @@ window.sellItem=async id=>{
 window.toggleItem=(id,on)=>{on?selected.add(id):selected.delete(id);const count=selected.size;const hint=$(".inventory-toolbar .muted");if(hint)hint.textContent="Выбрано: "+count+" · для контракта нужно 3–5";renderUpgrade()};
 async function loadActivity(){try{const rows=await api("/api/activity");$("#activity-list").innerHTML=rows.length?rows.map(a=>'<div class="activity-row"><span>'+esc(a.message)+'</span><time>'+new Date(a.created_at+"Z").toLocaleString("ru-RU",{dateStyle:"short",timeStyle:"short"})+'</time></div>').join(""):'<p class="muted small">Пока нет действий.</p>'}catch(e){$("#activity-list").innerHTML='<p class="muted small">История временно недоступна.</p>'}}
 window.contract=async()=>{if(!me)return authModal();if(selected.size<3||selected.size>5)return toast("Выбери от 3 до 5 предметов");try{const d=await api("/api/contracts",{method:"POST",body:JSON.stringify({itemIds:[...selected]})});selected.clear();await refresh();toast(d.message)}catch(e){toast(e.message)}};
+window.loadLeadersPage=()=>loadLeaders().catch(e=>{$("#leader-list").textContent="Таблица лидеров временно недоступна";console.warn(e)});
+window.renderProfilePage=()=>renderProfile();
 async function loadLeaders(){const rows=await api("/api/leaderboard");$("#leader-list").innerHTML=rows.length?rows.map((u,i)=>'<div class="rank"><b>#'+(i+1)+'</b><button class="player-link" onclick="viewPlayer(\''+esc(u.username)+'\')">'+esc(u.username)+roleBadge(u.role)+'</button><b class="rank-value">'+money(u.balance+u.inventory_value)+'</b></div>').join(""):'Пока нет игроков'}
 window.viewPlayer=async username=>{try{const d=await api("/api/users/"+encodeURIComponent(username));const u=d.user;openModal("ПРОФИЛЬ ИГРОКА",'<div class="profile-head"><div class="avatar">'+esc(u.username.slice(0,2).toUpperCase())+'</div><div><h3>'+esc(u.username)+roleBadge(u.role)+'</h3><p class="muted small">В инвентаре '+d.inventory.length+' предметов · стоимость '+money(d.inventoryValue)+'</p></div></div><div class="public-inventory">'+(d.inventory.length?d.inventory.map(x=>skinCard(x.item_name,x.item_value,{market:true})).join(""):'<p class="muted">Инвентарь пуст</p>')+'</div>')}catch(e){toast(e.message)}};
 async function loadBattles(){
@@ -550,12 +552,16 @@ initDemoLiveStats();
   if(page==='battles'||page==='upgrade')page='arena';
   if(!document.querySelector('[data-page="'+page+'"]'))page='cases';
   if((page==='owner'||page==='staff')&&!window.ownerAccessReady){currentPage=page;pages.forEach(el=>el.classList.toggle('active-page',el.dataset.page===page));return;}
-  if(page==='owner'&&!window.canAccessOwner?.()){page='cases';history.replaceState({},'',location.pathname+'#cases')}
-  if(page==='staff'&&!window.canAccessStaff?.()){page='cases';history.replaceState({},'',location.pathname+'#cases')}
+  if(page==='owner'&&!window.canAccessOwner?.())page='cases';
+  if(page==='staff'&&!window.canAccessStaff?.())page='cases';
   currentPage=page;
+  const nextHash='#'+page;
+  if(location.hash!==nextHash)history.replaceState({},'',location.pathname+location.search+nextHash);
   pages.forEach(el=>el.classList.toggle('active-page',el.dataset.page===page));
   if(page==='staff')window.loadStaff?.();
   if(page==='owner')window.loadOwner?.();
+  if(page==='leaders')window.loadLeadersPage?.();
+  if(page==='profile')window.renderProfilePage?.();
   nav?.querySelectorAll('a[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===page));
   document.title='CaseArena — '+({cases:'Кейсы',skins:'Скины',arena:'Арена',contracts:'Контракты',profile:'Профиль',leaders:'Лидеры',owner:'Панель владельца',staff:'Управление сервером'}[page]||'Арена');
   window.scrollTo(0,0);
