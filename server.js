@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
  session_version INTEGER NOT NULL DEFAULT 0,
  last_hourly_claim BIGINT NOT NULL DEFAULT 0,
  lunacy_redeemed INTEGER NOT NULL DEFAULT 0,
+ gift_redeemed INTEGER NOT NULL DEFAULT 0,
  forced_drop INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS inventory (
@@ -47,6 +48,7 @@ if (!localUserColumns.includes("banned")) localDb.exec("ALTER TABLE users ADD CO
 if (!localUserColumns.includes("session_version")) localDb.exec("ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0");
 if (!localUserColumns.includes("last_hourly_claim")) localDb.exec("ALTER TABLE users ADD COLUMN last_hourly_claim BIGINT NOT NULL DEFAULT 0");
 if (!localUserColumns.includes("lunacy_redeemed")) localDb.exec("ALTER TABLE users ADD COLUMN lunacy_redeemed INTEGER NOT NULL DEFAULT 0");
+if (!localUserColumns.includes("gift_redeemed")) localDb.exec("ALTER TABLE users ADD COLUMN gift_redeemed INTEGER NOT NULL DEFAULT 0");
 if (!localUserColumns.includes("forced_drop")) localDb.exec("ALTER TABLE users ADD COLUMN forced_drop INTEGER NOT NULL DEFAULT 0");
 
 const { Pool } = require("pg");
@@ -141,6 +143,7 @@ async function initializePersistentDatabase() {
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_hourly_claim BIGINT NOT NULL DEFAULT 0");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS lunacy_redeemed INTEGER NOT NULL DEFAULT 0");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS gift_redeemed INTEGER NOT NULL DEFAULT 0");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS forced_drop INTEGER NOT NULL DEFAULT 0");
  const [users, inventory, activity] = await Promise.all([
    pool.query("SELECT * FROM users ORDER BY id"),
@@ -151,8 +154,8 @@ async function initializePersistentDatabase() {
  if (remoteHasData) {
    localDb.exec("DELETE FROM inventory; DELETE FROM activity; DELETE FROM users;");
    for (const u of users.rows) localDb.prepare(
-     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version,last_hourly_claim,lunacy_redeemed,forced_drop) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
-   ).run(u.id,u.username,u.password_hash,u.role,u.balance,sqlTimestamp(u.created_at),u.google_sub,u.banned||0,u.session_version||0,u.last_hourly_claim||0,u.lunacy_redeemed||0,u.forced_drop||0);
+     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version,last_hourly_claim,lunacy_redeemed,gift_redeemed,forced_drop) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)"
+   ).run(u.id,u.username,u.password_hash,u.role,u.balance,sqlTimestamp(u.created_at),u.google_sub,u.banned||0,u.session_version||0,u.last_hourly_claim||0,u.lunacy_redeemed||0,u.gift_redeemed||0,u.forced_drop||0);
    for (const item of inventory.rows) localDb.prepare(
      "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES(?,?,?,?,?)"
    ).run(item.id,item.user_id,item.item_name,item.item_value,sqlTimestamp(item.created_at));
@@ -164,8 +167,8 @@ async function initializePersistentDatabase() {
    const localInventory = localDb.prepare("SELECT * FROM inventory ORDER BY id").all();
    const localActivity = localDb.prepare("SELECT * FROM activity ORDER BY id").all();
    for (const u of localUsers) await pool.query(
-     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version,last_hourly_claim,lunacy_redeemed,forced_drop) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (id) DO NOTHING",
-     [u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub,u.banned||0,u.session_version||0,u.last_hourly_claim||0,u.lunacy_redeemed||0,u.forced_drop||0]
+     "INSERT INTO users(id,username,password_hash,role,balance,created_at,google_sub,banned,session_version,last_hourly_claim,lunacy_redeemed,gift_redeemed,forced_drop) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT (id) DO NOTHING",
+     [u.id,u.username,u.password_hash,u.role,u.balance,u.created_at,u.google_sub,u.banned||0,u.session_version||0,u.last_hourly_claim||0,u.lunacy_redeemed||0,u.gift_redeemed||0,u.forced_drop||0]
    );
    for (const item of localInventory) await pool.query(
      "INSERT INTO inventory(id,user_id,item_name,item_value,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING",
@@ -344,9 +347,9 @@ res.json({user:userView(u)});
 app.post("/api/logout",(req,res)=>{req.session=null;res.json({ok:true});});
 
 app.get("/api/bonus/status",requireAuth,(req,res)=>{
- const u=db.prepare("SELECT balance,last_hourly_claim,lunacy_redeemed FROM users WHERE id=?").get(current(req).id);
+ const u=db.prepare("SELECT balance,last_hourly_claim,lunacy_redeemed,gift_redeemed FROM users WHERE id=?").get(current(req).id);
  const now=Math.floor(Date.now()/1000), readyAt=Number(u.last_hourly_claim||0)+3600;
- res.json({balance:u.balance,hourlyReady:now>=readyAt,hourlyReadyAt:readyAt,lunacyRedeemed:!!u.lunacy_redeemed});
+ res.json({balance:u.balance,hourlyReady:now>=readyAt,hourlyReadyAt:readyAt,lunacyRedeemed:!!u.lunacy_redeemed,giftRedeemed:!!u.gift_redeemed});
 });
 app.post("/api/bonus/hourly",requireAuth,(req,res)=>{
  const u=current(req),now=Math.floor(Date.now()/1000);
@@ -363,6 +366,19 @@ app.post("/api/bonus/hourly",requireAuth,(req,res)=>{
 });
 app.post("/api/promo/redeem",requireAuth,(req,res)=>{
  const code=String(req.body.code||"").trim().toUpperCase();
+ if(code==="GIFT"){
+  const u=current(req);
+  try{
+   const redeem=db.transaction(()=>{
+    const row=db.prepare("SELECT gift_redeemed FROM users WHERE id=?").get(u.id);
+    if(row.gift_redeemed)throw new Error("Ты уже активировал промокод GIFT");
+    db.prepare("UPDATE users SET balance=balance+50000,gift_redeemed=1 WHERE id=?").run(u.id);
+    log(u.id,"Активирован промокод GIFT (+50 000 CR)");
+    return db.prepare("SELECT balance FROM users WHERE id=?").get(u.id).balance;
+   });
+   return res.json({ok:true,balance:redeem(),amount:50000});
+  }catch(e){return res.status(400).json({error:e.message})}
+ }
  if(code!=="LUNACY")return res.status(400).json({error:"Промокод не найден"});
  const u=current(req);
  try{
@@ -411,6 +427,12 @@ const cases=[
 ,{id:"midnight",name:"ПОЛУНОЧЬ",subtitle:"Ночная подборка редких расцветок",price:299,theme:"midnight",cover:"USP-S | Kill Confirmed",items:[["AWP | Mortis",330,45],["AK-47 | Phantom Disruptor",390,32],["USP-S | Kill Confirmed",3600,17],["★ Talon Knife | Doppler",36500,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
 ,{id:"gradient",name:"ГРАДИЕНТ",subtitle:"Переливы цвета и премиум-скины",price:799,theme:"gradient",cover:"AWP | Fade",items:[["Glock-18 | Vogue",180,45],["M4A1-S | Printstream",2350,32],["AWP | Fade",52000,17],["★ Stiletto Knife | Fade",31000,5.5],["★ Butterfly Knife | Fade",62000,0.5]]}
 ];
+
+cases.push(
+ {id:"imperial",name:"IMPERIAL",subtitle:"Коллекция дорогих ножей и редких скинов",price:99999,theme:"gold",cover:"AWP | Dragon Lore",items:[["AWP | Dragon Lore",471500,1],["M4A4 | Howl",125000,1],["★ Karambit | Sapphire",115000,1],["AK-47 | Wild Lotus",110000,1],["AWP | Gungnir",95000,1]]},
+ {id:"black-label",name:"BLACK LABEL",subtitle:"Премиальный кейс для коллекционеров",price:199999,theme:"blackpearl",cover:"AWP | Dragon Lore",items:[["AWP | Dragon Lore",471500,1],["M4A4 | Howl",125000,1],["★ Karambit | Sapphire",115000,1],["AK-47 | Wild Lotus",110000,1],["AWP | Gungnir",95000,1]]},
+ {id:"collector",name:"COLLECTOR",subtitle:"Самые дорогие предметы CaseArena",price:399999,theme:"sapphire",cover:"AWP | Dragon Lore",items:[["AWP | Dragon Lore",471500,1],["M4A4 | Howl",125000,1],["★ Karambit | Sapphire",115000,1],["AK-47 | Wild Lotus",110000,1],["AWP | Gungnir",95000,1]]}
+);
 cases.forEach(c=>{if(!c.cover)c.cover=c.items[c.items.length-1][0];});
 // Редкие предметы (начиная с третьего слота) выпадают в 4 раза реже.
 // Снятый шанс переносится на самый дешёвый предмет кейса; сумма шансов остаётся 100%.
