@@ -218,10 +218,10 @@ if (googleConfigured) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:3000/auth/google/callback"
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || "https://casearena-opqb.onrender.com/auth/google/callback"
   }, (accessToken, refreshToken, profile, done) => {
     try {
-      const linked = db.prepare("SELECT id,username,role,balance FROM users WHERE google_sub=?").get(profile.id);
+      const linked = db.prepare("SELECT id,username,role,balance,session_version FROM users WHERE google_sub=?").get(profile.id);
       if (linked) return done(null, { existing: true, user: linked });
       return done(null, { existing: false, googleSub: profile.id, email: (profile.emails && profile.emails[0] && profile.emails[0].value) || null });
     } catch (err) { return done(err); }
@@ -262,7 +262,7 @@ function log(userId,message) {
 }
 
 app.get("/auth/google", (req,res,next) => {
-  if (!googleConfigured) return res.status(503).send("Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.");
+  if (!googleConfigured) return res.redirect("/?google=unavailable");
   passport.authenticate("google", { scope: ["profile", "email"], session: false })(req,res,next);
 });
 app.get("/auth/google/callback", (req,res,next) => {
@@ -272,6 +272,7 @@ app.get("/auth/google/callback", (req,res,next) => {
     if (result.existing) {
       req.session = req.session || {};
       req.session.userId = result.user.id;
+      req.session.sessionVersion = Number(result.user.session_version || 0);
       delete req.session.pendingGoogle;
       return res.redirect("/");
     }
