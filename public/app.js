@@ -89,23 +89,120 @@ window.buySkin=async name=>{
 window.filterSkinCatalog=()=>renderSkinCatalog(true);
 window.showMoreSkins=()=>{skinCatalogVisible+=72;renderSkinCatalog(false)};
 async function loadSkins(){skins=await api("/api/skins");renderSkinCatalog();renderUpgrade()}
-let casesFilter="all",casesSort="default",casesLimit=12;
-function renderCases(){
- let list=[...casesCache];
- if(casesFilter==="budget")list=list.filter(x=>Number(x.price)<=500);
- else if(casesFilter==="premium")list=list.filter(x=>Number(x.price)>=5000);
- else if(casesFilter==="popular"){const popularIds=["neon","royal","knife","elite","viper","dragon","doppler","gloves","blackpearl"];list=list.filter(x=>popularIds.includes(x.id)||x.tag==="popular"||x.popular===true||x.featured===true||x.tag==="hot")}
- if(casesSort==="price-asc")list.sort((x,y)=>Number(x.price)-Number(y.price));
- else if(casesSort==="price-desc")list.sort((x,y)=>Number(y.price)-Number(x.price));
- const grid=$("#case-grid");if(!grid)return;
- const visible=list.slice(0,casesLimit);
- grid.innerHTML=visible.map(item=>'<article class="case-card" data-price="'+Number(item.price||0)+'" data-id="'+esc(item.id)+'">'+((item.tag==="hot"||item.tag==="new")?'<div class="case-badge '+item.tag+'">'+(item.tag==="hot"?"HOT":"NEW")+'</div>':'')+'<div class="case-image">'+(item.image?'<img loading="lazy" src="'+esc(item.image)+'" alt="'+esc(item.name)+'" onerror="this.style.display=\'none\'">':'<div class="case-placeholder case-placeholder-'+(Number(item.price)<500?"budget":Number(item.price)>=5000?"premium":"standard")+'"><span>✦</span></div>')+'</div><div class="case-info"><div class="case-name">'+esc(item.name)+'</div><div class="case-meta">'+Number(item.count||0)+' скинов</div><div class="case-price">'+money(item.price)+'</div></div><button class="case-open-btn" type="button" onclick="showCase(\''+esc(item.id)+'\')">Открыть</button></article>').join("");
- const more=$("#showMoreCases");if(more)more.hidden=visible.length>=list.length;
+/* ============================================================
+   CASES GRID — интерфейс как CaseBattle
+   ============================================================ */
+
+let casesFilter = "all";
+let casesSort   = "default";
+let casesLimit  = 12;
+let casesSearch = "";
+
+function renderCases() {
+  let list = [...casesCache];
+
+  if (casesFilter === "budget") {
+    list = list.filter(x => Number(x.price) <= 500);
+  } else if (casesFilter === "premium") {
+    list = list.filter(x => Number(x.price) >= 5000);
+  } else if (casesFilter === "popular") {
+    const popularIds = [
+      "neon","royal","knife","elite","viper","dragon",
+      "doppler","gloves","blackpearl"
+    ];
+    list = list.filter(x =>
+      popularIds.includes(String(x.id)) ||
+      x.tag === "popular" ||
+      x.popular === true ||
+      x.featured === true ||
+      x.tag === "hot"
+    );
+  }
+
+  if (casesSearch.trim()) {
+    const q = casesSearch.trim().toLowerCase();
+    list = list.filter(x => String(x.name || "").toLowerCase().includes(q));
+  }
+
+  if (casesSort === "price-asc") list.sort((a,b) => Number(a.price) - Number(b.price));
+  if (casesSort === "price-desc") list.sort((a,b) => Number(b.price) - Number(a.price));
+
+  const grid = document.querySelector("#case-grid");
+  if (!grid) return;
+
+  const visible = list.slice(0, casesLimit);
+
+  grid.innerHTML = visible.map(item => {
+    const price = Number(item.price) || 0;
+    let badge = "";
+    if (price >= 5000) badge = '<div class="ca-badge hot">TOP</div>';
+    else if (price >= 500) badge = '<div class="ca-badge new">HOT</div>';
+
+    const initial = esc(String(item.name || "?").trim().charAt(0).toUpperCase() || "?");
+    const imageHTML = item.image
+      ? '<img loading="lazy" src="' + esc(item.image) + '" alt="' + esc(item.name) + '" onerror="this.parentNode.innerHTML=\'<div class=&quot;ca-fallback&quot;>' + initial + '</div>\'">'
+      : '<div class="ca-fallback">' + initial + '</div>';
+
+    return '<article class="case-card ca-card" data-id="' + esc(item.id) + '">' +
+      badge +
+      '<div class="case-image ca-card-img">' + imageHTML + '</div>' +
+      '<div class="case-info">' +
+        '<div class="case-name ca-card-name">' + esc(item.name) + '</div>' +
+        '<div class="case-meta ca-card-meta">' + Number(item.count || 0) + ' скинов</div>' +
+        '<div class="case-price ca-card-price">' + money(price) + '</div>' +
+      '</div>' +
+      '<button class="case-open-btn ca-card-btn" type="button" onclick="showCase(\'' + esc(item.id) + '\')">Открыть</button>' +
+    '</article>';
+  }).join("");
+
+  if (!visible.length) {
+    grid.innerHTML = '<div class="ca-empty">Ничего не найдено</div>';
+  }
+
+  const more = document.querySelector("#showMoreCases");
+  if (more) {
+    more.hidden = visible.length >= list.length;
+    more.textContent = 'Показать ещё (' + Math.max(0, list.length - visible.length) + ')';
+  }
 }
-window.showMoreCases=()=>{casesLimit+=12;renderCases()};
-async function loadCases(){casesCache=await api("/api/cases");casesLimit=12;renderCases()}
-document.querySelectorAll(".filter-btn[data-filter]").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".filter-btn[data-filter]").forEach(x=>x.classList.remove("active"));btn.classList.add("active");casesFilter=btn.dataset.filter;casesLimit=12;renderCases()}));
-$("#sortSelect")?.addEventListener("change",e=>{casesSort=e.target.value;casesLimit=12;renderCases()});
+
+window.showMoreCases = () => {
+  casesLimit += 12;
+  renderCases();
+};
+
+function bindCasesControls() {
+  document.querySelectorAll("[data-cases-filter]").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll("[data-cases-filter]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      casesFilter = btn.dataset.casesFilter;
+      casesLimit = 12;
+      renderCases();
+    };
+  });
+
+  const sortSel = document.querySelector("[data-cases-sort]");
+  if (sortSel) sortSel.onchange = e => {
+    casesSort = e.target.value;
+    casesLimit = 12;
+    renderCases();
+  };
+
+  const searchInput = document.querySelector("[data-cases-search]");
+  if (searchInput) searchInput.oninput = e => {
+    casesSearch = e.target.value;
+    casesLimit = 12;
+    renderCases();
+  };
+}
+
+async function loadCases() {
+  casesCache = await api("/api/cases");
+  casesLimit = 12;
+  bindCasesControls();
+  renderCases();
+}
 
 window.showCase=async id=>{
  try{
