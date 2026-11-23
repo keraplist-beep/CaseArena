@@ -5,7 +5,7 @@ const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const path = require("path");
+const path = require("path");\nconst crypto = require("crypto");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 
@@ -916,7 +916,7 @@ app.post("/api/upgrade",requireAuth,(req,res)=>{
   const stake=items.reduce((sum,item)=>sum+Number(item.item_value||0),0),target=Number(targetSkin.value);
   if(!Number.isFinite(target)||target<50||target>5000000||target<=stake)return res.status(400).json({error:"Цель должна быть дороже общей ставки"});
   const chance=Math.round(Math.max(1,Math.min(95,stake/target*(1-0.07)*100))*100)/100;
-  const success=Math.random()*100<chance,cashback=success?0:Math.floor(stake*0.10);
+  const success=crypto.randomInt(0,10000)<Math.round(chance*100),cashback=success?0:Math.floor(stake*0.10);
   const tx=db.transaction(()=>{
     db.prepare("DELETE FROM inventory WHERE user_id=? AND id IN ("+ids.map(()=>"?").join(",")+")").run(u.id,...ids);
     if(success)db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,targetSkin.name,target);
