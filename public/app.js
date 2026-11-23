@@ -99,6 +99,7 @@ let casesLimit  = 12;
 let casesSearch = "";
 
 function renderCases() {
+  console.log("NEW renderCases called", casesCache.length);
   let list = [...casesCache];
 
   if (casesFilter === "budget") {
