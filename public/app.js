@@ -36,7 +36,7 @@ window.logout=async()=>{try{await api("/api/logout",{method:"POST"});me=null;inv
 async function refresh(){const d=await api("/api/me");me=d.user;inventory=d.inventory||[];if(!inventory.some(x=>x.id===upgradeSourceId))upgradeSourceId=inventory[0]?.id??null;renderAccount();renderProfile();renderUpgrade();window.ownerAccessReady=true;window.updateOwnerNavigation?.();if(me?.role==="owner")await loadOwner();else $("#owner-content").innerHTML="";if(me&&roleRank(me.role)>=1)await loadStaff();else $("#staff-content").innerHTML="";}
 function skinInfo(name){return skins.find(x=>x.name===name)||{name,value:0,steamRub:0,rarity:"Предмет",image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)}}
 function skinArt(name){const s=skinInfo(name);const glyph=name.startsWith("★")?"✦":name.split(" | ")[0].slice(0,3).toUpperCase();const image=s.image||"";return '<div class="skin-art '+(image?"":"no-image")+'">'+(image?'<img loading="lazy" src="'+esc(image)+'" alt="'+esc(name)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'no-image\')">':'')+'<span class="skin-glyph">'+esc(glyph)+'</span></div>'}
-function skinCard(name,value,opts={}){const s=skinInfo(name);return '<article class="skin-card rarity-'+esc((s.rarity||"").toLowerCase().replace(/[^a-zа-яё]+/g,"-"))+'">'+skinArt(name)+'<div class="skin-card-info"><span class="rarity-text">'+esc(s.rarity||"CS2")+'</span><b>'+esc(name)+'</b><strong>'+money(value??s.value)+'</strong><small class="steam-price">'+(s.priceSource==="Steam Market"?rub(s.steamRub)+" · Steam":s.priceSource==="Ожидает котировку Steam"?"Котировка Steam не найдена":"Виртуальная оценка") +'</small>'+(opts.market?'<a class="market-link" href="'+esc(s.steamUrl)+'" target="_blank" rel="noopener">Steam Market ↗</a>':'')+(opts.select?'<label class="select-item"><input type="checkbox" '+(selected.has(opts.id)?"checked":"")+' onchange="toggleItem('+opts.id+',this.checked)"> Выбрать</label>':'')+(opts.sell?'<button class="btn secondary sell-skin-btn" onclick="sellItem('+opts.id+')">Продать за '+money(value??s.value)+'</button>':'')+'</div></article>'}
+function skinCard(name,value,opts={}){const s=skinInfo(name);return '<article class="skin-card rarity-'+esc((s.rarity||"").toLowerCase().replace(/[^a-zа-яё]+/g,"-"))+'">'+skinArt(name)+'<div class="skin-card-info"><span class="rarity-text">'+esc(s.rarity||"CS2")+'</span><b>'+esc(name)+'</b><strong>'+money(value??s.value)+'</strong><small class="steam-price">'+(s.priceSource==="Steam Market"?rub(s.steamRub)+" · Steam":s.priceSource==="Ожидает котировку Steam"?"Котировка Steam не найдена":s.priceSource==="Оценка CaseArena"?"Оценка рынка CaseArena":"Виртуальная оценка")+'</small>'+(opts.market?'<a class="market-link" href="'+esc(s.steamUrl)+'" target="_blank" rel="noopener">Steam Market ↗</a>':'')+(opts.buy?'<button class="btn primary skin-buy-btn" onclick="buySkin(&quot;'+esc(name)+'&quot;)">Купить за '+money(value??s.value)+'</button>':'')+(opts.select?'<label class="select-item"><input type="checkbox" '+(selected.has(opts.id)?"checked":"")+' onchange="toggleItem('+opts.id+',this.checked)"> Выбрать</label>':'')+(opts.sell?'<button class="btn secondary sell-skin-btn" onclick="sellItem('+opts.id+')">Продать за '+money(value??s.value)+'</button>':'')+'</div></article>'}
 function skinCategory(s){return s.category||(s.name.startsWith("★")?(s.name.includes("Gloves")?"Перчатки":"Нож"):"Оружие")}
 function renderSkinCatalog(reset=true){
  const grid=$("#skin-catalog-grid");if(!grid)return;
@@ -45,9 +45,20 @@ function renderSkinCatalog(reset=true){
  const category=$("#skin-catalog-category")?.value||"all";
  const filtered=skins.filter(s=>(!query||(s.name+" "+(s.rarity||"")).toLowerCase().includes(query))&&(category==="all"||skinCategory(s)===category));
  $("#skin-catalog-count").textContent="Найдено: "+filtered.length.toLocaleString("ru-RU")+" · всего в каталоге: "+skins.length.toLocaleString("ru-RU");
- grid.innerHTML=filtered.slice(0,skinCatalogVisible).map(s=>skinCard(s.name,s.value,{market:true})).join("")||'<p class="muted">По запросу ничего не найдено.</p>';
+ grid.innerHTML=filtered.slice(0,skinCatalogVisible).map(s=>skinCard(s.name,s.value,{market:true,buy:true})).join("")||'<p class="muted">По запросу ничего не найдено.</p>';
  const more=$("#skin-catalog-more");if(more)more.style.display=filtered.length>skinCatalogVisible?"inline-flex":"none";
 }
+window.buySkin=async name=>{
+ if(!me)return authModal();
+ const skin=skins.find(item=>item.name===name);
+ if(!skin)return toast("Скин не найден");
+ if(!confirm("Купить "+skin.name+" за "+money(skin.value)+"?"))return;
+ try{
+  const d=await api("/api/skins/buy",{method:"POST",body:JSON.stringify({skinName:skin.name})});
+  await refresh();renderSkinCatalog(false);
+  toast("Куплено: "+d.name+" · −"+money(d.value));
+ }catch(error){toast(error.message)}
+};
 window.filterSkinCatalog=()=>renderSkinCatalog(true);
 window.showMoreSkins=()=>{skinCatalogVisible+=72;renderSkinCatalog(false)};
 async function loadSkins(){skins=await api("/api/skins");renderSkinCatalog()}
@@ -77,7 +88,17 @@ async function animateRoll(){
  await new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;track.removeEventListener("transitionend",onEnd);resolve()};const onEnd=e=>{if(e.propertyName==="transform")finish()};track.addEventListener("transitionend",onEnd);setTimeout(finish,10000)});
 }
 window.openCase=async id=>{if(rolling)return;if(!me)return authModal();rolling=true;try{const caseData=await api("/api/cases/"+id);const d=await api("/api/cases/"+id+"/open",{method:"POST"});const items=makeRollItems(caseData.items,d.name);openModal("ОТКРЫТИЕ КЕЙСА",rouletteMarkup(items));await animateRoll();$("#modal-body").innerHTML='<div class="win-result">'+skinArt(d.name)+'<p class="muted small">ТЕБЕ ВЫПАЛО</p><h3>'+esc(d.name)+'</h3><strong>'+money(d.value)+'</strong><small class="steam-price">'+rub(skinInfo(d.name).steamRub)+'</small></div><button class="btn primary full-btn" onclick="closeModal()">Забрать предмет</button>';await refresh()}catch(e){toast(e.message)}finally{rolling=false}};
-function renderUpgrade(){const source=$("#upgrade-source"),targets=$("#upgrade-targets");if(!source||!targets)return;source.innerHTML=inventory.length?inventory.map(x=>'<button class="pick-card '+(upgradeSourceId===x.id?"chosen":"")+'" onclick="chooseUpgradeSource('+x.id+')">'+skinArt(x.item_name)+'<b>'+esc(x.item_name)+'</b><small>'+money(x.item_value)+'</small></button>').join(""):'<p class="muted small">Инвентарь пуст — сначала открой кейс</p>';targets.innerHTML=skins.map(x=>'<button class="pick-card target-card '+(upgradeTarget===x.name?"chosen":"")+'" onclick="chooseUpgradeTarget(\''+esc(x.name)+'\')">'+skinArt(x.name)+'<b>'+esc(x.name)+'</b><small>'+money(x.value)+'</small><em>'+rub(x.steamRub)+' · '+(x.priceSource==="Steam Market"?"Steam":"оценка")+'</em></button>').join("");updateUpgradePreview()}
+function renderUpgradeTargets(){
+ const targets=$("#upgrade-targets");if(!targets)return;
+ const query=String($("#upgrade-target-search")?.value||"").trim().toLowerCase();
+ const source=inventory.find(x=>x.id===upgradeSourceId);
+ const all=skins.filter(x=>(!source||x.value>source.item_value)&&(!query||x.name.toLowerCase().includes(query)));
+ const filtered=all.slice(0,60);
+ const count=$("#upgrade-target-count");if(count)count.textContent="Показано "+filtered.length+" из "+all.length;
+ targets.innerHTML=filtered.map(x=>'<button class="pick-card target-card '+(upgradeTarget===x.name?"chosen":"")+'" onclick="chooseUpgradeTarget(&quot;'+esc(x.name)+'&quot;)">'+skinArt(x.name)+'<b>'+esc(x.name)+'</b><small>'+money(x.value)+'</small></button>').join("")||'<p class="muted small">Подходящих скинов не найдено</p>';
+}
+window.filterUpgradeTargets=renderUpgradeTargets;
+function renderUpgrade(){const source=$("#upgrade-source");if(!source)return;source.innerHTML=inventory.length?inventory.map(x=>'<button class="pick-card '+(upgradeSourceId===x.id?"chosen":"")+'" onclick="chooseUpgradeSource('+x.id+')">'+skinArt(x.item_name)+'<b>'+esc(x.item_name)+'</b><small>'+money(x.item_value)+'</small></button>').join(""):'<p class="muted small">Инвентарь пуст — сначала открой кейс</p>';renderUpgradeTargets();updateUpgradePreview()}
 window.setUpgradeMultiplier=mult=>{const item=inventory.find(x=>x.id===upgradeSourceId);if(!item)return toast("Сначала выбери свой предмет");const target=skins.filter(x=>x.value>=item.item_value*mult).sort((x,y)=>Math.abs(x.value-item.item_value*mult)-Math.abs(y.value-item.item_value*mult))[0];if(!target)return toast("Нет подходящего скина для X"+mult);upgradeTarget=target.name;renderUpgrade()};
 window.chooseUpgradeSource=id=>{upgradeSourceId=id;renderUpgrade()};
 window.chooseUpgradeTarget=name=>{upgradeTarget=name;renderUpgrade()};
