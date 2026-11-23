@@ -665,13 +665,29 @@ async function getSkinImageIndex(){
  }
  return skinImageIndexPromise;
 }
+function normalizeSkinImageName(value){
+ return String(value||"").replace(/^★\\s*/,"").replace(/\\s*\\([^)]*\\)\\s*$/,"").trim().toLowerCase();
+}
 function resolveSkinImage(name,imageIndex){
  const exact=imageIndex.get(name);
  if(exact)return exact;
  const entry=skinCatalog.find(s=>s.name===name);
- if(entry?.imageBaseName&&imageIndex.has(entry.imageBaseName))return imageIndex.get(entry.imageBaseName);
- const base=String(name).replace(/ \(.*\)$/,"");
- return imageIndex.get(base)||"";
+ const candidates=[entry?.imageBaseName,name,String(name).replace(/ \\(.*\\)$/,"")].filter(Boolean);
+ for(const candidate of candidates){
+  const direct=imageIndex.get(candidate);
+  if(direct)return direct;
+  const normalized=normalizeSkinImageName(candidate);
+  for(const [catalogName,url] of imageIndex){
+   if(normalizeSkinImageName(catalogName)===normalized)return url;
+  }
+ }
+ // Some CS2 catalogue entries include a wear suffix while CaseArena stores the base skin name.
+ const wanted=normalizeSkinImageName(name);
+ for(const [catalogName,url] of imageIndex){
+  const normalized=normalizeSkinImageName(catalogName);
+  if(normalized.startsWith(wanted+" ")||wanted.startsWith(normalized+" "))return url;
+ }
+ return "";
 }
 app.get("/api/skins",async(req,res)=>{
  let imageIndex=new Map();
