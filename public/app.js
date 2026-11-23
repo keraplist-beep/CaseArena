@@ -49,6 +49,14 @@ function renderUpgrade(){const source=$("#upgrade-source"),targets=$("#upgrade-t
 window.setUpgradeMultiplier=mult=>{const item=inventory.find(x=>x.id===upgradeSourceId);if(!item)return toast("Сначала выбери свой предмет");const target=skins.filter(x=>x.value>=item.item_value*mult).sort((x,y)=>Math.abs(x.value-item.item_value*mult)-Math.abs(y.value-item.item_value*mult))[0];if(!target)return toast("Нет подходящего скина для X"+mult);upgradeTarget=target.name;renderUpgrade()};
 window.chooseUpgradeSource=id=>{upgradeSourceId=id;renderUpgrade()};
 window.chooseUpgradeTarget=name=>{upgradeTarget=name;renderUpgrade()};
+function updateWheelLabels(dial,chance){
+ if(!dial)return;
+ const win=dial.querySelector(".wheel-sector-win"),fail=dial.querySelector(".wheel-sector-fail");
+ const pct=Math.max(0,Math.min(100,Number(chance)||0));
+ const place=(el,angle)=>{if(!el)return;const radius=Math.max(62,dial.clientWidth*.405);el.style.top="50%";el.style.left="50%";el.style.transform="translate(-50%,-50%) rotate("+angle+"deg) translateY(-"+radius+"px) rotate("+(-angle)+"deg)"};
+ if(win){win.textContent="УСПЕХ "+pct.toFixed(1)+"%";place(win,pct*1.8)}
+ if(fail){fail.textContent="НЕУДАЧА "+(100-pct).toFixed(1)+"%";place(fail,pct+(360-pct)/2)}
+}
 function updateUpgradePreview(){
  const box=$("#upgrade-preview"),chanceText=$("#upgrade-wheel-value"),wheel=$("#upgrade-wheel"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status"),win=$("#upgrade-success-percent"),fail=$("#upgrade-fail-percent");
  if(!box)return;
@@ -60,7 +68,7 @@ function updateUpgradePreview(){
  if(toName)toName.textContent=target?target.name:"Желаемый скин";
  if(fromPrice)fromPrice.textContent=item?money(item.item_value):"Выбери слева";
  if(toPrice)toPrice.textContent=target?money(target.value):"Выбери справа";
- if(dial){dial.style.transition="none";dial.style.transform="rotate(0deg)"}
+ if(dial){dial.style.transition="none";dial.style.transform="none";updateWheelLabels(dial,0)}
  const pointer=$("#upgrade-wheel-pointer");if(pointer){pointer.style.transition="none";pointer.style.transform="rotate(0deg)"}
  if(!item||!target||target.value<=item.item_value){
   const msg=!item?"Сначала выбери предмет из инвентаря":!target?"Теперь выбери желаемый скин справа":"Целевой предмет должен стоить дороже";
@@ -74,6 +82,7 @@ function updateUpgradePreview(){
  const chance=Math.min(75,item.item_value/target.value*75),pct=Math.round(chance);
  if(chanceText)chanceText.textContent=pct+"%";
  if(wheel)wheel.style.setProperty("--chance",pct+"%");
+ if(dial)updateWheelLabels(dial,chance);
  if(status)status.textContent="Колесо готово. Нажми «Улучшить предмет»";
  if(win)win.textContent=pct+"%";if(fail)fail.textContent=(100-pct)+"%";
  box.innerHTML='<div><b>'+esc(item.item_name)+'</b><div class="muted small">'+money(item.item_value)+' → '+esc(target.name)+' · '+money(target.value)+'</div></div><div class="chance-number">'+pct+'%</div>';
@@ -93,7 +102,7 @@ window.upgrade=async()=>{
   if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance.toFixed(2)+"%";
   if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance).toFixed(2)+"%";
   if(status)status.textContent="Стрелка вращается…";
-  if(dial){dial.style.transition="none";dial.style.transform="rotate(0deg)"}
+  if(dial){dial.style.transition="none";dial.style.transform="none";updateWheelLabels(dial,chance)}
   if(pointer){
    const successArc=chance*3.6;
    const landing=d.success?successArc/2:successArc+(360-successArc)/2;
