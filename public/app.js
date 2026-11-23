@@ -132,9 +132,13 @@ window.setUpgradeTheme=theme=>{
  try{localStorage.setItem("casearena-upgrade-theme",machine.dataset.theme)}catch{}
  document.querySelectorAll(".upgrade-theme-row button").forEach((el,i)=>el.classList.toggle("active",i===["classic","neon","minimal"].indexOf(machine.dataset.theme)));
 };
-function getUpgradeItems(){return upgradeSourceIds.map(id=>inventory.find(x=>x.id===id)).filter(Boolean)}
+const MAX_UPGRADE_SLOTS=6;
+const HOUSE_EDGE=0.07;
+const MAX_CHANCE=95;
+function getUpgradeItems(){return upgradeSourceIds.map(id=>inventory.find(x=>x.id===id)).filter(Boolean).slice(0,MAX_UPGRADE_SLOTS)}
 function getUpgradeStake(){return getUpgradeItems().reduce((sum,item)=>sum+Number(item.item_value||0),0)}
-function getUpgradeChance(stake,target){if(!(stake>0&&target>stake))return 0;return Math.max(1,Math.min(70,stake/target*0.93*100))}
+function getUpgradeChance(stake,target){if(!(stake>0)||!(target>0))return 0;if(target<=stake)return 100;const raw=(stake/target)*(1-HOUSE_EDGE)*100;return Math.max(1,Math.min(MAX_CHANCE,raw))}
+function getQuickTargetValue(multiplier){return getUpgradeStake()*Number(multiplier)}
 function renderUpgradeTargets(){
  const targets=$("#upgrade-targets");if(!targets)return;
  const query=String($("#upgrade-target-search")?.value||"").trim().toLowerCase();
