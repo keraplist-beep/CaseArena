@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);
-let me=null, inventory=[], selected=new Set(), skins=[], casesCache=[], upgradeSourceId=null, upgradeTarget=null, rolling=false, skinCatalogVisible=72;
+let me=null, inventory=[], selected=new Set(), skins=[], casesCache=[], upgradeSourceId=null, upgradeSourceIds=[], upgradeTarget=null, rolling=false, skinCatalogVisible=72;
 const UPGRADE_DEFAULTS={chance:35,speed:8,shape:"arrow"};
 let upgradeSettings=(()=>{try{
  const saved=JSON.parse(localStorage.getItem("casearena-upgrade-settings")||"{}");
@@ -23,7 +23,7 @@ window.setUpgradeSetting=(key,value)=>{
 };
 window.openUpgradeSettings=()=>{
  const speed=upgradeSettings.speed===2?"fast":"slow";
- openModal("НАСТРОЙКИ АПГРЕЙДЕРА",'<div class="upgrade-settings"><label>Шанс успеха <b id="upgrade-setting-chance-value">'+Number(upgradeSettings.chance).toFixed(0)+'%</b></label><input type="range" min="1" max="70" step="1" value="'+upgradeSettings.chance+'" oninput="setUpgradeSetting(\'chance\',this.value)"><p class="muted small">От 1% до 70%. Шанс проверяется сервером.</p><label>Скорость вращения <b id="upgrade-setting-speed-value">'+(speed==="fast"?"Быстро · 2 сек":"Медленно · 8 сек")+'</b></label><div class="upgrade-speed-options"><button type="button" data-upgrade-speed="slow" class="'+(speed==="slow"?"active":"")+'" onclick="setUpgradeSetting(\'speed\',\'slow\')">Медленно <small>8 сек</small></button><button type="button" data-upgrade-speed="fast" class="'+(speed==="fast"?"active":"")+'" onclick="setUpgradeSetting(\'speed\',\'fast\')">Быстро <small>2 сек</small></button></div><label>Форма указателя</label><div class="upgrade-pointer-preview"><span>➤</span><small>Маленькая стрелка</small></div><button class="btn primary full-btn" onclick="closeModal()">Готово</button></div>');
+ openModal("НАСТРОЙКИ АПГРЕЙДЕРА",'<div class="upgrade-settings"><label>Скорость анимации</label><div class="upgrade-speed-options"><button type="button" data-upgrade-speed="slow" class="'+(speed==="slow"?"active":"")+'" onclick="setUpgradeSetting(\'speed\',\'slow\')">Медленно <small>8 сек</small></button><button type="button" data-upgrade-speed="fast" class="'+(speed==="fast"?"active":"")+'" onclick="setUpgradeSetting(\'speed\',\'fast\')">Быстро <small>2 сек</small></button></div><p class="muted small">Шанс рассчитывается автоматически: ставка / цель × 93%. Максимум 70%.</p><button class="btn primary full-btn" onclick="closeModal()">Готово</button></div>');
 };
 
 const money=n=>Number(n||0).toLocaleString("ru-RU")+" CR";
@@ -59,8 +59,8 @@ window.updateOwnerNavigation=()=>{
  nav.classList.toggle("owner-mode",me?.role==="owner");window.renderCaseArenaPage?.();
 };
 window.goProfile=()=>{location.hash="profile"};
-window.logout=async()=>{try{await api("/api/logout",{method:"POST"});me=null;inventory=[];selected.clear();renderAccount();renderProfile();renderUpgrade();window.updateOwnerNavigation?.();toast("Вы вышли из аккаунта")}catch(e){toast(e.message)}};
-async function refresh(){const d=await api("/api/me");me=d.user;inventory=d.inventory||[];loadLeaders().catch(e=>console.warn("Leaderboard refresh failed:",e.message));if(!inventory.some(x=>x.id===upgradeSourceId))upgradeSourceId=inventory[0]?.id??null;renderAccount();renderProfile();renderUpgrade();window.ownerAccessReady=true;window.updateOwnerNavigation?.();if(me?.role==="owner")await loadOwner();else $("#owner-content").innerHTML="";if(me&&roleRank(me.role)>=1)await loadStaff();else $("#staff-content").innerHTML="";}
+window.logout=async()=>{try{await api("/api/logout",{method:"POST"});me=null;inventory=[];upgradeSourceIds=[];upgradeSourceId=null;selected.clear();renderAccount();renderProfile();renderUpgrade();window.updateOwnerNavigation?.();toast("Вы вышли из аккаунта")}catch(e){toast(e.message)}};
+async function refresh(){const d=await api("/api/me");me=d.user;inventory=d.inventory||[];loadLeaders().catch(e=>console.warn("Leaderboard refresh failed:",e.message));upgradeSourceIds=upgradeSourceIds.filter(id=>inventory.some(x=>x.id===id));upgradeSourceId=upgradeSourceIds[0]??null;renderAccount();renderProfile();renderUpgrade();window.ownerAccessReady=true;window.updateOwnerNavigation?.();if(me?.role==="owner")await loadOwner();else $("#owner-content").innerHTML="";if(me&&roleRank(me.role)>=1)await loadStaff();else $("#staff-content").innerHTML="";}
 function skinInfo(name){return skins.find(x=>x.name===name)||{name,value:0,steamRub:0,rarity:"Предмет",image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)}}
 function skinArt(name){const s=skinInfo(name);const glyph=name.startsWith("★")?"✦":name.split(" | ")[0].slice(0,3).toUpperCase();const image=s.image||"";return '<div class="skin-art '+(image?"":"no-image")+'">'+(image?'<img loading="lazy" src="'+esc(image)+'" alt="'+esc(name)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'no-image\')">':'')+'<span class="skin-glyph">'+esc(glyph)+'</span></div>'}
 function skinCard(name,value,opts={}){const s=skinInfo(name);return '<article class="skin-card rarity-'+esc((s.rarity||"").toLowerCase().replace(/[^a-zа-яё]+/g,"-"))+'">'+skinArt(name)+'<div class="skin-card-info"><span class="rarity-text">'+esc(s.rarity||"CS2")+'</span><b>'+esc(name)+'</b><strong>'+money(value??s.value)+'</strong><small class="steam-price">'+(Number(s.marketUsd)>0?usd(s.marketUsd)+" · "+(s.priceSource==="Steam Market"?"Steam":"рынок"):s.priceSource==="Оценка CaseArena"?"Оценка CR · нет котировки":"Оценка CR")+'</small>'+(opts.market?'<a class="market-link" href="'+esc(s.steamUrl)+'" target="_blank" rel="noopener">Steam Market ↗</a>':'')+(opts.buy?'<button class="btn primary skin-buy-btn" onclick="buySkin(&quot;'+esc(name)+'&quot;)">Купить за '+money(value??s.value)+'</button>':'')+(opts.select?'<label class="select-item"><input type="checkbox" '+(selected.has(opts.id)?"checked":"")+' onchange="toggleItem('+opts.id+',this.checked)"> Выбрать</label>':'')+(opts.sell?'<button class="btn secondary sell-skin-btn" onclick="sellItem('+opts.id+')">Продать за '+money(value??s.value)+'</button>':'')+'</div></article>'}
@@ -122,25 +122,64 @@ async function animateRoll(){
  await new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;track.removeEventListener("transitionend",onEnd);resolve()};const onEnd=e=>{if(e.propertyName==="transform")finish()};track.addEventListener("transitionend",onEnd);setTimeout(finish,10000)});
 }
 window.openCase=async id=>{if(rolling)return;if(!me)return authModal();rolling=true;try{const caseData=await api("/api/cases/"+id);const d=await api("/api/cases/"+id+"/open",{method:"POST"});const items=makeRollItems(caseData.items,d.name);openModal("ОТКРЫТИЕ КЕЙСА",rouletteMarkup(items));await animateRoll();$("#modal-body").innerHTML='<div class="win-result">'+skinArt(d.name)+'<p class="muted small">ТЕБЕ ВЫПАЛО</p><h3>'+esc(d.name)+'</h3><strong>'+money(d.value)+'</strong><small class="steam-price">'+rub(skinInfo(d.name).steamRub)+'</small></div><button class="btn primary full-btn" onclick="closeModal()">Забрать предмет</button>';await refresh()}catch(e){toast(e.message)}finally{rolling=false}};
+window.setUpgradeMode=mode=>{
+ upgradeSettings.mode=mode==="fast"?"fast":"animated";saveUpgradeSettings();
+ document.querySelectorAll(".upgrade-mode-row button").forEach((el,i)=>el.classList.toggle("active",i===(upgradeSettings.mode==="fast"?1:0)));
+};
+window.setUpgradeTheme=theme=>{
+ const machine=$(".upgrade-machine");if(!machine)return;
+ machine.dataset.theme=["classic","neon","minimal"].includes(theme)?theme:"classic";
+ try{localStorage.setItem("casearena-upgrade-theme",machine.dataset.theme)}catch{}
+ document.querySelectorAll(".upgrade-theme-row button").forEach((el,i)=>el.classList.toggle("active",i===["classic","neon","minimal"].indexOf(machine.dataset.theme)));
+};
+function getUpgradeItems(){return upgradeSourceIds.map(id=>inventory.find(x=>x.id===id)).filter(Boolean)}
+function getUpgradeStake(){return getUpgradeItems().reduce((sum,item)=>sum+Number(item.item_value||0),0)}
+function getUpgradeChance(stake,target){if(!(stake>0&&target>stake))return 0;return Math.max(1,Math.min(70,stake/target*0.93*100))}
 function renderUpgradeTargets(){
  const targets=$("#upgrade-targets");if(!targets)return;
  const query=String($("#upgrade-target-search")?.value||"").trim().toLowerCase();
- const source=inventory.find(x=>x.id===upgradeSourceId);
- const all=skins.filter(x=>(!source||x.value>source.item_value)&&(!query||x.name.toLowerCase().includes(query)));
- const filtered=all.slice(0,60);
- const count=$("#upgrade-target-count");if(count)count.textContent="Показано "+filtered.length+" из "+all.length;
- targets.innerHTML=filtered.map(x=>'<button class="pick-card target-card '+(upgradeTarget===x.name?"chosen":"")+'" onclick="chooseUpgradeTarget(&quot;'+esc(x.name)+'&quot;)">'+skinArt(x.name)+'<b>'+esc(x.name)+'</b><small>'+money(x.value)+'</small></button>').join("")||'<p class="muted small">Подходящих скинов не найдено</p>';
+ const min=Number($("#upgrade-target-min")?.value||0),max=Number($("#upgrade-target-max")?.value||0),stake=getUpgradeStake();
+ const all=skins.filter(x=>x.value>stake&&(!query||x.name.toLowerCase().includes(query))&&(!min||x.value>=min)&&(!max||x.value<=max));
+ const filtered=all.slice(0,72),count=$("#upgrade-target-count");if(count)count.textContent="Показано "+filtered.length+" из "+all.length;
+ targets.innerHTML=filtered.map(x=>'<button class="pick-card target-card '+(upgradeTarget===x.name?"chosen":"")+'" onclick="chooseUpgradeTarget(&quot;'+esc(x.name)+'&quot;)">'+skinArt(x.name)+'<b>'+esc(x.name)+'</b><small>'+money(x.value)+'</small></button>').join("")||'<p class="muted small">Нет целей дороже общей ставки</p>';
 }
 window.filterUpgradeTargets=renderUpgradeTargets;
-function renderUpgrade(){const source=$("#upgrade-source");if(!source)return;source.innerHTML=inventory.length?inventory.map(x=>'<button class="pick-card '+(upgradeSourceId===x.id?"chosen":"")+'" onclick="chooseUpgradeSource('+x.id+')">'+skinArt(x.item_name)+'<b>'+esc(x.item_name)+'</b><small>'+money(x.item_value)+'</small></button>').join(""):'<p class="muted small">Инвентарь пуст — сначала открой кейс</p>';renderUpgradeTargets();updateUpgradePreview()}
-window.setUpgradeMultiplier=mult=>{const chances={2:50,5:20,10:10,35:35};const chance=chances[mult];if(!chance)return;if(mult!==35){const item=inventory.find(x=>x.id===upgradeSourceId);if(!item)return toast("Сначала выбери свой предмет");const target=skins.filter(x=>x.value>=item.item_value*mult).sort((x,y)=>Math.abs(x.value-item.item_value*mult)-Math.abs(y.value-item.item_value*mult))[0];if(!target)return toast("Нет подходящего скина для X"+mult);upgradeTarget=target.name}upgradeSettings.chance=chance;saveUpgradeSettings();renderUpgrade();document.querySelectorAll("[data-upgrade-mult]").forEach(el=>el.classList.toggle("active",Number(el.dataset.upgradeMult)===mult))};
-window.chooseUpgradeSource=id=>{upgradeSourceId=id;renderUpgrade()};
-window.chooseUpgradeTarget=name=>{upgradeTarget=name;renderUpgrade()};
+function renderUpgrade(){
+ const source=$("#upgrade-source"),slots=$("#upgrade-selected-slots");if(!source)return;
+ const chosen=getUpgradeItems(),stake=getUpgradeStake();
+ if(slots)slots.innerHTML=Array.from({length:6},(_,i)=>{const item=chosen[i];return '<div class="upgrade-slot '+(item?"filled":"")+'">'+(item?'<button type="button" class="upgrade-slot-remove" aria-label="Убрать предмет" onclick="chooseUpgradeSource('+item.id+')">×</button>'+skinArt(item.item_name)+'<b>'+esc(item.item_name)+'</b><small>'+money(item.item_value)+'</small>':'<span class="upgrade-slot-plus">+</span><small>Слот '+(i+1)+'</small>')+'</div>'}).join("");
+ source.innerHTML=inventory.length?inventory.map(x=>'<button class="pick-card '+(upgradeSourceIds.includes(x.id)?"chosen":"")+'" onclick="chooseUpgradeSource('+x.id+')">'+skinArt(x.item_name)+'<b>'+esc(x.item_name)+'</b><small>'+money(x.item_value)+'</small><span class="upgrade-select-mark">'+(upgradeSourceIds.includes(x.id)?"✓ Выбран":"＋ Добавить")+'</span></button>').join(""):'<p class="muted small">Инвентарь пуст — сначала открой кейс</p>';
+ const total=$("#upgrade-stake-total");if(total)total.textContent=money(stake);
+ renderUpgradeTargets();updateUpgradePreview();
+}
+window.setUpgradeMultiplier=mult=>{
+ const stake=getUpgradeStake();if(!stake)return toast("Сначала выбери хотя бы один скин");
+ const target=skins.filter(x=>x.value>stake).sort((a,b)=>Math.abs(a.value-stake*Number(mult))-Math.abs(b.value-stake*Number(mult)))[0];
+ if(!target)return toast("Не найдена подходящая цель");
+ upgradeTarget=target.name;renderUpgrade();
+ document.querySelectorAll("[data-upgrade-mult]").forEach(el=>el.classList.toggle("active",Number(el.dataset.upgradeMult)===Number(mult)));
+ document.querySelectorAll("[data-upgrade-odds]").forEach(el=>el.classList.remove("active"));
+};
+window.setUpgradeOdds=pct=>{
+ const stake=getUpgradeStake();if(!stake)return toast("Сначала выбери хотя бы один скин");
+ const desiredTarget=stake*0.93/(Number(pct)/100);
+ const target=skins.filter(x=>x.value>stake).sort((a,b)=>Math.abs(a.value-desiredTarget)-Math.abs(b.value-desiredTarget))[0];
+ if(!target)return toast("Не найдена подходящая цель");
+ upgradeTarget=target.name;renderUpgrade();
+ document.querySelectorAll("[data-upgrade-odds]").forEach(el=>el.classList.toggle("active",Number(el.dataset.upgradeOdds)===Number(pct)));
+ document.querySelectorAll("[data-upgrade-mult]").forEach(el=>el.classList.remove("active"));
+};
+window.chooseUpgradeSource=id=>{
+ const index=upgradeSourceIds.indexOf(id);
+ if(index>=0)upgradeSourceIds.splice(index,1);
+ else{if(upgradeSourceIds.length>=6)return toast("Можно выбрать не больше 6 скинов");upgradeSourceIds.push(id)}
+ upgradeSourceId=upgradeSourceIds[0]??null;renderUpgrade();
+};
+window.chooseUpgradeTarget=name=>{upgradeTarget=name;renderUpgrade();document.querySelectorAll("[data-upgrade-mult],[data-upgrade-odds]").forEach(el=>el.classList.remove("active"))};
 applyUpgradeWheelSettings();
 function updateWheelLabels(dial,chance){
  if(!dial)return;
- const win=dial.querySelector(".wheel-sector-win"),fail=dial.querySelector(".wheel-sector-fail");
- const pct=Math.max(0,Math.min(100,Number(chance)||0));
+ const win=dial.querySelector(".wheel-sector-win"),fail=dial.querySelector(".wheel-sector-fail"),pct=Math.max(0,Math.min(100,Number(chance)||0));
  const place=(el,angle)=>{if(!el)return;const radius=Math.max(62,dial.clientWidth*.405);el.style.top="50%";el.style.left="50%";el.style.transform="translate(-50%,-50%) rotate("+angle+"deg) translateY(-"+radius+"px) rotate("+(-angle)+"deg)"};
  if(win){win.textContent="УСПЕХ "+pct.toFixed(1)+"%";place(win,pct*1.8)}
  if(fail){fail.textContent="НЕУДАЧА "+(100-pct).toFixed(1)+"%";place(fail,pct+(360-pct)/2)}
@@ -148,61 +187,46 @@ function updateWheelLabels(dial,chance){
 function updateUpgradePreview(){
  const box=$("#upgrade-preview"),chanceText=$("#upgrade-wheel-value"),wheel=$("#upgrade-wheel"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status"),win=$("#upgrade-success-percent"),fail=$("#upgrade-fail-percent");
  if(!box)return;
- const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);
+ const items=getUpgradeItems(),stake=getUpgradeStake(),target=skins.find(x=>x.name===upgradeTarget),chance=target?getUpgradeChance(stake,target.value):0;
  const fromArt=$("#upgrade-from-art"),toArt=$("#upgrade-to-art"),fromName=$("#upgrade-from-name"),toName=$("#upgrade-to-name"),fromPrice=$("#upgrade-from-price"),toPrice=$("#upgrade-to-price");
- if(fromArt)fromArt.innerHTML=item?skinArt(item.item_name):"<span>?</span>";
+ if(fromArt)fromArt.innerHTML=items.length?items.slice(0,3).map(x=>skinArt(x.item_name)).join(""):"<span>?</span>";
  if(toArt)toArt.innerHTML=target?skinArt(target.name):"<span>?</span>";
- if(fromName)fromName.textContent=item?item.item_name:"Твой предмет";
+ if(fromName)fromName.textContent=items.length?items.length+" скинов выбрано":"Твои скины";
  if(toName)toName.textContent=target?target.name:"Желаемый скин";
- if(fromPrice)fromPrice.textContent=item?money(item.item_value):"Выбери слева";
+ if(fromPrice)fromPrice.textContent=items.length?money(stake):"Выбери до 6 слева";
  if(toPrice)toPrice.textContent=target?money(target.value):"Выбери справа";
- if(dial){dial.style.transition="none";dial.style.transform="none";updateWheelLabels(dial,0)}
+ if(dial){dial.style.transition="none";dial.style.transform="none";updateWheelLabels(dial,chance)}
  const pointer=$("#upgrade-wheel-pointer");if(pointer){pointer.style.transition="none";pointer.style.transform="rotate(0deg)"}
- if(!item||!target||target.value<=item.item_value){
-  const msg=!item?"Сначала выбери предмет из инвентаря":!target?"Теперь выбери желаемый скин справа":"Целевой предмет должен стоить дороже";
-  box.innerHTML='<span class="muted">'+msg+'</span>';
-  if(chanceText)chanceText.textContent="—";
-  if(wheel)wheel.style.setProperty("--chance","0%");
-  if(status)status.textContent=msg;
-  if(win)win.textContent="—";if(fail)fail.textContent="—";
-  return;
+ if(!items.length||!target||target.value<=stake){
+  const msg=!items.length?"Добавь от 1 до 6 скинов":!target?"Теперь выбери желаемый скин справа":"Цель должна быть дороже общей ставки";
+  box.innerHTML='<span class="muted">'+msg+'</span>';if(chanceText)chanceText.textContent="—";if(wheel)wheel.style.setProperty("--chance","0%");if(status)status.textContent=msg;if(win)win.textContent="—";if(fail)fail.textContent="—";return;
  }
- const chance=Math.max(1,Math.min(70,Number(upgradeSettings.chance)||35)),pct=Math.round(chance);
- if(chanceText)chanceText.textContent=pct+"%";
- if(wheel)wheel.style.setProperty("--chance",pct+"%");
- if(dial)updateWheelLabels(dial,chance);
- if(status)status.textContent="Колесо готово. Нажми «Улучшить предмет»";
- if(win)win.textContent=pct+"%";if(fail)fail.textContent=(100-pct)+"%";
- box.innerHTML='<div><b>'+esc(item.item_name)+'</b><div class="muted small">'+money(item.item_value)+' → '+esc(target.name)+' · '+money(target.value)+'</div></div><div class="chance-number">'+pct+'%</div>';
+ const pct=Math.round(chance*100)/100,profit=target.value-stake;
+ if(chanceText)chanceText.textContent=pct.toFixed(1)+"%";if(wheel)wheel.style.setProperty("--chance",pct+"%");if(dial)updateWheelLabels(dial,chance);
+ if(status)status.textContent="Комиссия 7% учтена · можно улучшать";
+ if(win)win.textContent=pct.toFixed(1)+"%";if(fail)fail.textContent=(100-pct).toFixed(1)+"%";
+ box.innerHTML='<div><b>'+items.length+' предметов · ставка '+money(stake)+'</b><div class="muted small">'+esc(target.name)+' · разница +'+money(profit)+'</div></div><div class="chance-number">'+pct.toFixed(1)+'%</div>';
 }
 window.upgrade=async()=>{
  if(!me)return authModal();if(rolling)return;
- const item=inventory.find(x=>x.id===upgradeSourceId),target=skins.find(x=>x.name===upgradeTarget);
- if(!item)return toast("Выбери предмет из инвентаря");
- if(!target)return toast("Выбери целевой скин");
- if(target.value<=item.item_value)return toast("Целевой скин должен быть дороже");
+ const items=getUpgradeItems(),stake=getUpgradeStake(),target=skins.find(x=>x.name===upgradeTarget);
+ if(!items.length)return toast("Выбери от 1 до 6 скинов");if(!target)return toast("Выбери целевой скин");if(target.value<=stake)return toast("Цель должна быть дороже общей ставки");
  rolling=true;
  try{
-  const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemId:item.id,targetName:target.name,chance:upgradeSettings.chance})});
+  const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemIds:items.map(x=>x.id),targetName:target.name})});
   const chance=Math.max(0,Math.min(100,Number(d.chance)||0)),wheel=$("#upgrade-wheel"),pointer=$("#upgrade-wheel-pointer"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status");
-  if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance.toFixed(2)+"%";
-  if(wheel)wheel.style.setProperty("--chance",chance+"%");
-  if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance.toFixed(2)+"%";
-  if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance).toFixed(2)+"%";
-  if(status)status.textContent="Стрелка вращается…";
+  if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance.toFixed(1)+"%";if(wheel)wheel.style.setProperty("--chance",chance+"%");
+  if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance.toFixed(1)+"%";if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance).toFixed(1)+"%";
+  if(status)status.textContent=upgradeSettings.mode==="fast"?"Мгновенный результат":"Стрелка вращается…";
   if(dial){dial.style.transition="none";dial.style.transform="none";updateWheelLabels(dial,chance)}
-  const spinSeconds=(upgradeSettings.speed===2?2:8);
-  applyUpgradeWheelSettings();
-  if(pointer){
-   const successArc=chance*3.6;
-   const landing=d.success?successArc/2:successArc+(360-successArc)/2;
-   pointer.style.transition="none";pointer.style.transform="rotate(0deg)";void pointer.offsetWidth;
-   pointer.style.transition="transform "+spinSeconds+"s cubic-bezier(.08,.76,.12,1)";
-   pointer.style.transform="rotate("+(360*7+landing)+"deg)";
+  const spinSeconds=upgradeSettings.mode==="fast"?0.15:(upgradeSettings.speed===2?2:8);applyUpgradeWheelSettings();
+  if(pointer&&upgradeSettings.mode!=="fast"){
+   const arc=chance*3.6,landing=d.success?arc/2:arc+(360-arc)/2;
+   pointer.style.transition="none";pointer.style.transform="rotate(0deg)";void pointer.offsetWidth;pointer.style.transition="transform "+spinSeconds+"s cubic-bezier(.08,.76,.12,1)";pointer.style.transform="rotate("+(360*7+landing)+"deg)";
   }
-  await new Promise(resolve=>setTimeout(resolve,spinSeconds*1000+150));
-  openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?(d.targetName||target.name):item.item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(d.targetName||target.name):"Предмет потерян")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p></div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
-  selected.clear();await refresh();
+  await new Promise(resolve=>setTimeout(resolve,spinSeconds*1000+100));
+  openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?(d.targetName||target.name):items[0].item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(d.targetName||target.name):"Предметы потеряны")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p>'+(d.cashback?'<p class="upgrade-cashback">Возвращено '+money(d.cashback)+' · 10% ставки</p>':'')+'</div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
+  upgradeSourceIds=[];upgradeSourceId=null;selected.clear();await refresh();
  }catch(e){toast(e.message)}finally{rolling=false}
 };
 function renderProfile(){const p=$("#profile-content");if(!p)return;if(!me){p.innerHTML='<p class="muted">Войди в аккаунт, чтобы увидеть профиль и инвентарь.</p>';$("#activity-list").innerHTML='<p class="muted small">История появится после входа.</p>';return}const total=inventory.reduce((s,x)=>s+Number(x.item_value),0);p.innerHTML='<div class="profile-head"><div class="avatar">'+esc(me.username.slice(0,2).toUpperCase())+'</div><div class="profile-main"><h3>'+esc(me.username)+roleBadge(me.role)+'</h3><div class="profile-stats"><span class="stat-chip">Баланс <b>'+money(me.balance)+'</b></span><span class="stat-chip">Предметы <b>'+inventory.length+'</b></span><span class="stat-chip">Инвентарь <b>'+money(total)+'</b></span></div></div></div><div id="profile-bonuses" class="bonus-panel"><p class="muted">Загружаю бонусы…</p></div><div class="inventory-toolbar"><h3>Мой инвентарь</h3><span class="muted small">Выбери от 3 до 5 предметов для контракта</span></div><div class="inventory">'+(inventory.length?inventory.map(x=>skinCard(x.item_name,x.item_value,{market:true,select:true,sell:true,id:x.id})).join(""):'<p class="muted">Инвентарь пока пуст. Открой первый кейс!</p>')+'</div>';loadActivity();loadBonusStatus()}
