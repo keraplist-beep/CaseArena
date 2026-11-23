@@ -1413,3 +1413,19 @@ input,select{border-radius:9px}
 .upgrade-reference .upgrade-wheel-pointer[data-shape="lime"]:before{background:linear-gradient(180deg,#fff,#7dff77 68%,#25bf47)!important;box-shadow:0 0 10px #48f06d!important}
 .upgrade-reference[data-spin=" азарт"] .upgrade-wheel-pointer{transition-timing-function:cubic-bezier(.04,.82,.04,1)!important}
 @media(max-width:560px){.upgrade-settings-v2{padding-left:3px;padding-right:3px}.upgrade-settings-v2 section{padding:19px 0 21px}.upgrade-settings-v2 h3{font-size:22px}.upgrade-settings-v2 p{font-size:13px}.upgrade-setting-radio b{font-size:14px}.upgrade-setting-radio small{font-size:12px}.upgrade-custom-grid{gap:7px}.upgrade-custom-grid label{height:47px;font-size:15px}.upgrade-custom-grid input{font-size:16px}}
+/* Probability labels stay near the bottom start point of the pointer */
+.upgrade-reference .wheel-sector-label{
+ top:83%!important;
+ left:50%!important;
+ transform:translate(-50%,-50%)!important;
+ max-width:44%!important;
+ width:max-content!important;
+ font-size:clamp(8px,1.8vw,11px)!important;
+}
+.upgrade-reference .wheel-sector-win{left:29%!important;text-align:right!important}
+.upgrade-reference .wheel-sector-fail{left:71%!important;text-align:left!important}
+@media(max-width:420px){
+ .upgrade-reference .wheel-sector-label{font-size:7px!important;letter-spacing:0!important}
+ .upgrade-reference .wheel-sector-win{left:28%!important}
+ .upgrade-reference .wheel-sector-fail{left:72%!important}
+}
