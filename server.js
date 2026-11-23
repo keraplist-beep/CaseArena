@@ -652,7 +652,7 @@ function resolveSkinImage(name,imageIndex){
  if(exact)return exact;
  const entry=skinCatalog.find(s=>s.name===name);
  if(entry?.imageBaseName&&imageIndex.has(entry.imageBaseName))return imageIndex.get(entry.imageBaseName);
- const base=String(name).replace(/ \\(.*\\)$/,"");
+ const base=String(name).replace(/ \(.*\)$/,"");
  return imageIndex.get(base)||"";
 }
 app.get("/api/skins",async(req,res)=>{
