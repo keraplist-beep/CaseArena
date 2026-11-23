@@ -4,7 +4,7 @@ const UPGRADE_DEFAULTS={chance:35,speed:8,shape:"arrow"};
 let upgradeSettings=(()=>{try{
  const saved=JSON.parse(localStorage.getItem("casearena-upgrade-settings")||"{}");
  const rawSpeed=Number(saved.speed);
- return {...UPGRADE_DEFAULTS,...saved,chance:Math.max(1,Math.min(70,Number(saved.chance)||35)),speed:(saved.speed==="fast"||(!Number.isNaN(rawSpeed)&&rawSpeed>0&&rawSpeed<5))?2:8,shape:"arrow"};
+ return {...UPGRADE_DEFAULTS,...saved,chance:Math.max(1,Math.min(95,Number(saved.chance)||35)),speed:(saved.speed==="fast"||(!Number.isNaN(rawSpeed)&&rawSpeed>0&&rawSpeed<5))?2:8,shape:"arrow"};
 }catch{return {...UPGRADE_DEFAULTS}}})();
 function saveUpgradeSettings(){try{localStorage.setItem("casearena-upgrade-settings",JSON.stringify(upgradeSettings))}catch{}}
 function applyUpgradeWheelSettings(){
@@ -12,7 +12,7 @@ function applyUpgradeWheelSettings(){
  if(pointer)pointer.dataset.shape="arrow";
 }
 window.setUpgradeSetting=(key,value)=>{
- if(key==="chance")upgradeSettings.chance=Math.max(1,Math.min(70,Number(value)||35));
+ if(key==="chance")upgradeSettings.chance=Math.max(1,Math.min(95,Number(value)||35));
  if(key==="speed")upgradeSettings.speed=value==="fast"?2:8;
  if(key==="shape")upgradeSettings.shape="arrow";
  saveUpgradeSettings();applyUpgradeWheelSettings();updateUpgradePreview();
@@ -23,7 +23,7 @@ window.setUpgradeSetting=(key,value)=>{
 };
 window.openUpgradeSettings=()=>{
  const speed=upgradeSettings.speed===2?"fast":"slow";
- openModal("НАСТРОЙКИ АПГРЕЙДЕРА",'<div class="upgrade-settings"><label>Скорость анимации</label><div class="upgrade-speed-options"><button type="button" data-upgrade-speed="slow" class="'+(speed==="slow"?"active":"")+'" onclick="setUpgradeSetting(\'speed\',\'slow\')">Медленно <small>8 сек</small></button><button type="button" data-upgrade-speed="fast" class="'+(speed==="fast"?"active":"")+'" onclick="setUpgradeSetting(\'speed\',\'fast\')">Быстро <small>2 сек</small></button></div><p class="muted small">Шанс рассчитывается автоматически: ставка / цель × 93%. Максимум 70%.</p><button class="btn primary full-btn" onclick="closeModal()">Готово</button></div>');
+ openModal("НАСТРОЙКИ АПГРЕЙДЕРА",'<div class="upgrade-settings"><label>Скорость анимации</label><div class="upgrade-speed-options"><button type="button" data-upgrade-speed="slow" class="'+(speed==="slow"?"active":"")+'" onclick="setUpgradeSetting(\'speed\',\'slow\')">Медленно <small>8 сек</small></button><button type="button" data-upgrade-speed="fast" class="'+(speed==="fast"?"active":"")+'" onclick="setUpgradeSetting(\'speed\',\'fast\')">Быстро <small>2 сек</small></button></div><p class="muted small">Шанс рассчитывается автоматически: ставка / цель × 93%. Максимум 95%.</p><button class="btn primary full-btn" onclick="closeModal()">Готово</button></div>');
 };
 
 const money=n=>Number(n||0).toLocaleString("ru-RU")+" CR";
@@ -127,7 +127,7 @@ window.setUpgradeMode=mode=>{
  document.querySelectorAll(".upgrade-mode-row button").forEach((el,i)=>el.classList.toggle("active",i===(upgradeSettings.mode==="fast"?1:0)));
 };
 window.setUpgradeTheme=theme=>{
- const machine=$(".upgrade-machine");if(!machine)return;
+ const machine=$(".upgrade-machine")||$(".upgrade-section");if(!machine)return;
  machine.dataset.theme=["classic","neon","minimal"].includes(theme)?theme:"classic";
  try{localStorage.setItem("casearena-upgrade-theme",machine.dataset.theme)}catch{}
  document.querySelectorAll(".upgrade-theme-row button").forEach((el,i)=>el.classList.toggle("active",i===["classic","neon","minimal"].indexOf(machine.dataset.theme)));
@@ -195,7 +195,7 @@ function updateUpgradePreview(){
  const box=$("#upgrade-preview"),chanceText=$("#upgrade-wheel-value"),wheel=$("#upgrade-wheel"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status"),win=$("#upgrade-success-percent"),fail=$("#upgrade-fail-percent");
  if(!box)return;
  const items=getUpgradeItems(),stake=getUpgradeStake(),target=skins.find(x=>x.name===upgradeTarget),chance=target?getUpgradeChance(stake,target.value):0;
- const fromArt=$("#upgrade-from-art"),toArt=$("#upgrade-to-art"),fromName=$("#upgrade-from-name"),toName=$("#upgrade-to-name"),fromPrice=$("#upgrade-from-price"),toPrice=$("#upgrade-to-price");
+ const fromArt=$("#upgrade-from-art"),toArt=$("#targetPreview"),fromName=$("#upgrade-from-name"),toName=$("#upgrade-to-name"),fromPrice=$("#upgrade-from-price"),toPrice=$("#upgrade-to-price");
  if(fromArt)fromArt.innerHTML=items.length?items.slice(0,3).map(x=>skinArt(x.item_name)).join(""):"<span>?</span>";
  if(toArt)toArt.innerHTML=target?skinArt(target.name):"<span>?</span>";
  if(fromName)fromName.textContent=items.length?items.length+" скинов выбрано":"Твои скины";
@@ -206,9 +206,9 @@ function updateUpgradePreview(){
  const pointer=$("#upgrade-wheel-pointer");if(pointer){pointer.style.transition="none";pointer.style.transform="rotate(0deg)"}
  if(!items.length||!target||target.value<=stake){
   const msg=!items.length?"Добавь от 1 до 6 скинов":!target?"Теперь выбери желаемый скин справа":"Цель должна быть дороже общей ставки";
-  box.innerHTML='<span class="muted">'+msg+'</span>';if(chanceText)chanceText.textContent="—";if(wheel)wheel.style.setProperty("--chance","0%");if(status)status.textContent=msg;if(win)win.textContent="—";if(fail)fail.textContent="—";return;
+  box.innerHTML='<span class="muted">'+msg+'</span>';if(chanceText)chanceText.textContent="—";const circle=$("#chanceCircle"),chanceLabel=$("#upgradeChance"),profitLabel=$("#upgradeProfit"),action=$("#doUpgradeBtn");if(circle)circle.style.setProperty("--chance","0%");if(chanceLabel)chanceLabel.textContent="0.0%";if(profitLabel)profitLabel.textContent="0 CR";if(action)action.disabled=true;if(wheel)wheel.style.setProperty("--chance","0%");if(status)status.textContent=msg;if(win)win.textContent="—";if(fail)fail.textContent="—";return;
  }
- const pct=Math.round(chance*100)/100,profit=target.value-stake;
+ const pct=Math.round(chance*100)/100,profit=target.value-stake; const circle=$("#chanceCircle"),chanceLabel=$("#upgradeChance"),profitLabel=$("#upgradeProfit"),action=$("#doUpgradeBtn");if(circle)circle.style.setProperty("--chance",pct+"%");if(chanceLabel)chanceLabel.textContent=pct.toFixed(1)+"%";if(profitLabel)profitLabel.textContent=money(profit);if(action)action.disabled=!(items.length&&target&&target.value>stake);
  if(chanceText)chanceText.textContent=pct.toFixed(1)+"%";if(wheel)wheel.style.setProperty("--chance",pct+"%");if(dial)updateWheelLabels(dial,chance);
  if(status)status.textContent="Комиссия 7% учтена · можно улучшать";
  if(win)win.textContent=pct.toFixed(1)+"%";if(fail)fail.textContent=(100-pct).toFixed(1)+"%";
@@ -220,8 +220,8 @@ window.upgrade=async()=>{
  if(!items.length)return toast("Выбери от 1 до 6 скинов");if(!target)return toast("Выбери целевой скин");if(target.value<=stake)return toast("Цель должна быть дороже общей ставки");
  rolling=true;
  try{
-  const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemIds:items.map(x=>x.id),targetName:target.name})});
-  const chance=Math.max(0,Math.min(100,Number(d.chance)||0)),wheel=$("#upgrade-wheel"),pointer=$("#upgrade-wheel-pointer"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status");
+  upgradeSettings.mode=$("#fastUpgrade")&&$("#fastUpgrade").checked?"fast":"animated"; const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemIds:items.map(x=>x.id),targetName:target.name})});
+  const chance=Math.max(0,Math.min(95,Number(d.chance)||0)),wheel=$("#upgrade-wheel"),pointer=$("#upgrade-wheel-pointer"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status");
   if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance.toFixed(1)+"%";if(wheel)wheel.style.setProperty("--chance",chance+"%");
   if($("#upgrade-success-percent"))$("#upgrade-success-percent").textContent=chance.toFixed(1)+"%";if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance).toFixed(1)+"%";
   if(status)status.textContent=upgradeSettings.mode==="fast"?"Мгновенный результат":"Стрелка вращается…";
