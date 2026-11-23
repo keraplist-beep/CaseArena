@@ -906,25 +906,25 @@ app.post("/api/inventory/:id/sell",requireAuth,(req,res)=>{
  res.json({ok:true,sold:item.item_value,user:userView(current(req))});
 });
 app.post("/api/upgrade",requireAuth,(req,res)=>{
-  const u=current(req),itemId=Number(req.body.itemId),targetName=String(req.body.targetName||"").slice(0,120);
-  if(!Number.isInteger(itemId)||!targetName)return res.status(400).json({error:"Выбери предмет и целевой скин"});
-  const item=db.prepare("SELECT * FROM inventory WHERE id=? AND user_id=?").get(itemId,u.id);
-  if(!item)return res.status(404).json({error:"Предмет не найден"});
+  const u=current(req),ids=Array.isArray(req.body.itemIds)?[...new Set(req.body.itemIds.map(Number))]:[];
+  const targetName=String(req.body.targetName||"").slice(0,120);
+  if(ids.length<1||ids.length>6||ids.some(id=>!Number.isInteger(id)||id<1)||!targetName)return res.status(400).json({error:"Выбери от 1 до 6 предметов и целевой скин"});
+  const items=db.prepare("SELECT * FROM inventory WHERE user_id=? AND id IN ("+ids.map(()=>"?").join(",")+")").all(u.id,...ids);
+  if(items.length!==ids.length)return res.status(404).json({error:"Один или несколько предметов не найдены в инвентаре"});
   const targetSkin=skinCatalog.find(s=>s.name===targetName);
   if(!targetSkin)return res.status(400).json({error:"Такого скина нет в каталоге"});
-  const target=Number(targetSkin.value);
-  if(!Number.isFinite(target)||target<50||target>5000000||target<=item.item_value)return res.status(400).json({error:"Цель должна быть дороже предмета"});
-  const defaultChance=Math.min(70,item.item_value/target*70);
-  const requestedChance=req.body.chance===undefined?defaultChance:Number(req.body.chance);
-  if(!Number.isFinite(requestedChance)||requestedChance<1||requestedChance>70)return res.status(400).json({error:"Шанс должен быть от 1% до 70%"});
-  const chance=Math.round(requestedChance*100)/100,success=Math.random()*100<chance;
+  const stake=items.reduce((sum,item)=>sum+Number(item.item_value||0),0),target=Number(targetSkin.value);
+  if(!Number.isFinite(target)||target<50||target>5000000||target<=stake)return res.status(400).json({error:"Цель должна быть дороже общей ставки"});
+  const chance=Math.round(Math.max(1,Math.min(70,stake/target*0.93*100))*100)/100;
+  const success=Math.random()*100<chance,cashback=success?0:Math.floor(stake*0.10);
   const tx=db.transaction(()=>{
-    db.prepare("DELETE FROM inventory WHERE id=? AND user_id=?").run(item.id,u.id);
+    db.prepare("DELETE FROM inventory WHERE user_id=? AND id IN ("+ids.map(()=>"?").join(",")+")").run(u.id,...ids);
     if(success)db.prepare("INSERT INTO inventory(user_id,item_name,item_value) VALUES(?,?,?)").run(u.id,targetSkin.name,target);
-    log(u.id,success?`Успешный апгрейд до ${targetSkin.name}`:`Неудачный апгрейд предмета ${item.item_name}`);
+    if(cashback>0)db.prepare("UPDATE users SET balance=balance+? WHERE id=?").run(cashback,u.id);
+    log(u.id,success?"Успешный апгрейд "+items.length+" предметов до "+targetSkin.name:"Неудачный апгрейд "+items.length+" предметов; возврат "+cashback+" CR");
   });
   tx();
-  res.json({success,chance:Math.round(chance),targetName:targetSkin.name,targetValue:target,message:success?"Апгрейд успешен":"Не получилось — предмет потерян",user:userView(current(req))});
+  res.json({success,chance:Math.round(chance*100)/100,stake,cashback,targetName:targetSkin.name,targetValue:target,message:success?"Апгрейд успешен":"Предметы потеряны, 10% ставки возвращено в CR",user:userView(current(req))});
 });
 app.post("/api/contracts",requireAuth,(req,res)=>{
   const u=current(req), ids=Array.isArray(req.body.itemIds)?req.body.itemIds.map(Number):[];
