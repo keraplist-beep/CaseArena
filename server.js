@@ -624,7 +624,7 @@ cases.push(
     if(!name.includes(" | ")||!item.image||known.has(name))continue;
     const rarity=String(item.rarity?.name||"");
     const knifeOrGlove=/^★/.test(name);
-    const glove=/Gloves?\s*\|/i.test(name);
+    const glove=/(Gloves?\s*\||Hand Wraps\s*\|)/i.test(name);
     const category=glove?"Перчатки":knifeOrGlove?"Нож":"Оружие";
     const base={"Consumer Grade":65,"Industrial Grade":110,"Mil-Spec Grade":220,"Restricted":520,"Classified":1250,"Covert":4200,"Contraband":18000,"Extraordinary":9000}[rarity]||180;
     let hash=0;for(let i=0;i<name.length;i++)hash=(hash*31+name.charCodeAt(i))>>>0;
