@@ -485,8 +485,10 @@ async function loadOwner(search=ownerSearchQuery){
    '<div class="owner-toolbar"><div><h3>Управление игроками</h3><small class="muted">Все аккаунты, включая игроков без открытых кейсов. Гарантированный дроп выдаётся на следующее открытие.</small></div><div class="owner-toolbar-actions"><input id="owner-search" value="'+esc(ownerSearchQuery)+'" placeholder="Поиск по нику…" oninput="searchOwnerUsers(this.value)"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
    '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>{
     const targetRank=roleRank(u.role);
-    const locked=Number(u.id)===Number(me.id)||roleRank(me.role)<=targetRank;
-    const disabled=locked?"disabled":"";
+    const isSelf=Number(u.id)===Number(me.id);
+    const locked=isSelf||roleRank(me.role)<=targetRank;
+    const balanceLocked=locked&&!(isSelf&&me.role==="owner");
+    const disabled=balanceLocked?"disabled":"";
     const roleDisabled=locked?"disabled":"";
     const moderation=locked?"":(Number(u.banned)===1
       ? '<button class="btn secondary" onclick="ownerUnban('+u.id+')">Разбанить</button>'
