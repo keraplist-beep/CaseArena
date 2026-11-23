@@ -1103,3 +1103,74 @@ input,select{border-radius:9px}
 .case-badge{position:absolute;top:8px;right:8px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;z-index:1}.case-badge.hot{background:#ff4b4b;color:#fff}.case-badge.new{background:#2ecc71;color:#fff}
 .show-more-cases{display:block;margin:20px auto 0}.show-more-cases[hidden]{display:none}
 @media(max-width:620px){.cases-filters{gap:8px}.filter-btn{padding:8px 11px}.cases-filters select{width:100%;margin-left:0}.cases-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cases-grid .case-card{padding:11px}.cases-grid .case-image{height:82px}}
+
+
+/* CASES GRID — CaseBattle style */
+#case-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+}
+.ca-card {
+  background: #12161d;
+  border: 1px solid #1e2530;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  position: relative;
+  transition: border-color .15s, transform .15s;
+  min-width: 0;
+}
+.ca-card:hover { border-color: #3d7dff; transform: translateY(-3px); }
+.ca-card-img {
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b0e13;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.ca-card-img img { max-height: 90px; max-width: 80%; object-fit: contain; }
+.ca-fallback {
+  width: 70px; height: 70px; border-radius: 10px;
+  background: linear-gradient(135deg, #3d7dff, #7a4bff);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 22px;
+}
+.ca-card-name {
+  font-size: 14px; font-weight: 700; color: #e6e9ef;
+  text-transform: uppercase; letter-spacing: .5px;
+  margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ca-card-meta { font-size: 11px; color: #6f7a8f; margin-bottom: 8px; }
+.ca-card-price { font-size: 16px; font-weight: 700; color: #4b9bff; margin-bottom: 10px; }
+.ca-card-btn {
+  width: 100%; padding: 10px; border-radius: 8px; border: none;
+  background: linear-gradient(135deg, #3d7dff, #7a4bff);
+  color: #fff; font-weight: 600; font-size: 13px; cursor: pointer;
+}
+.ca-card-btn:hover { opacity: .9; }
+.ca-badge {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+}
+.ca-badge.hot { background: #ff4b4b; color: #fff; }
+.ca-badge.new { background: #2ecc71; color: #fff; }
+.ca-empty {
+  grid-column: 1 / -1; text-align: center; padding: 40px;
+  color: #6f7a8f; font-size: 14px;
+}
+.cases-search {
+  min-width: 190px; flex: 1; max-width: 280px;
+  background: #0d0f14; border: 1px solid #2a3342;
+  border-radius: 8px; padding: 9px 12px; color: #e6e9ef;
+}
+@media (max-width: 600px) {
+  #case-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ca-card { padding: 11px; }
+  .ca-card-img { height: 90px; }
+  .cases-search { width: 100%; max-width: none; }
+}
