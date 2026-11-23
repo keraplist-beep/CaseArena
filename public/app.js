@@ -322,6 +322,14 @@ window.setUpgradeOdds=pct=>{
  document.querySelectorAll("[data-upgrade-odds]").forEach(el=>el.classList.toggle("active",Number(el.dataset.upgradeOdds)===Number(pct)));
  document.querySelectorAll("[data-upgrade-mult]").forEach(el=>el.classList.remove("active"));
 };
+window.randomUpgradeTarget=()=>{
+ const stake=getUpgradeStake(),pool=skins.filter(x=>x.value>stake);
+ if(!stake)return toast("Сначала выбери предметы для ставки");
+ if(!pool.length)return toast("Нет доступных целей дороже ставки");
+ const target=pool[Math.floor(Math.random()*pool.length)];
+ upgradeTarget=target.name;renderUpgrade();
+ document.querySelectorAll("[data-upgrade-mult],[data-upgrade-odds]").forEach(el=>el.classList.remove("active"));
+};
 window.chooseUpgradeSource=id=>{
  const index=upgradeSourceIds.indexOf(id);
  if(index>=0)upgradeSourceIds.splice(index,1);
