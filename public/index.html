@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CaseArena — открывай. побеждай.</title><link rel="stylesheet" href="/style.css?v=upgrade-multi-1"></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CaseArena — открывай. побеждай.</title><link rel="stylesheet" href="/style.css?v=upgrade-modern-2"></head>
 <body>
 <header class="top"><a class="logo" href="#cases"><span>CASE</span>ARENA</a><nav><a href="#cases">Кейсы</a><a href="#skins">Скины</a><a href="#arena">Арена</a><a href="#contracts">Контракты</a><a href="#leaders">Лидеры</a></nav><div id="account"></div></header>
 <main>
@@ -14,38 +14,13 @@
   <button type="button" onclick="switchArenaMode('upgrade')">↗ Апгрейд</button>
  </div>
  <div id="arena-battles" class="arena-panel active"><div class="section-head"><div><p class="eyebrow">КТО ЗАБЕРЁТ ПОБЕДУ?</p><h2>Кейс-баттлы</h2></div></div><div id="battle-list" class="battle-list"></div></div>
- <div id="arena-upgrade" class="arena-panel">
- <div class="section-head"><div><p class="eyebrow">UPGRADE MACHINE</p><h2>Апгрейд скинов</h2></div><span class="muted">Собери апгрейд и испытай удачу</span></div>
- <div class="upgrade-machine panel">
-   <div class="upgrade-layout">
-    <div class="upgrade-select-panel"><div class="upgrade-panel-head"><b>ТВОИ СКИНЫ</b><span>Выбери до 6 предметов</span><strong class="upgrade-total">Сумма ставки: <b id="upgrade-stake-total">0 CR</b></strong></div><div id="upgrade-selected-slots" class="upgrade-selected-slots"></div><div id="upgrade-source" class="pick-grid"></div></div>
-    <div class="upgrade-main-panel upgrader-center">
-     <div class="upgrader-title"><div><span>UPGRADE</span><small>СОБЕРИ СВОЙ АПГРЕЙД</small></div><button class="upgrade-settings-trigger" type="button" aria-label="Настройки апгрейдера" title="Настройки апгрейдера" onclick="openUpgradeSettings()">⚙</button></div>
-     <div class="upgrader-comparison">
-      <div class="upgrader-item"><div id="upgrade-from-art" class="upgrader-art"><span>?</span></div><b id="upgrade-from-name">Твой предмет</b><small id="upgrade-from-price">Выбери слева</small></div>
-      <div class="upgrader-arrow"><span>➜</span><small>ЦЕЛЬ</small></div>
-      <div class="upgrader-item"><div id="upgrade-to-art" class="upgrader-art"><span>?</span></div><b id="upgrade-to-name">Желаемый скин</b><small id="upgrade-to-price">Выбери справа</small></div>
-     </div>
-     <div class="upgrade-wheel-stage" aria-label="Колесо шанса апгрейда">
-      <div class="upgrade-wheel" id="upgrade-wheel" style="--chance:0%">
-       <div class="upgrade-wheel-dial" id="upgrade-wheel-dial"><span class="wheel-sector-label wheel-sector-win">УСПЕХ</span><span class="wheel-sector-label wheel-sector-fail">НЕУДАЧА</span></div>
-       <div class="upgrade-wheel-center"><b id="upgrade-wheel-value">—</b><small>ШАНС УСПЕХА</small></div>
-      </div>
-      <div class="upgrade-wheel-pointer" id="upgrade-wheel-pointer" aria-hidden="true"></div>
-     </div>
-     <div class="upgrader-odds"><span>Успех <b id="upgrade-success-percent">—</b></span><span>Неудача <b id="upgrade-fail-percent">—</b></span></div>
-     <div class="upgrade-quick-label">БЫСТРЫЙ ПОДБОР ЦЕЛИ</div><div class="upgrade-multipliers"><button type="button" data-upgrade-mult="2" onclick="setUpgradeMultiplier(2)">X2</button><button type="button" data-upgrade-mult="5" onclick="setUpgradeMultiplier(5)">X5</button><button type="button" data-upgrade-mult="10" onclick="setUpgradeMultiplier(10)">X10</button></div><div class="upgrade-multipliers upgrade-odds"><button type="button" data-upgrade-odds="30" onclick="setUpgradeOdds(30)">30%</button><button type="button" data-upgrade-odds="50" onclick="setUpgradeOdds(50)">50%</button><button type="button" data-upgrade-odds="75" onclick="setUpgradeOdds(75)">75%</button></div><div class="upgrade-mode-row"><span>Режим</span><button type="button" class="active" onclick="setUpgradeMode('animated')">Анимация</button><button type="button" onclick="setUpgradeMode('fast')">Мгновенно</button></div><div class="upgrade-theme-row"><span>Стиль</span><button type="button" onclick="setUpgradeTheme('classic')">Классика</button><button type="button" onclick="setUpgradeTheme('neon')">Неон</button><button type="button" onclick="setUpgradeTheme('minimal')">Минимализм</button></div>
-     <div id="upgrade-spin-status" class="upgrade-spin-status">Выбери исходный и целевой предмет</div>
-     <div id="upgrade-preview" class="chance-preview"><span class="muted">Шанс и результат появятся здесь</span></div>
-     <button class="btn primary upgrade-action" onclick="upgrade()">УЛУЧШИТЬ ПРЕДМЕТ</button>
-    </div>
-    <div class="upgrade-select-panel"><div class="upgrade-panel-head"><b>ЖЕЛАЕМЫЙ СКИН</b><span>2. Выбери награду</span></div><input id="upgrade-target-search" type="search" placeholder="Поиск целевого скина…" oninput="filterUpgradeTargets()"><div class="upgrade-price-filters"><input id="upgrade-target-min" type="number" min="0" placeholder="Цена от" oninput="filterUpgradeTargets()"><input id="upgrade-target-max" type="number" min="0" placeholder="Цена до" oninput="filterUpgradeTargets()"></div><small id="upgrade-target-count" class="muted"></small><div id="upgrade-targets" class="pick-grid"></div></div>
-   </div>
-   <div id="upgrade-roulette" class="upgrade-roulette hidden"></div>
-   <p class="muted small upgrade-disclaimer">Демо-режим: все предметы и стоимость виртуальные. Комиссия апгрейда — 7%. При неудаче возвращается 10% ставки в CR.</p>
-  </div>
-</div>
-</section>
+ <div id="arena-upgrade" class="arena-panel"><section class="upgrade-section">
+<div class="upgrade-header"><div><p class="eyebrow">UPGRADE MACHINE</p><h2>Апгрейд скинов</h2></div><label class="fast-toggle"><input type="checkbox" id="fastUpgrade"><span>Быстрый апгрейд</span></label></div>
+<div class="upgrade-grid">
+<div class="upgrade-side"><div class="side-title">ТВОЯ СТАВКА <span>до 6 предметов</span></div><div id="upgrade-selected-slots" class="slots"></div><div class="stake-total">Сумма: <b id="upgrade-stake-total">0 CR</b></div><div id="upgrade-source" class="pick-grid upgrade-source-catalog"></div></div>
+<div class="upgrade-center"><div class="chance-circle" id="chanceCircle"><span class="chance-value" id="upgradeChance">0.0%</span><span class="chance-label">ШАНС</span></div><div class="profit-line">Профит: <b id="upgradeProfit">0 CR</b></div><div class="upgrader-odds"><span>Успех <b id="upgrade-success-percent">—</b></span><span>Неудача <b id="upgrade-fail-percent">—</b></span></div><button class="upgrade-btn" id="doUpgradeBtn" type="button" onclick="upgrade()" disabled>UPGRADE</button><div id="upgrade-spin-status" class="upgrade-spin-status">Выбери ставку и цель</div><div id="upgrade-preview" class="chance-preview">Шанс и результат появятся здесь</div><div class="upgrade-wheel-stage compact-wheel"><div class="upgrade-wheel" id="upgrade-wheel" style="--chance:0%"><div class="upgrade-wheel-dial" id="upgrade-wheel-dial"><span class="wheel-sector-label wheel-sector-win">УСПЕХ</span><span class="wheel-sector-label wheel-sector-fail">НЕУДАЧА</span></div><div class="upgrade-wheel-center"><b id="upgrade-wheel-value">—</b><small>ШАНС УСПЕХА</small></div></div><div class="upgrade-wheel-pointer" id="upgrade-wheel-pointer"></div></div><button class="upgrade-settings-inline" type="button" onclick="openUpgradeSettings()">⚙ Настройки скорости</button></div>
+<div class="upgrade-side"><div class="side-title">ЦЕЛЬ</div><div id="targetPreview" class="target-preview"><div class="target-empty">Выбери скин ниже ↓</div></div><div class="quick-buttons"><button type="button" onclick="setUpgradeMultiplier(2)">X2</button><button type="button" onclick="setUpgradeMultiplier(5)">X5</button><button type="button" onclick="setUpgradeMultiplier(10)">X10</button></div><div class="quick-buttons"><button type="button" onclick="setUpgradeOdds(30)">30%</button><button type="button" onclick="setUpgradeOdds(50)">50%</button><button type="button" onclick="setUpgradeOdds(75)">75%</button></div><input id="upgrade-target-search" type="search" placeholder="Поиск целевого скина…" oninput="filterUpgradeTargets()"><div class="upgrade-price-filters"><input id="upgrade-target-min" type="number" min="0" placeholder="Цена от" oninput="filterUpgradeTargets()"><input id="upgrade-target-max" type="number" min="0" placeholder="Цена до" oninput="filterUpgradeTargets()"></div></div>
+</div><div class="target-catalog"><div class="catalog-head">Выбери цель <small id="upgrade-target-count"></small></div><div id="upgrade-targets" class="catalog-grid"></div></div><div id="upgrade-roulette" class="upgrade-roulette hidden"></div><p class="muted small upgrade-disclaimer">Демо-режим. Комиссия 7%. При неудаче возвращается 10% ставки в CR.</p></section></div></section>
 <section id="contracts" class="section page-view" data-page="contracts"><div class="section-head"><div><p class="eyebrow">ОБМЕНЯЙ НЕСКОЛЬКО</p><h2>Контракты</h2></div></div><div class="panel"><p>Отметь 3–5 предметов в инвентаре и объедини их в контракт. Награда — 85% суммарной стоимости.</p><button class="btn primary" onclick="contract()">Создать контракт из отмеченных</button></div></section>
 <section id="profile" class="section page-view" data-page="profile"><div class="section-head"><div><p class="eyebrow">PLAYER PROFILE</p><h2>Профиль и инвентарь</h2></div><span class="muted">Твои предметы и статистика</span></div><div id="profile-content" class="panel"><p class="muted">Войди в аккаунт, чтобы увидеть инвентарь.</p></div><div class="panel history-panel"><h3>Последние действия</h3><div id="activity-list" class="activity-list"><p class="muted small">История появится после входа.</p></div></div></section>
 <section id="leaders" class="section page-view" data-page="leaders"><div class="section-head"><div><p class="eyebrow">ЛУЧШИЕ ИЗ ЛУЧШИХ</p><h2>Таблица лидеров</h2></div></div><div id="leader-list" class="panel"></div></section>
@@ -62,6 +37,6 @@
 <a href="#leaders" data-nav="leaders" onclick="window.navigateCaseArenaPage('leaders')"><span class="bottom-nav-icon">🏆</span><span>Лидеры</span></a>
 </nav>
 <div id="modal" class="modal hidden"><div class="modal-box"><button class="close" onclick="closeModal()">×</button><h2 id="modal-title">Аккаунт</h2><div id="modal-body"></div></div></div><div id="toast" class="toast"></div>
-<script src="/app.js?v=upgrade-multi-1"></script>
+<script src="/app.js?v=upgrade-modern-2"></script>
 
 </body></html>
