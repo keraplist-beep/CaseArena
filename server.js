@@ -632,7 +632,10 @@ cases.push(
     const categoryMultiplier=glove?22:knifeOrGlove?18:1;
     const value=Math.max(25,Math.round(base*multiplier*categoryMultiplier));
     const steamUrl="https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name);
-    skinCatalog.push({name,value,steamRub:value,rarity:rarityNames[rarity]||rarity||category,image:item.image||"",marketWear:"Field-Tested",fixedPrice:true,priceSource:"Виртуальная оценка CaseArena",steamUrl,sourceId:item.id||null,category});
+    const wearNames=(item.wears||[]).map(wear=>typeof wear==="string"?wear:wear?.name).filter(Boolean);
+    const premiumFinish=/Doppler|Fade|Tiger Tooth|Sapphire|Emerald|Marble Fade|Ruby/i.test(name);
+    const marketWear=premiumFinish&&wearNames.includes("Factory New")?"Factory New":wearNames.includes("Field-Tested")?"Field-Tested":wearNames[0]||"Field-Tested";
+    skinCatalog.push({name,value,steamRub:value,rarity:rarityNames[rarity]||rarity||category,image:item.image||"",marketWear,fixedPrice:false,priceSource:"Оценка CaseArena",steamUrl,sourceId:item.id||null,category});
     known.add(name);added++;
    }
    console.log("Imported complete CS2 skin catalogue",{sourceItems:rows.length,added,total:skinCatalog.length,withImages:skinCatalog.filter(s=>!!s.image).length,withoutImages:skinCatalog.filter(s=>!s.image).length});
