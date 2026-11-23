@@ -454,19 +454,20 @@ function balanceCase(c){
  }
  const target=Math.min(maxValue,Math.max(minValue,Number(c.price)*targetReturn));
  const base=c.items.map(item=>Math.max(0.0001,Number(item[2])||1));
- const span=maxValue-minValue;
+ const valueScale=Math.max(1,Number(c.price)||1);
+ const normalized=values.map(value=>Math.min(10,(value-minValue)/valueScale));
  const expected=lambda=>{
-  const weights=base.map((w,i)=>w*Math.exp(-lambda*(span?((values[i]-minValue)/span):0)));
+  const weights=base.map((w,i)=>w*Math.exp(-lambda*normalized[i]));
   const total=weights.reduce((a,b)=>a+b,0)||1;
   return weights.reduce((sum,w,i)=>sum+w*values[i],0)/total;
  };
- let low=-100,high=100;
+ let low=-20,high=20;
  for(let i=0;i<90;i++){
   const mid=(low+high)/2;
   if(expected(mid)>target)low=mid;else high=mid;
  }
  const lambda=(low+high)/2;
- const weights=base.map((w,i)=>w*Math.exp(-lambda*(span?((values[i]-minValue)/span):0)));
+ const weights=base.map((w,i)=>w*Math.exp(-lambda*normalized[i]));
  const total=weights.reduce((a,b)=>a+b,0)||1;
  c.items.forEach((item,i)=>{item[2]=Number((weights[i]/total*100).toFixed(8));});
  c.expectedValue=Math.round(c.items.reduce((sum,item)=>sum+item[1]*item[2]/100,0));
