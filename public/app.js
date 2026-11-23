@@ -1,5 +1,27 @@
 const $=s=>document.querySelector(s);
 let me=null, inventory=[], selected=new Set(), skins=[], casesCache=[], upgradeSourceId=null, upgradeTarget=null, rolling=false, skinCatalogVisible=72;
+const UPGRADE_DEFAULTS={chance:35,speed:5.2,shape:"circle"};
+let upgradeSettings=(()=>{try{return {...UPGRADE_DEFAULTS,...JSON.parse(localStorage.getItem("casearena-upgrade-settings")||"{}")}}catch{return {...UPGRADE_DEFAULTS}}})();
+function saveUpgradeSettings(){try{localStorage.setItem("casearena-upgrade-settings",JSON.stringify(upgradeSettings))}catch{}}
+function applyUpgradeWheelSettings(){
+ const shape=upgradeSettings.shape||"circle";
+ ["#upgrade-wheel","#upgrade-wheel-dial","#upgrade-wheel-pointer"].forEach(selector=>{const el=$(selector);if(el)el.dataset.shape=shape});
+}
+window.setUpgradeSetting=(key,value)=>{
+ if(key==="chance")upgradeSettings.chance=Math.max(1,Math.min(95,Number(value)||35));
+ if(key==="speed")upgradeSettings.speed=Math.max(1,Math.min(10,Number(value)||5.2));
+ if(key==="shape"&&["circle","hexagon","square"].includes(value))upgradeSettings.shape=value;
+ saveUpgradeSettings();applyUpgradeWheelSettings();updateUpgradePreview();
+ const chanceLabel=$("#upgrade-setting-chance-value"),speedLabel=$("#upgrade-setting-speed-value");
+ if(chanceLabel)chanceLabel.textContent=Number(upgradeSettings.chance).toFixed(0)+"%";
+ if(speedLabel)speedLabel.textContent=Number(upgradeSettings.speed).toFixed(1)+" сек";
+ document.querySelectorAll("[data-upgrade-shape]").forEach(el=>el.classList.toggle("active",el.dataset.upgradeShape===upgradeSettings.shape));
+};
+window.openUpgradeSettings=()=>{
+ const shape=upgradeSettings.shape||"circle";
+ openModal("НАСТРОЙКИ АПГРЕЙДЕРА",'<div class="upgrade-settings"><label>Шанс успеха <b id="upgrade-setting-chance-value">'+Number(upgradeSettings.chance).toFixed(0)+'%</b></label><input type="range" min="1" max="95" step="1" value="'+upgradeSettings.chance+'" oninput="setUpgradeSetting(\'chance\',this.value)"><p class="muted small">Фактический шанс выигрыша при следующей попытке</p><label>Скорость вращения <b id="upgrade-setting-speed-value">'+Number(upgradeSettings.speed).toFixed(1)+' сек</b></label><input type="range" min="1" max="10" step="0.5" value="'+upgradeSettings.speed+'" oninput="setUpgradeSetting(\'speed\',this.value)"><p class="muted small">Время одного вращения</p><label>Форма колеса</label><div class="upgrade-shape-options"><button type="button" data-upgrade-shape="circle" class="'+(shape==="circle"?"active":"")+'" onclick="setUpgradeSetting(\'shape\',\'circle\')">Круг</button><button type="button" data-upgrade-shape="hexagon" class="'+(shape==="hexagon"?"active":"")+'" onclick="setUpgradeSetting(\'shape\',\'hexagon\')">Шестиугольник</button><button type="button" data-upgrade-shape="square" class="'+(shape==="square"?"active":"")+'" onclick="setUpgradeSetting(\'shape\',\'square\')">Квадрат</button></div><button class="btn primary full-btn" onclick="closeModal()">Готово</button></div>');
+};
+
 const money=n=>Number(n||0).toLocaleString("ru-RU")+" CR";
 const rub=n=>Number(n||0).toLocaleString("ru-RU")+" ₽";
 const usd=n=>"$"+Number(n||0).toFixed(2);
@@ -103,6 +125,7 @@ function renderUpgrade(){const source=$("#upgrade-source");if(!source)return;sou
 window.setUpgradeMultiplier=mult=>{const item=inventory.find(x=>x.id===upgradeSourceId);if(!item)return toast("Сначала выбери свой предмет");const target=skins.filter(x=>x.value>=item.item_value*mult).sort((x,y)=>Math.abs(x.value-item.item_value*mult)-Math.abs(y.value-item.item_value*mult))[0];if(!target)return toast("Нет подходящего скина для X"+mult);upgradeTarget=target.name;renderUpgrade()};
 window.chooseUpgradeSource=id=>{upgradeSourceId=id;renderUpgrade()};
 window.chooseUpgradeTarget=name=>{upgradeTarget=name;renderUpgrade()};
+applyUpgradeWheelSettings();
 function updateWheelLabels(dial,chance){
  if(!dial)return;
  const win=dial.querySelector(".wheel-sector-win"),fail=dial.querySelector(".wheel-sector-fail");
@@ -133,7 +156,7 @@ function updateUpgradePreview(){
   if(win)win.textContent="—";if(fail)fail.textContent="—";
   return;
  }
- const chance=Math.min(75,item.item_value/target.value*75),pct=Math.round(chance);
+ const chance=Math.max(1,Math.min(95,Number(upgradeSettings.chance)||35)),pct=Math.round(chance);
  if(chanceText)chanceText.textContent=pct+"%";
  if(wheel)wheel.style.setProperty("--chance",pct+"%");
  if(dial)updateWheelLabels(dial,chance);
@@ -149,7 +172,7 @@ window.upgrade=async()=>{
  if(target.value<=item.item_value)return toast("Целевой скин должен быть дороже");
  rolling=true;
  try{
-  const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemId:item.id,targetName:target.name})});
+  const d=await api("/api/upgrade",{method:"POST",body:JSON.stringify({itemId:item.id,targetName:target.name,chance:upgradeSettings.chance})});
   const chance=Math.max(0,Math.min(100,Number(d.chance)||0)),wheel=$("#upgrade-wheel"),pointer=$("#upgrade-wheel-pointer"),dial=$("#upgrade-wheel-dial"),status=$("#upgrade-spin-status");
   if($("#upgrade-wheel-value"))$("#upgrade-wheel-value").textContent=chance.toFixed(2)+"%";
   if(wheel)wheel.style.setProperty("--chance",chance+"%");
@@ -157,14 +180,16 @@ window.upgrade=async()=>{
   if($("#upgrade-fail-percent"))$("#upgrade-fail-percent").textContent=(100-chance).toFixed(2)+"%";
   if(status)status.textContent="Стрелка вращается…";
   if(dial){dial.style.transition="none";dial.style.transform="none";updateWheelLabels(dial,chance)}
+  const spinSeconds=Math.max(1,Math.min(10,Number(upgradeSettings.speed)||5.2));
+  applyUpgradeWheelSettings();
   if(pointer){
    const successArc=chance*3.6;
    const landing=d.success?successArc/2:successArc+(360-successArc)/2;
    pointer.style.transition="none";pointer.style.transform="rotate(0deg)";void pointer.offsetWidth;
-   pointer.style.transition="transform 5.2s cubic-bezier(.08,.76,.12,1)";
+   pointer.style.transition="transform "+spinSeconds+"s cubic-bezier(.08,.76,.12,1)";
    pointer.style.transform="rotate("+(360*7+landing)+"deg)";
   }
-  await new Promise(resolve=>setTimeout(resolve,5350));
+  await new Promise(resolve=>setTimeout(resolve,spinSeconds*1000+150));
   openModal("РЕЗУЛЬТАТ АПГРЕЙДА",'<div class="win-result">'+skinArt(d.success?(d.targetName||target.name):item.item_name)+'<p class="muted small">'+(d.success?"АПГРЕЙД УСПЕШЕН":"НЕ ПОВЕЗЛО")+'</p><h3>'+(d.success?esc(d.targetName||target.name):"Предмет потерян")+'</h3><strong>'+d.chance+'% шанс</strong><p class="muted small">'+esc(d.message)+'</p></div><button class="btn primary full-btn" onclick="closeModal()">Понятно</button>');
   selected.clear();await refresh();
  }catch(e){toast(e.message)}finally{rolling=false}
