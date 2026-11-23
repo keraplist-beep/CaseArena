@@ -678,3 +678,20 @@ body{padding-bottom:100px}
 .upgrader-odds{color:#c7b7a6}
 .upgrader-odds span:first-child b{color:#ffd044}.upgrader-odds span:last-child b{color:#ee7866}
 @media(max-width:760px){.upgrade-wheel-stage{width:min(300px,78vw)}.upgrade-wheel-center{width:62%;height:62%}}
+
+
+/* Premium upgrade wheel and high-tier case polish */
+.upgrade-wheel-stage{position:relative;width:clamp(190px,24vw,250px);height:clamp(190px,24vw,250px);margin:8px auto 18px;display:grid;place-items:center;filter:drop-shadow(0 16px 25px #0009)}
+.upgrade-wheel{width:100%;height:100%;border:0;border-radius:50%;background:transparent;box-shadow:none;position:relative;display:block;color:inherit}
+.upgrade-wheel-dial{position:absolute;inset:8px;border-radius:50%;background:conic-gradient(from -90deg,#26d6a7 0 var(--chance),#d64c68 var(--chance) 100%);border:8px solid #192b40;box-shadow:0 0 0 2px #7690a8,0 0 0 8px #0a1421,inset 0 0 24px #0009;transition:transform 5.2s cubic-bezier(.08,.76,.12,1);overflow:hidden}
+.upgrade-wheel-dial:before{content:"";position:absolute;inset:14px;border:1px solid #ffffff66;border-radius:50%;box-shadow:inset 0 0 22px #0008}
+.upgrade-wheel-center{position:absolute;z-index:3;width:42%;height:42%;left:29%;top:29%;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 25%,#344c65,#0b1421 75%);border:4px solid #9db4c8;box-shadow:0 0 0 6px #101d2d,0 0 28px #000b;color:#fff}
+.upgrade-wheel-center b{font:900 clamp(24px,4vw,36px) Orbitron;text-shadow:0 2px 14px #000}
+.upgrade-wheel-center small{font:800 8px Manrope;letter-spacing:1.3px;color:#c5d5e4;margin-top:3px}
+.upgrade-wheel-pointer{position:absolute;z-index:5;left:50%;top:-5px;width:0;height:0;transform-origin:50% calc(100% + 100px);pointer-events:none}
+.upgrade-wheel-pointer:before{content:"";position:absolute;left:-13px;top:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:30px solid #ffe39a;filter:drop-shadow(0 3px 7px #000d)}
+.upgrade-wheel-pointer:after{content:"";position:absolute;left:-2px;top:8px;width:4px;height:36px;background:linear-gradient(#ffe39a,#fff4cf);box-shadow:0 0 10px #ffe39a88}
+.case-theme-sapphire .case-visual,.case-theme-gold .case-visual{background:radial-gradient(ellipse at 50% 55%,#f4c45b44,transparent 66%),linear-gradient(145deg,#443d2a,#101827)}
+.case-theme-blackpearl .case-visual{background:radial-gradient(ellipse at 50% 55%,#9d73d944,transparent 66%),linear-gradient(145deg,#29213e,#0b1220)}
+.case-theme-gold .case-info h3{color:#ffd77d}
+@media(max-width:760px){.upgrade-wheel-stage{width:190px;height:190px}.upgrade-wheel-pointer{transform-origin:50% calc(100% + 75px)}}
