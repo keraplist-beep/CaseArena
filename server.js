@@ -1040,7 +1040,7 @@ app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
  if(!Number.isInteger(id)||id<1||!Number.isInteger(amount)||amount<(mode==="add"?1:0)||amount>100000000) return res.status(400).json({error:"Проверь сумму"});
  const target=db.prepare("SELECT id,username,role,balance FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(Number(target.id)===Number(actor.id)||roleRank(actor.role)<=roleRank(target.role))return res.status(403).json({error:"Можно менять баланс только аккаунтам ниже по иерархии"});
+ if(Number(target.id)===Number(actor.id)?actor.role!=="owner":roleRank(actor.role)<=roleRank(target.role))return res.status(403).json({error:"Можно менять баланс только аккаунтам ниже по иерархии, владелец может менять свой баланс"});
  const nextBalance=mode==="add"?Number(target.balance)+amount:amount;
  if(nextBalance>100000000)return res.status(400).json({error:"Слишком большой баланс"});
  const tx=db.transaction(()=>{
