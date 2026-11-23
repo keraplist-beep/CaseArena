@@ -29,10 +29,10 @@ window.openUpgradeSettings=()=>{
 const money=n=>Number(n||0).toLocaleString("ru-RU")+" CR";
 const rub=n=>Number(n||0).toLocaleString("ru-RU")+" ₽";
 const usd=n=>"$"+Number(n||0).toFixed(2);
-const ROLE_ORDER=["user","moderator","admin","senior_admin","deputy_head_admin","head_admin","owner"];
-const ROLE_LABELS={user:"Игрок",moderator:"Модератор",admin:"Администратор",senior_admin:"Старший администратор",deputy_head_admin:"ЗГА",head_admin:"Главный администратор",owner:"Владелец"};
+const ROLE_ORDER=["user","moderator","admin","senior_admin","deputy_head_admin","head_admin","co_owner","owner"];
+const ROLE_LABELS={user:"Игрок",moderator:"Модератор",admin:"Администратор",senior_admin:"Старший администратор",deputy_head_admin:"ЗГА",head_admin:"Главный администратор",co_owner:"Совладелец",owner:"Владелец"};
 const roleRank=role=>{const n=ROLE_ORDER.indexOf(role);return n<0?0:n};
-const roleBadge=role=>role&&role!=="user"?'<span class="role-tag role-tag-'+role+'">'+(role==="deputy_head_admin"?"ЗГА":role==="head_admin"?"ГА":role==="senior_admin"?"СТАРШИЙ АДМИН":role==="moderator"?"МОДЕРАТОР":role==="admin"?"АДМИН":"OWNER")+'</span>':"";
+const roleBadge=role=>role&&role!=="user"?'<span class="role-tag role-tag-'+role+'">'+(role==="deputy_head_admin"?"ЗГА":role==="head_admin"?"ГА":role==="senior_admin"?"СТАРШИЙ АДМИН":role==="moderator"?"МОДЕРАТОР":role==="admin"?"АДМИН":role==="co_owner"?"СОВЛАДЕЛЕЦ":"OWNER")+'</span>':"";
 const api=async(url,opts={})=>{const r=await fetch(url,{...opts,headers:{"Content-Type":"application/json",...(opts.headers||{})}});const d=await r.json();if(!r.ok)throw Error(d.error||"Ошибка запроса");return d};
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function toast(t){const el=$("#toast");el.textContent=t;el.style.display="block";clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.style.display="none",3000)}
@@ -46,24 +46,24 @@ window.submitAuth=async(e,mode)=>{e.preventDefault();const f=new FormData(e.targ
 function nicknameModal(){openModal("Выбери игровой ник",'<p class="muted">Google подключён. Придумай ник для профиля.</p><form onsubmit="completeGoogleNick(event)"><input name="username" placeholder="Например, DragonKing" minlength="3" maxlength="20" required><button class="btn primary">Продолжить</button></form>')}
 window.completeGoogleNick=async e=>{e.preventDefault();const username=new FormData(e.target).get("username");try{await api("/api/google/complete-nickname",{method:"POST",body:JSON.stringify({username})});closeModal();history.replaceState({},"",location.pathname);await refresh()}catch(err){toast(err.message)}};
 function renderAccount(){const a=$("#account");if(!a)return;a.innerHTML=me?'<button class="profile-shortcut" onclick="goProfile()"><span class="mini-avatar">'+esc(me.username.slice(0,1).toUpperCase())+'</span><span class="account-name">'+esc(me.username)+roleBadge(me.role)+'<small>'+money(me.balance)+'</small></span></button><button class="btn secondary" onclick="logout()">Выйти</button>':'<button class="btn secondary" onclick="authModal()">Войти</button><button class="btn primary" onclick="authModal()">Регистрация</button>'}
-window.canAccessOwner=()=>me?.role==="owner";
+window.canAccessOwner=()=>!!me&&["owner","co_owner"].includes(me.role);
 window.canAccessStaff=()=>!!me&&roleRank(me.role)>=1;
 window.ownerAccessReady=false;
 window.updateOwnerNavigation=()=>{
  const nav=document.querySelector(".bottom-nav");if(!nav)return;
  let owner=nav.querySelector('[data-nav="owner"]'),staff=nav.querySelector('[data-nav="staff"]');
- if(me?.role==="owner"&&!owner){owner=document.createElement("a");owner.href="#owner";owner.dataset.nav="owner";owner.innerHTML='<span class="bottom-nav-icon">🛡</span><span>Владелец</span>';nav.appendChild(owner)}
- if(me?.role!=="owner"&&owner)owner.remove();
+ if(window.canAccessOwner()&&!owner){owner=document.createElement("a");owner.href="#owner";owner.dataset.nav="owner";owner.innerHTML='<span class="bottom-nav-icon">🛡</span><span>Владелец</span>';nav.appendChild(owner)}
+ if(!window.canAccessOwner()&&owner)owner.remove();
  if(me&&roleRank(me.role)>=1&&!staff){staff=document.createElement("a");staff.href="#staff";staff.dataset.nav="staff";staff.innerHTML='<span class="bottom-nav-icon">🛠</span><span>Персонал</span>';nav.appendChild(staff)}
  if((!me||roleRank(me.role)<1)&&staff)staff.remove();
- nav.classList.toggle("owner-mode",me?.role==="owner");window.renderCaseArenaPage?.();
+ nav.classList.toggle("owner-mode",window.canAccessOwner());window.renderCaseArenaPage?.();
 };
 window.goProfile=()=>{location.hash="profile"};
 window.logout=async()=>{try{await api("/api/logout",{method:"POST"});me=null;inventory=[];upgradeSourceIds=[];upgradeSourceId=null;selected.clear();renderAccount();renderProfile();renderUpgrade();window.updateOwnerNavigation?.();toast("Вы вышли из аккаунта")}catch(e){toast(e.message)}};
-async function refresh(){try{const d=await api("/api/me");me=d.user;inventory=d.inventory||[];loadLeaders().catch(e=>console.warn("Leaderboard refresh failed:",e.message));upgradeSourceIds=upgradeSourceIds.filter(id=>inventory.some(x=>x.id===id));upgradeSourceId=upgradeSourceIds[0]??null;renderAccount();renderProfile();renderUpgrade();window.ownerAccessReady=true;window.updateOwnerNavigation?.();if(me?.role==="owner")await loadOwner();else $("#owner-content").innerHTML="";if(me&&roleRank(me.role)>=1)await loadStaff();else $("#staff-content").innerHTML="";}catch(error){window.ownerAccessReady=true;window.updateOwnerNavigation?.();throw error;}}
+async function refresh(){try{const d=await api("/api/me");me=d.user;inventory=d.inventory||[];loadLeaders().catch(e=>console.warn("Leaderboard refresh failed:",e.message));upgradeSourceIds=upgradeSourceIds.filter(id=>inventory.some(x=>x.id===id));upgradeSourceId=upgradeSourceIds[0]??null;renderAccount();renderProfile();renderUpgrade();window.ownerAccessReady=true;window.updateOwnerNavigation?.();if(window.canAccessOwner())await loadOwner();else $("#owner-content").innerHTML="";if(me&&roleRank(me.role)>=1)await loadStaff();else $("#staff-content").innerHTML="";}catch(error){window.ownerAccessReady=true;window.updateOwnerNavigation?.();throw error;}}
 function skinInfo(name){return skins.find(x=>x.name===name)||{name,value:0,steamRub:0,rarity:"Предмет",image:"",steamUrl:"https://steamcommunity.com/market/search?appid=730&q="+encodeURIComponent(name)}}
 function skinArt(name){const s=skinInfo(name);const glyph=name.startsWith("★")?"✦":name.split(" | ")[0].slice(0,3).toUpperCase();const image=s.image||"";return '<div class="skin-art '+(image?"":"no-image")+'">'+(image?'<img loading="lazy" src="'+esc(image)+'" alt="'+esc(name)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'no-image\')">':'')+'<span class="skin-glyph">'+esc(glyph)+'</span></div>'}
-function skinCard(name,value,opts={}){const s=skinInfo(name);return '<article class="skin-card rarity-'+esc((s.rarity||"").toLowerCase().replace(/[^a-zа-яё]+/g,"-"))+'">'+skinArt(name)+'<div class="skin-card-info"><span class="rarity-text">'+esc(s.rarity||"CS2")+'</span><b>'+esc(name)+'</b><strong>'+money(value??s.value)+'</strong><small class="steam-price">'+(Number(s.marketUsd)>0?usd(s.marketUsd)+" · "+(s.priceSource==="Steam Market"?"Steam":"рынок"):s.priceSource==="Оценка CaseArena"?"Оценка CR · нет котировки":"Оценка CR")+'</small>'+(opts.market?'<a class="market-link" href="'+esc(s.steamUrl)+'" target="_blank" rel="noopener">Steam Market ↗</a>':'')+(opts.buy?'<button class="btn primary skin-buy-btn" onclick="buySkin(&quot;'+esc(name)+'&quot;)">Купить за '+money(value??s.value)+'</button>':'')+(opts.select?'<label class="select-item"><input type="checkbox" '+(selected.has(opts.id)?"checked":"")+' onchange="toggleItem('+opts.id+',this.checked)"> Выбрать</label>':'')+(opts.sell?'<button class="btn secondary sell-skin-btn" onclick="sellItem('+opts.id+')">Продать за '+money(value??s.value)+'</button>':'')+'</div></article>'}
+function skinCard(name,value,opts={}){const s=skinInfo(name),itemType=skinCategory(s);return '<article data-rarity="'+esc(s.rarity||"")+'" data-item-type="'+esc(itemType)+'" class="skin-card rarity-'+esc((s.rarity||"").toLowerCase().replace(/[^a-zа-яё]+/g,"-"))+'">'+skinArt(name)+'<div class="skin-card-info"><span class="rarity-text">'+esc(s.rarity||"CS2")+'</span><b>'+esc(name)+'</b><strong>'+money(value??s.value)+'</strong><small class="steam-price">'+(Number(s.marketUsd)>0?usd(s.marketUsd)+" · "+(s.priceSource==="Steam Market"?"Steam":"рынок"):s.priceSource==="Оценка CaseArena"?"Оценка CR · нет котировки":"Оценка CR")+'</small>'+(opts.market?'<a class="market-link" href="'+esc(s.steamUrl)+'" target="_blank" rel="noopener">Steam Market ↗</a>':'')+(opts.buy?'<button class="btn primary skin-buy-btn" onclick="buySkin(&quot;'+esc(name)+'&quot;)">Купить за '+money(value??s.value)+'</button>':'')+(opts.select?'<label class="select-item"><input type="checkbox" '+(selected.has(opts.id)?"checked":"")+' onchange="toggleItem('+opts.id+',this.checked)"> Выбрать</label>':'')+(opts.sell?'<button class="btn secondary sell-skin-btn" onclick="sellItem('+opts.id+')">Продать за '+money(value??s.value)+'</button>':'')+'</div></article>'}
 function skinCategory(s){return s.category||(s.name.startsWith("★")?(s.name.includes("Gloves")?"Перчатки":"Нож"):"Оружие")}
 function renderSkinCatalog(reset=true){
  const grid=$("#skin-catalog-grid");if(!grid)return;
@@ -93,6 +93,19 @@ async function loadSkins(){skins=await api("/api/skins");renderSkinCatalog();ren
    CASES GRID — интерфейс как CaseBattle
    ============================================================ */
 
+async function loadTopDrops(){
+ const host=$("#top-drops-grid");if(!host)return;
+ try{
+  const items=await api("/api/top-drops");
+  host.innerHTML=items.map((item,index)=>'<article class="top-drop-card top-drop-'+index+'"><span class="top-drop-rank">TOP '+(index+1)+'</span><div class="top-drop-art">'+(item.image?'<img loading="lazy" src="'+esc(item.image)+'" alt="'+esc(item.name)+'">':skinArt(item.name))+'</div><div class="top-drop-info"><b>'+esc(item.name)+'</b><strong>'+money(item.value)+'</strong><small>'+esc(item.rarity||"CS2")+'</small></div>'+(item.caseId?'<button class="top-drop-action" onclick="showCase(\''+esc(item.caseId)+'\')">Как получить?</button>':'<button class="top-drop-action" onclick="navigateCaseArenaPage(\'skins\')">В каталоге скинов</button>')+'</article>').join("")||'<p class="muted">Топ дропов пока недоступен.</p>';
+ }catch(error){host.innerHTML='<p class="muted">Не удалось загрузить топ дропов.</p>';console.warn(error)}
+}
+function initDemoLiveStats(){
+ const online=$("#live-online"),opened=$("#live-opened");if(!online||!opened)return;
+ let players=118+Math.floor(Math.random()*43),cases=780+Math.floor(Math.random()*470);
+ const paint=()=>{online.textContent=players.toLocaleString("ru-RU");opened.textContent=cases.toLocaleString("ru-RU")};
+ paint();setInterval(()=>{players=Math.max(70,Math.min(210,players+Math.floor(Math.random()*13)-6));cases=Math.max(400,cases+Math.floor(Math.random()*39)-12);paint()},10000);
+}
 let casesFilter = "all";
 let casesSort   = "default";
 let casesLimit  = 12;
@@ -152,7 +165,7 @@ function renderCases() {
         '<div class="case-meta ca-card-meta">' + Number(item.count || 0) + ' скинов</div>' +
         '<div class="case-price ca-card-price">' + money(price) + '</div>' +
       '</div>' +
-      '<button class="case-open-btn ca-card-btn" type="button" onclick="showCase(\'' + esc(item.id) + '\')">Открыть</button>' +
+      '<div class="case-card-actions"><button class="case-open-btn ca-card-btn" type="button" onclick="showCase(\'' + esc(item.id) + '\')">Открыть</button><button class="case-quick-btn" type="button" onclick="openCase(\'' + esc(item.id) + '\',true)">⚡ Быстрое открытие</button></div>' +
     '</article>';
   }).join("");
 
@@ -225,18 +238,35 @@ function rouletteMarkup(items){
  const stopIndex=52;
  return '<div class="opening-subtitle">ИЩЕМ ТВОЙ ПРЕДМЕТ В КЕЙСЕ</div><div class="roulette-shell casebattle-roulette"><div class="roulette-pointer"></div><div class="roulette-window" id="roulette-window"><div class="roulette-track" id="roulette-track">'+items.map((item,i)=>'<div class="roulette-skin '+(i===stopIndex?'roulette-winner':'')+'">'+skinArt(item.name)+'<b>'+esc(item.name)+'</b><small>'+(money(item.value))+'</small></div>').join("")+'</div></div><div class="roulette-edge-fade"></div></div><div class="opening-footer"><span>ПРОКРУТКА КЕЙСА</span><span>64 ПРЕДМЕТА В ЛЕНТЕ</span></div>';
 }
-async function animateRoll(){
+async function animateRoll(duration=4200){
  const track=$("#roulette-track"),win=$("#roulette-window");if(!track||!win)return;
  const card=track.children[52];if(!card)return;
  track.style.transition="none";track.style.transform="translate3d(0,0,0)";void track.offsetWidth;
  const cardRect=card.getBoundingClientRect(),windowRect=win.getBoundingClientRect();
  const offset=cardRect.left+cardRect.width/2-(windowRect.left+windowRect.width/2);
+ let tickTimer=null,audio=null;
+ const tone=(frequency=760,volume=.025,length=.025)=>{
+  try{const AudioCtor=window.AudioContext||window.webkitAudioContext;if(!AudioCtor)return;audio=audio||new AudioCtor();if(audio.state==="suspended")audio.resume();const osc=audio.createOscillator(),gain=audio.createGain();osc.type="triangle";osc.frequency.value=frequency;gain.gain.value=volume;osc.connect(gain);gain.connect(audio.destination);osc.start();gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+length);osc.stop(audio.currentTime+length)}catch{}
+ };
  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
- track.style.transition="transform 9.6s cubic-bezier(.08,.72,.08,1)";
+ tone(520,.018,.035);tickTimer=setInterval(()=>tone(820,.012,.018),115);
+ track.style.transition="transform "+duration+"ms cubic-bezier(.08,.72,.08,1)";
  track.style.transform="translate3d(-"+offset+"px,0,0)";
- await new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;track.removeEventListener("transitionend",onEnd);resolve()};const onEnd=e=>{if(e.propertyName==="transform")finish()};track.addEventListener("transitionend",onEnd);setTimeout(finish,10000)});
+ await new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;track.removeEventListener("transitionend",onEnd);resolve()};const onEnd=e=>{if(e.propertyName==="transform")finish()};track.addEventListener("transitionend",onEnd);setTimeout(finish,duration+500)});
+ if(tickTimer)clearInterval(tickTimer);tone(1040,.045,.18);
 }
-window.openCase=async id=>{if(rolling)return;if(!me)return authModal();rolling=true;try{const caseData=await api("/api/cases/"+id);const d=await api("/api/cases/"+id+"/open",{method:"POST"});const items=makeRollItems(caseData.items,d.name);openModal("ОТКРЫТИЕ КЕЙСА",rouletteMarkup(items));await animateRoll();$("#modal-body").innerHTML='<div class="win-result">'+skinArt(d.name)+'<p class="muted small">ТЕБЕ ВЫПАЛО</p><h3>'+esc(d.name)+'</h3><strong>'+money(d.value)+'</strong><small class="steam-price">'+rub(skinInfo(d.name).steamRub)+'</small></div><button class="btn primary full-btn" onclick="closeModal()">Забрать предмет</button>';await refresh()}catch(e){toast(e.message)}finally{rolling=false}};
+window.openCase=async(id,quick=false)=>{
+ if(rolling)return;if(!me)return authModal();rolling=true;
+ try{
+  const caseData=await api("/api/cases/"+id);
+  const d=await api("/api/cases/"+id+"/open",{method:"POST"});
+  const items=makeRollItems(caseData.items,d.name);
+  openModal(quick?"БЫСТРОЕ ОТКРЫТИЕ":"ОТКРЫТИЕ КЕЙСА",rouletteMarkup(items));
+  await animateRoll(quick?3200:4200);
+  $("#modal-body").innerHTML='<div class="win-result">'+skinArt(d.name)+'<p class="muted small">ТЕБЕ ВЫПАЛО</p><h3>'+esc(d.name)+'</h3><strong>'+money(d.value)+'</strong><small class="steam-price">'+rub(skinInfo(d.name).steamRub)+'</small></div><button class="btn primary full-btn" onclick="closeModal()">Забрать предмет</button>';
+  await refresh();
+ }catch(e){toast(e.message)}finally{rolling=false}
+};
 window.setUpgradeMode=mode=>{
  upgradeSettings.mode=mode==="fast"?"fast":"animated";saveUpgradeSettings();
  document.querySelectorAll(".upgrade-mode-row button").forEach((el,i)=>el.classList.toggle("active",i===(upgradeSettings.mode==="fast"?1:0)));
@@ -376,7 +406,16 @@ async function loadActivity(){try{const rows=await api("/api/activity");$("#acti
 window.contract=async()=>{if(!me)return authModal();if(selected.size<3||selected.size>5)return toast("Выбери от 3 до 5 предметов");try{const d=await api("/api/contracts",{method:"POST",body:JSON.stringify({itemIds:[...selected]})});selected.clear();await refresh();toast(d.message)}catch(e){toast(e.message)}};
 async function loadLeaders(){const rows=await api("/api/leaderboard");$("#leader-list").innerHTML=rows.length?rows.map((u,i)=>'<div class="rank"><b>#'+(i+1)+'</b><button class="player-link" onclick="viewPlayer(\''+esc(u.username)+'\')">'+esc(u.username)+roleBadge(u.role)+'</button><b class="rank-value">'+money(u.balance+u.inventory_value)+'</b></div>').join(""):'Пока нет игроков'}
 window.viewPlayer=async username=>{try{const d=await api("/api/users/"+encodeURIComponent(username));const u=d.user;openModal("ПРОФИЛЬ ИГРОКА",'<div class="profile-head"><div class="avatar">'+esc(u.username.slice(0,2).toUpperCase())+'</div><div><h3>'+esc(u.username)+roleBadge(u.role)+'</h3><p class="muted small">В инвентаре '+d.inventory.length+' предметов · стоимость '+money(d.inventoryValue)+'</p></div></div><div class="public-inventory">'+(d.inventory.length?d.inventory.map(x=>skinCard(x.item_name,x.item_value,{market:true})).join(""):'<p class="muted">Инвентарь пуст</p>')+'</div>')}catch(e){toast(e.message)}};
-async function loadBattles(){const bs=await api("/api/battles");$("#battle-list").innerHTML=bs.map(b=>'<div class="battle"><div><strong>'+esc(b.name)+'</strong><p class="muted small">'+b.players+' игрока · '+b.rounds+' раунда · '+esc(b.status)+'</p></div><div><b class="battle-price">'+money(b.entry)+'</b> <button class="btn primary" onclick="joinBattle('+b.id+','+b.entry+')">Участвовать</button></div></div>').join("")}
+async function loadBattles(){
+ const bs=await api("/api/battles"),host=$("#battle-list");if(!host)return;
+ host.innerHTML=bs.map(b=>{
+  const max=Number(b.maxPlayers||4),joined=Math.max(0,Math.min(max,Number(b.players)||0)),running=String(b.status).toLowerCase().includes("идёт");
+  const slots=Array.from({length:max},(_,i)=>'<div class="battle-player-slot '+(i<joined?"occupied":"empty")+'"><span class="battle-avatar">'+(i<joined?"👤":"＋")+'</span><small>'+(i<joined?"Игрок":"Свободно")+'</small></div>').join("");
+  const caseIcons=Array.from({length:Math.max(1,Math.min(5,Number(b.rounds)||3))},()=>'<span class="battle-case-icon" title="Демо-кейс">🎁</span>').join("");
+  return '<article class="battle battle-card"><div class="battle-card-top"><span class="battle-status '+(running?"is-live":"is-waiting")+'">'+(running?"● ИДЁТ":"◷ ОЖИДАЕТ")+'</span><span class="battle-demo-tag">ДЕМО</span></div><div class="battle-card-title"><div><strong>'+esc(b.name)+'</strong><small>'+Number(b.rounds||0)+' раундов · вход '+money(b.entry)+'</small></div><b class="battle-price">'+money(b.entry)+'</b></div><div class="battle-cases">'+caseIcons+'</div><div class="battle-players">'+slots+'</div><div class="battle-progress"><span style="width:'+Math.round(joined/max*100)+'%"></span></div><div class="battle-card-footer"><small>'+joined+'/'+max+' игроков · '+(running?"матч уже начался":"ожидание игроков")+'</small>'+(running?'<button class="btn secondary" onclick="viewBattle('+b.id+')">◉ Смотреть</button>':'<button class="btn primary" onclick="joinBattle('+b.id+','+b.entry+')">Присоединиться</button>')+'</div></article>';
+ }).join("");
+}
+window.viewBattle=id=>{openModal("КЕЙС-БАТТЛ #"+id,'<div class="battle-watch"><div class="battle-watch-icon">⚔</div><h3>Демо-матч</h3><p class="muted">Этот баттл пока демонстрационный: просмотр раундов и реальные игроки ещё не подключены.</p><button class="btn primary full-btn" onclick="closeModal()">Понятно</button></div>')};
 window.joinBattle=async(id,entry)=>{try{const d=await api("/api/battles/"+id+"/join",{method:"POST",body:JSON.stringify({entry})});await refresh();toast(d.message)}catch(e){toast(e.message)}};
 window.switchArenaMode=mode=>{
  const battles=$("#arena-battles"),upgrade=$("#arena-upgrade");
@@ -397,7 +436,7 @@ async function loadStaff(search=""){
   const d=await api("/api/staff/users?search="+encodeURIComponent(q));
   const users=d.users||[], actorRank=roleRank(me.role);
   const rows=users.map(u=>{
-   const protectedOwner=u.role==="owner", targetRank=roleRank(u.role), canManage=!protectedOwner&&Number(u.id)!==Number(me.id)&&actorRank>targetRank;
+   const protectedOwner=u.role==="owner"||u.role==="co_owner", targetRank=roleRank(u.role), canManage=!protectedOwner&&Number(u.id)!==Number(me.id)&&actorRank>targetRank;
    const actions=[];
    if(protectedOwner)actions.push('<span class="owner-shield">🛡 Защищён</span>');
    else if(canManage){
@@ -428,7 +467,7 @@ window.staffAction=async(id,action)=>{
 async function loadOwner(search=ownerSearchQuery){
  ownerSearchQuery=String(search||'');
  const box=$("#owner-content");
- if(!me||me.role!=="owner"){box.innerHTML='<p class="muted">Доступ запрещён.</p>';return}
+ if(!me||!["owner","co_owner"].includes(me.role)){box.innerHTML='<p class="muted">Доступ запрещён.</p>';return}
  box.innerHTML='<p class="muted">Загружаю данные панели…</p>';
  try{
   const d=await api("/api/owner/overview"+(ownerSearchQuery?"?search="+encodeURIComponent(ownerSearchQuery):""));
@@ -444,7 +483,7 @@ async function loadOwner(search=ownerSearchQuery){
    '</div>'+
    '<div class="owner-toolbar"><div><h3>Управление игроками</h3><small class="muted">Все аккаунты, включая игроков без открытых кейсов. Гарантированный дроп выдаётся на следующее открытие.</small></div><div class="owner-toolbar-actions"><input id="owner-search" value="'+esc(ownerSearchQuery)+'" placeholder="Поиск по нику…" oninput="searchOwnerUsers(this.value)"><button class="btn secondary" onclick="loadOwner()">Обновить</button></div></div>'+
    '<div id="owner-users" class="owner-users">'+(users.length?users.map(u=>{
-    const isOwner=u.role==="owner";
+    const isOwner=u.role==="owner"||u.role==="co_owner";
     const locked=isOwner&&Number(u.id)!==Number(me.id);
     const disabled=locked?"disabled":"";
     const roleDisabled=isOwner?"disabled":"";
@@ -499,7 +538,8 @@ window.deleteUser=async(id,username)=>{
  if(!confirm("Удалить аккаунт "+username+" и весь его инвентарь?"))return;
  try{await api("/api/owner/users/"+id,{method:"DELETE"});await loadOwner();toast("Аккаунт удалён")}catch(e){toast(e.message)}
 };
-(async()=>{const jobs=[["скины",loadSkins],["кейсы",loadCases],["баттлы",loadBattles],["лидеры",loadLeaders],["профиль",refresh]];const results=await Promise.allSettled(jobs.map(([,run])=>run()));results.forEach((result,i)=>{if(result.status==="rejected"){const [name]=jobs[i];console.error("CaseArena: не загрузились "+name,result.reason);if(name==="кейсы")$("#case-grid").innerHTML='<p class="muted">Не удалось загрузить кейсы. Обнови страницу.</p>';if(name==="баттлы")$("#battle-list").innerHTML='<p class="muted">Баттлы временно недоступны.</p>';if(name==="лидеры")$("#leader-list").textContent="Таблица лидеров временно недоступна";}});const p=new URLSearchParams(location.search);if(p.get("chooseNick")==="1")nicknameModal();else if(p.has("google")){toast("Не удалось выполнить вход через Google");history.replaceState({},"",location.pathname)}setInterval(()=>{if(!document.hidden)loadLeaders().catch(e=>console.warn("Leaderboard auto-refresh failed:",e.message))},15000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadLeaders().catch(e=>console.warn("Leaderboard refresh failed:",e.message))})})();
+initDemoLiveStats();
+(async()=>{const jobs=[["скины",loadSkins],["кейсы",loadCases],["топ дропов",loadTopDrops],["баттлы",loadBattles],["лидеры",loadLeaders],["профиль",refresh]];const results=await Promise.allSettled(jobs.map(([,run])=>run()));results.forEach((result,i)=>{if(result.status==="rejected"){const [name]=jobs[i];console.error("CaseArena: не загрузились "+name,result.reason);if(name==="кейсы")$("#case-grid").innerHTML='<p class="muted">Не удалось загрузить кейсы. Обнови страницу.</p>';if(name==="баттлы")$("#battle-list").innerHTML='<p class="muted">Баттлы временно недоступны.</p>';if(name==="лидеры")$("#leader-list").textContent="Таблица лидеров временно недоступна";}});const p=new URLSearchParams(location.search);if(p.get("chooseNick")==="1")nicknameModal();else if(p.has("google")){toast("Не удалось выполнить вход через Google");history.replaceState({},"",location.pathname)}setInterval(()=>{if(!document.hidden)loadLeaders().catch(e=>console.warn("Leaderboard auto-refresh failed:",e.message))},15000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadLeaders().catch(e=>console.warn("Leaderboard refresh failed:",e.message))})})();
 
 /* App navigation bootstrap: kept in the external script for mobile WebViews. */
 (()=>{
