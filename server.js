@@ -189,8 +189,8 @@ async function flushWrites() {
  await writeQueue;
  if (writeError) throw writeError;
 }
-const ROLE_ORDER = ["user","moderator","admin","senior_admin","deputy_head_admin","head_admin","owner"];
-const ROLE_LABELS = {user:"Игрок",moderator:"Модератор",admin:"Администратор",senior_admin:"Старший администратор",deputy_head_admin:"ЗГА",head_admin:"Главный администратор",owner:"Владелец"};
+const ROLE_ORDER = ["user","moderator","admin","senior_admin","deputy_head_admin","head_admin","co_owner","owner"];
+const ROLE_LABELS = {user:"Игрок",moderator:"Модератор",admin:"Администратор",senior_admin:"Старший администратор",deputy_head_admin:"ЗГА",head_admin:"Главный администратор",co_owner:"Совладелец",owner:"Владелец"};
 const roleRank = role => { const rank=ROLE_ORDER.indexOf(role); return rank<0?0:rank; };
 const OWNER_USERNAME = (process.env.OWNER_USERNAME || "").trim().toLowerCase();
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD || "";
@@ -257,7 +257,7 @@ function requireAuth(req,res,next) {
 }
 function requireOwner(req,res,next) {
   const u=current(req);
-  if (!u || u.role !== "owner" || (OWNER_USERNAME && u.username.toLowerCase()!==OWNER_USERNAME)) return res.status(403).json({error:"Только владелец может выполнить это действие"});
+  if (!u || !["owner","co_owner"].includes(u.role) || (OWNER_USERNAME && u.username.toLowerCase()!==OWNER_USERNAME && u.role==="owner")) return res.status(403).json({error:"Недостаточно прав владельца"});
   next();
 }
 function requireStaff(req,res,next) {
@@ -266,7 +266,7 @@ function requireStaff(req,res,next) {
   next();
 }
 function ownerShield(target) {
-  return target && (target.role==="owner" || (OWNER_USERNAME && target.username.toLowerCase()===OWNER_USERNAME));
+  return target && (target.role==="owner" || target.role==="co_owner" || (OWNER_USERNAME && target.username.toLowerCase()===OWNER_USERNAME));
 }
 function log(userId,message) {
   db.prepare("INSERT INTO activity(user_id,message) VALUES(?,?)").run(userId,message);
@@ -850,6 +850,16 @@ app.get("/api/skins",(req,res)=>{
  else console.log("CS2 skin image audit passed",{total:result.length,withImages:result.length,withoutImages:0});
  res.json(result);
 });
+app.get("/api/top-drops",async(req,res)=>{
+ try{
+  const {skinsIndex}=await caseImageData();
+  const top=skinCatalog.slice().sort((a,b)=>Number(b.value)-Number(a.value)).slice(0,5).map(skin=>{
+   const sourceCase=cases.find(c=>c.items.some(item=>item[0]===skin.name));
+   return {name:skin.name,value:Number(skin.value)||0,rarity:skin.rarity||"CS2",image:resolveSkinImage(skin.name,skinsIndex)||skin.image||"",caseId:sourceCase?.id||null,caseName:sourceCase?.name||null};
+  });
+  res.json(top);
+ }catch(error){console.error("Top drops unavailable:",error.message);res.status(500).json({error:"Не удалось загрузить топ дропов"});}
+});
 app.post("/api/skins/buy",requireAuth,(req,res)=>{
   const u=current(req),skinName=String(req.body.skinName||"").trim().slice(0,160);
   const skin=skinCatalog.find(item=>item.name===skinName);
@@ -1036,7 +1046,7 @@ app.post("/api/owner/users/:id/balance",requireAuth,requireOwner,(req,res)=>{
  if(!Number.isInteger(id)||id<1||!Number.isInteger(amount)||amount<(mode==="add"?1:0)||amount>100000000) return res.status(400).json({error:"Проверь сумму"});
  const target=db.prepare("SELECT id,username,role,balance FROM users WHERE id=?").get(id);
  if(!target)return res.status(404).json({error:"Игрок не найден"});
- if(target.role==="owner"&&target.id!==current(req).id)return res.status(403).json({error:"Нельзя менять баланс другого владельца"});
+ if(["owner","co_owner"].includes(target.role)&&target.id!==current(req).id)return res.status(403).json({error:"Нельзя менять баланс другого владельца или совладельца"});
  const nextBalance=mode==="add"?Number(target.balance)+amount:amount;
  if(nextBalance>100000000)return res.status(400).json({error:"Слишком большой баланс"});
  const tx=db.transaction(()=>{
@@ -1068,7 +1078,7 @@ app.delete("/api/owner/users/:id",requireAuth,requireOwner,(req,res)=>{
  const tx=db.transaction(()=>{
   db.prepare("DELETE FROM inventory WHERE user_id=?").run(id);
   db.prepare("DELETE FROM activity WHERE user_id=?").run(id);
-  db.prepare("DELETE FROM users WHERE id=? AND role!='owner'").run(id);
+  db.prepare("DELETE FROM users WHERE id=? AND role NOT IN ('owner','co_owner')").run(id);
  });
  tx();res.json({ok:true});
 });
