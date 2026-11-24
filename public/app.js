@@ -39,7 +39,7 @@ window.updateOwnerNavigation=()=>{
  if(!window.canAccessOwner()&&owner)owner.remove();
  if(me&&roleRank(me.role)>=1&&!staff){staff=document.createElement("a");staff.href="#staff";staff.dataset.nav="staff";staff.innerHTML='<span class="bottom-nav-icon">🛠</span><span>Персонал</span>';nav.appendChild(staff)}
  if((!me||roleRank(me.role)<1)&&staff)staff.remove();
- nav.classList.toggle("owner-mode",window.canAccessOwner());window.renderCaseArenaPage?.();
+ nav.classList.toggle("owner-mode",window.canAccessOwner());window.renderCaseArenaPage?.(location.hash||"cases");
 };
 window.goProfile=()=>{location.hash="profile"};
 window.logout=async()=>{try{await api("/api/logout",{method:"POST"});me=null;inventory=[];upgradeSourceIds=[];upgradeSourceId=null;selected.clear();renderAccount();renderProfile();renderUpgrade();window.updateOwnerNavigation?.();toast("Вы вышли из аккаунта")}catch(e){toast(e.message)}};
@@ -546,7 +546,7 @@ initDemoLiveStats();
  const nav=document.querySelector(".bottom-nav");
  let currentPage="cases";
  function render(page,updateUrl=true){
-  page=String(page||"cases").replace(/^#/,"");
+  page=String(page||currentPage||"cases").replace(/^#/,"");
   if(page==="battles"||page==="upgrade")page="arena";
   if(!pageNodes().some(node=>node.dataset.page===page))page="cases";
   if(page==="owner"&&!window.canAccessOwner?.())page="cases";
@@ -567,8 +567,9 @@ initDemoLiveStats();
  document.addEventListener("click",event=>{
   const link=event.target instanceof Element?event.target.closest('a[href^="#"]'):null;
   if(!link)return;
-  const page=link.dataset.nav||link.getAttribute("href").slice(1);
-  if(!page)return;
+  const target=link.getAttribute("href").slice(1);
+  const page=link.dataset.nav||target;
+  if(!page||!pageNodes().some(node=>node.dataset.page===page))return;
   event.preventDefault();
   event.stopImmediatePropagation();
   render(page);
